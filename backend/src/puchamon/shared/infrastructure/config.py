@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Configuration settings for the application."""
 
-    PROJECT_NAME: str = "CONTRACT AI"
+    PROJECT_NAME: str = "PUCHAMON"
     LOG_LEVEL: str = "DEBUG"
     GLOBAL_PREFIX: str = "/api/v1"
     CORS_ORIGINS: list[str] = [
