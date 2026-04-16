@@ -197,6 +197,27 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm/
+
+# Frontend / bundlers
+.astro/
+.next/
+.nuxt/
+.svelte-kit/
+.parcel-cache/
+.turbo/
+.vite/
+coverage/
+*.tsbuildinfo
+vite.svg
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
