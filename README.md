@@ -19,6 +19,13 @@ Actualmente el backend es la parte mas avanzada del repositorio. `frontend/` y `
 3. Configura las variables de entorno requeridas en `.env`.
 4. Inicia la API con `uv run start`.
 
+## Datos de Pokemon en MongoDB
+El archivo `frontend/pokemon.js` permite cargar datos iniciales en MongoDB para el proyecto.
+1. Asegurate de tener MongoDB en ejecucion.
+2. Asegurate de tener `mongosh` instalado.
+3. Desde la raiz del proyecto, ejecuta `mongosh frontend/pokemon.js`.
+Los datos se cargaran en la base `pokemon_battle_db`.
+
 ## Proximos pasos sugeridos
 
 - Implementar la interfaz web del simulador.
