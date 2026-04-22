@@ -17,6 +17,7 @@ from .shared.api import (
     validation_exception_handler,
 )
 from .shared.infrastructure import settings
+from .shared.infrastructure.database import init_db
 
 __version__: str = get_version(distribution_name="puchamon")
 
@@ -27,6 +28,7 @@ def create() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         """Lifespan context manager for startup and shutdown events."""
+        await init_db()
         yield
 
     app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)

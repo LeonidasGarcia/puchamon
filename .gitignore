@@ -222,3 +222,5 @@ vite.svg
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+package-lock.json/
