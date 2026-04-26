@@ -288,8 +288,7 @@ const DATA = {
       ability: "sand-stream",
       item: "choice-band",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["stone-edge", "crunch", "pursuit", "earthquake"],
-      smogonSource: "https://www.smogon.com/dex/bw/pokemon/tyranitar/"
+      moves: ["stone-edge", "crunch", "pursuit", "earthquake"]
     },
     {
       _id: "tyranitar-chople-rocks",
@@ -299,8 +298,7 @@ const DATA = {
       ability: "sand-stream",
       item: "chople-berry",
       evs: { hp: 248, atk: 88, def: 0, spa: 0, spd: 172, spe: 0 },
-      moves: ["stealth-rock", "crunch", "pursuit", "ice-beam"],
-      smogonSource: "https://www.smogon.com/forums/threads/tyranitar-qc-2-2-gp-1-1.3697580/"
+      moves: ["stealth-rock", "crunch", "pursuit", "ice-beam"]
     },
     {
       _id: "politoed-defensive",
@@ -310,8 +308,7 @@ const DATA = {
       ability: "drizzle",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["scald", "toxic", "perish-song", "protect"],
-      smogonSource: "https://www.smogon.com/forums/threads/politoed-done.3678010/"
+      moves: ["scald", "toxic", "perish-song", "protect"]
     },
     {
       _id: "politoed-choice-specs",
@@ -321,8 +318,7 @@ const DATA = {
       ability: "drizzle",
       item: "choice-specs",
       evs: { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 },
-      moves: ["hydro-pump", "scald", "ice-beam", "focus-blast"],
-      smogonSource: "https://www.smogon.com/forums/threads/specs-politoed-done.3750086/"
+      moves: ["hydro-pump", "scald", "ice-beam", "focus-blast"]
     },
     {
       _id: "ferrothorn-spikes",
@@ -332,8 +328,7 @@ const DATA = {
       ability: "iron-barbs",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 88, spa: 0, spd: 168, spe: 0 },
-      moves: ["spikes", "leech-seed", "power-whip", "gyro-ball"],
-      smogonSource: "https://www.smogon.com/dex/bw/pokemon/ferrothorn/"
+      moves: ["spikes", "leech-seed", "power-whip", "gyro-ball"]
     },
     {
       _id: "ferrothorn-stealth-rock",
@@ -343,8 +338,7 @@ const DATA = {
       ability: "iron-barbs",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 48, spa: 0, spd: 208, spe: 0 },
-      moves: ["stealth-rock", "power-whip", "thunder-wave", "protect"],
-      smogonSource: "https://www.smogon.com/dex/bw/pokemon/ferrothorn/"
+      moves: ["stealth-rock", "power-whip", "thunder-wave", "protect"]
     },
     {
       _id: "latios-choice-specs",
@@ -354,8 +348,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-specs",
       evs: { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 },
-      moves: ["draco-meteor", "psyshock", "surf", "trick"],
-      smogonSource: "https://www.smogon.com/forums/threads/choice-specs-latios.3583173/"
+      moves: ["draco-meteor", "psyshock", "surf", "trick"]
     },
     {
       _id: "latios-choice-scarf",
@@ -365,8 +358,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 },
-      moves: ["draco-meteor", "surf", "psyshock", "trick"],
-      smogonSource: "https://www.smogon.com/forums/threads/bw-latios.3723148/"
+      moves: ["draco-meteor", "surf", "psyshock", "trick"]
     },
     {
       _id: "starmie-analytic-lo",
@@ -376,8 +368,7 @@ const DATA = {
       ability: "analytic",
       item: "life-orb",
       evs: { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 },
-      moves: ["hydro-pump", "ice-beam", "thunderbolt", "rapid-spin"],
-      smogonSource: "https://www.smogon.com/dex/bw/pokemon/starmie/"
+      moves: ["hydro-pump", "ice-beam", "thunderbolt", "rapid-spin"]
     },
     {
       _id: "starmie-leftovers-spin",
@@ -387,8 +378,7 @@ const DATA = {
       ability: "natural-cure",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 0, spa: 32, spd: 0, spe: 228 },
-      moves: ["surf", "rapid-spin", "recover", "thunderbolt"],
-      smogonSource: "https://www.smogon.com/forums/threads/starmie-analysis.81375/"
+      moves: ["surf", "rapid-spin", "recover", "thunderbolt"]
     },
     {
       _id: "jirachi-choice-scarf",
@@ -398,8 +388,7 @@ const DATA = {
       ability: "serene-grace",
       item: "choice-scarf",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["iron-head", "u-turn", "fire-punch", "trick"],
-      smogonSource: "https://www.smogon.com/forums/threads/choice-scarf-jirachi.3536989/"
+      moves: ["iron-head", "u-turn", "fire-punch", "trick"]
     },
     {
       _id: "jirachi-spdef-rocks",
@@ -409,8 +398,7 @@ const DATA = {
       ability: "serene-grace",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 0, spa: 0, spd: 224, spe: 32 },
-      moves: ["iron-head", "toxic", "stealth-rock", "u-turn"],
-      smogonSource: "https://www.smogon.com/forums/threads/jirachi.3549136/"
+      moves: ["iron-head", "toxic", "stealth-rock", "u-turn"]
     },
     {
       _id: "rotom-wash-choice-scarf",
@@ -420,8 +408,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 },
-      moves: ["volt-switch", "hydro-pump", "trick", "will-o-wisp"],
-      smogonSource: "https://www.smogon.com/forums/threads/trick-rotom-wash.3716561/"
+      moves: ["volt-switch", "hydro-pump", "trick", "will-o-wisp"]
     },
     {
       _id: "rotom-wash-defensive",
@@ -431,8 +418,7 @@ const DATA = {
       ability: "levitate",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["volt-switch", "hydro-pump", "pain-split", "will-o-wisp"],
-      smogonSource: "https://www.smogon.com/forums/threads/we-will-wash-you-defensive-pivot-rotom-w.3746062/"
+      moves: ["volt-switch", "hydro-pump", "pain-split", "will-o-wisp"]
     },
     {
       _id: "breloom-technician-sd",
@@ -442,9 +428,7 @@ const DATA = {
       ability: "technician",
       item: "fighting-gem",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["mach-punch", "bullet-seed", "low-sweep", "swords-dance"],
-      smogonSource: "https://www.smogon.com/forums/threads/californibreloom-gen-5-ou-breloom-hyperoffense.3730063/",
-      notes: "Uses the current BW OU environment where sleep-inducing moves are banned."
+      moves: ["mach-punch", "bullet-seed", "low-sweep", "swords-dance"]
     },
     {
       _id: "breloom-poison-heal",
@@ -454,8 +438,7 @@ const DATA = {
       ability: "poison-heal",
       item: "toxic-orb",
       evs: { hp: 236, atk: 252, def: 0, spa: 0, spd: 20, spe: 0 },
-      moves: ["protect", "substitute", "focus-punch", "seed-bomb"],
-      smogonSource: "https://www.smogon.com/forums/threads/bw-breloom.3670603/"
+      moves: ["protect", "substitute", "focus-punch", "seed-bomb"]
     },
     {
       _id: "heatran-spdef",
@@ -465,8 +448,7 @@ const DATA = {
       ability: "flash-fire",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 0, spa: 8, spd: 252, spe: 0 },
-      moves: ["lava-plume", "toxic", "stealth-rock", "protect"],
-      smogonSource: "https://www.smogon.com/dex/bw/pokemon/heatran/"
+      moves: ["lava-plume", "toxic", "stealth-rock", "protect"]
     },
     {
       _id: "heatran-subtoxic",
@@ -476,8 +458,7 @@ const DATA = {
       ability: "flash-fire",
       item: "leftovers",
       evs: { hp: 8, atk: 0, def: 0, spa: 156, spd: 100, spe: 244 },
-      moves: ["substitute", "lava-plume", "toxic", "protect"],
-      smogonSource: "https://www.smogon.com/dex/bw/pokemon/heatran/"
+      moves: ["substitute", "lava-plume", "toxic", "protect"]
     },
     {
       _id: "keldeo-choice-specs",
@@ -487,8 +468,7 @@ const DATA = {
       ability: "justified",
       item: "choice-specs",
       evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
-      moves: ["hydro-pump", "surf", "secret-sword", "hidden-power-ice"],
-      smogonSource: "https://www.smogon.com/forums/threads/keldeo.3462623/"
+      moves: ["hydro-pump", "surf", "secret-sword", "hidden-power-ice"]
     },
     {
       _id: "keldeo-calm-mind",
@@ -498,8 +478,7 @@ const DATA = {
       ability: "justified",
       item: "leftovers",
       evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
-      moves: ["calm-mind", "surf", "secret-sword", "substitute"],
-      smogonSource: "https://www.smogon.com/forums/threads/keldeo.3462623/"
+      moves: ["calm-mind", "surf", "secret-sword", "substitute"]
     }
   ]
 };
