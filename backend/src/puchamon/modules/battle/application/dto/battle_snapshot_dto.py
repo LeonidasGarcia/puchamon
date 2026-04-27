@@ -21,7 +21,7 @@ class PlayerSnapshotDTO(BaseEmbeddedModel):
 
 class SideSnapshotDTO(BaseEmbeddedModel):
     hazards: list[str]
-    active_pokemon_instance_ids: list[str]
+    active_pokemon_instance_ids: list[str | None]
 
 
 class MoveStateSnapshotDTO(BaseEmbeddedModel):
@@ -31,7 +31,7 @@ class MoveStateSnapshotDTO(BaseEmbeddedModel):
 
 class StatStagesSnapshotDTO(BaseEmbeddedModel):
     atk: int
-    def_: int = Field(alias="def")
+    def_: int = Field(serialization_alias="def", validation_alias="def")
     spa: int
     spd: int
     spe: int
@@ -42,7 +42,7 @@ class StatStagesSnapshotDTO(BaseEmbeddedModel):
 class PokemonInstanceSnapshotDTO(BaseEmbeddedModel):
     instance_id: str
     trainer_id: str
-    slot: int
+    team_slot: int
     pokemon_id: str
     level: int
     current_hp: int

@@ -13,7 +13,7 @@ class WeatherState(BaseEmbeddedModel):
 
 class SideState(BaseEmbeddedModel):
     hazards: list[str]
-    active_pokemon_instance_ids: list[str]
+    active_pokemon_instance_ids: list[str | None]
 
 
 class Player(BaseEmbeddedModel):
@@ -24,7 +24,8 @@ class Player(BaseEmbeddedModel):
 
 class TargetScope(BaseEmbeddedModel):
     scope: Literal["target", "self", "all", "field", "ally_party"]
-    target_instance_id: str | None = None
+    target_side: Literal["ally_side", "foe_side"] | None = None
+    target_active_slot: int | None = None
 
 
 class TurnAction(BaseEmbeddedModel):

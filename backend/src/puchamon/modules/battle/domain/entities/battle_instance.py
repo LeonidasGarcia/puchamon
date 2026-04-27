@@ -9,14 +9,16 @@ class MoveState(BaseEmbeddedModel):
     move_id: str
     current_pp: int
 
+
 class StatStages(BaseEmbeddedModel):
     atk: int = 0
-    def_: int = Field(default=0, alias="def")
+    def_: int = Field(default=0, validation_alias="def", serialization_alias="def")
     spa: int = 0
     spd: int = 0
     spe: int = 0
     acc: int = 0
     eva: int = 0
+
 
 class BattleInstance(BaseEntity):
     battle_id: str
