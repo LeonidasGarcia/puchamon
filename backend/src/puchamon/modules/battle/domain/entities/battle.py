@@ -19,25 +19,34 @@ class SideState(BaseEmbeddedModel):
 class Player(BaseEmbeddedModel):
     trainer_id: str
     name: str
+    controller_type: Literal["human", "ai"]
 
 
 class TargetScope(BaseEmbeddedModel):
-    scope: Literal["single", "self", "all", "field", "ally_party"]
+    scope: Literal["target", "self", "all", "field", "ally_party"]
     target_instance_id: str | None = None
 
 
 class TurnAction(BaseEmbeddedModel):
     player: str
-    type: Literal["move", "switch", "item"]
+    type: Literal["move", "switch"]
     user_instance_id: str
     move_id: str | None = None
     target: TargetScope | None = None
 
 
+class BattleResult(BaseEmbeddedModel):
+    winner_trainer_id: str
+    reason: Literal["knockout", "forfeit", "time"]
+
+
 class Battle(BaseEntity):
+    battle_type: Literal["1v1", "2v2", "3v3"]
     turn: int
     status: Literal["active", "finished", "paused"]
+    phase: Literal["setup", "awaiting_actions", "resolving_turn", "awaiting_replacements"] | None = None
     weather: WeatherState | None = None
     sides: dict[str, SideState]
     players: list[Player]
     current_turn_actions: list[TurnAction]
+    result: BattleResult | None = None
