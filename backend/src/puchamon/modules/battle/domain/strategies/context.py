@@ -40,6 +40,7 @@ class BattleStrategyContext:
     battle: Battle
     battle_instances: dict[str, BattleInstance]
     events: list[BattleStrategyEvent] = field(default_factory=list)
+    transient: dict[str, Any] = field(default_factory=dict)
 
     def get_instance(self, instance_id: str) -> BattleInstance:
         """Return a battle instance from the current runtime context."""
@@ -68,6 +69,31 @@ class BattleStrategyContext:
             )
         )
 
+    def mark_action_blocked(self, instance_id: str, reason: str) -> None:
+        """Mark an instance action as blocked for the current turn resolution step."""
+        blocked_actions: dict[str, str] = self.transient.setdefault("blocked_actions", {})
+        blocked_actions[instance_id] = reason
+
+    def get_action_block_reason(self, instance_id: str) -> str | None:
+        """Return the reason why an instance cannot execute its action, if any."""
+        blocked_actions: dict[str, str] = self.transient.get("blocked_actions", {})
+        return blocked_actions.get(instance_id)
+
+    def clear_action_block(self, instance_id: str) -> None:
+        """Remove a previously registered action block for an instance."""
+        blocked_actions: dict[str, str] = self.transient.get("blocked_actions", {})
+        blocked_actions.pop(instance_id, None)
+
+    def mark_fainted(self, instance_id: str) -> None:
+        """Track that an instance fainted during the current resolution step."""
+        fainted_instance_ids: list[str] = self.transient.setdefault("fainted_instance_ids", [])
+        if instance_id not in fainted_instance_ids:
+            fainted_instance_ids.append(instance_id)
+
+    def get_fainted_instance_ids(self) -> list[str]:
+        """Return the list of instances that fainted during this resolution step."""
+        return list(self.transient.get("fainted_instance_ids", []))
+
 
 @dataclass(slots=True)
 class ActionExecutionInput:
@@ -77,6 +103,16 @@ class ActionExecutionInput:
     movement: Movement | None = None
     move_effects: list[MoveEffect] = field(default_factory=list)
     replacement_instance_id: str | None = None
+    move_effect_strategy_registry: Any | None = None
+
+    def build_move_effect_execution(self, *, effect: MoveEffect, target_instance_ids: list[str]) -> "MoveEffectExecutionInput":
+        """Build the effect execution input derived from the current action resolution."""
+        return MoveEffectExecutionInput(
+            effect=effect,
+            source_instance_id=self.action.user_instance_id,
+            target_instance_ids=target_instance_ids,
+            movement=self.movement,
+        )
 
 
 @dataclass(slots=True)
@@ -87,6 +123,7 @@ class MoveEffectExecutionInput:
     source_instance_id: str
     target_instance_ids: list[str]
     movement: Movement | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
