@@ -1,19 +1,22 @@
 """Strategy for executing move actions."""
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from .....pokedex.domain.entities import Movement
+from ...battlefield import get_side_for_trainer, resolve_effect_target_instance_ids
 from ...entities import BattleInstance
 from ...exceptions import BattleValidationError
-from ..context import ActionExecutionInput, BattleStrategyContext
-from ..field_utils import get_side_for_trainer, resolve_effect_target_instance_ids
+from ...runtime import ActionExecutionInput, BattleStrategyContext
 from .base import ActionStrategy
+
+if TYPE_CHECKING:
+    from ...registries import MoveEffectStrategyRegistry
 
 
 def _apply_move_effects(
     context: BattleStrategyContext,
     execution: ActionExecutionInput,
-    move_effect_strategy_registry: Any,
+    move_effect_strategy_registry: "MoveEffectStrategyRegistry",
     movement: Movement,
     source_instance: BattleInstance,
 ) -> None:

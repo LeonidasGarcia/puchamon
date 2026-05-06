@@ -1,13 +1,17 @@
-"""Shared runtime context for battle domain strategies."""
+"""Shared runtime context for battle domain resolution."""
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Weather
 from ....pokedex.domain.entities.conditions import ConditionEffect
 from ....pokedex.domain.entities.weathers import WeatherEffect
 from ..entities import Battle, BattleInstance, TurnAction
 from ..exceptions import BattleValidationError
+
+if TYPE_CHECKING:
+    from ..registries import MoveEffectStrategyRegistry
+
 
 StrategyHook = Literal[
     "before_action",
@@ -103,7 +107,7 @@ class ActionExecutionInput:
     movement: Movement | None = None
     move_effects: list[MoveEffect] = field(default_factory=list)
     replacement_instance_id: str | None = None
-    move_effect_strategy_registry: Any | None = None
+    move_effect_strategy_registry: "MoveEffectStrategyRegistry | None" = None
 
     def build_move_effect_execution(self, *, effect: MoveEffect, target_instance_ids: list[str]) -> "MoveEffectExecutionInput":
         """Build the effect execution input derived from the current action resolution."""

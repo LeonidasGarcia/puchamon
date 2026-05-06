@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ..context import BattleStrategyContext, MoveEffectExecutionInput
+from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
 
 
 class MoveEffectStrategy(ABC):

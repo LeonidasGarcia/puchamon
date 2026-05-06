@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ..context import ActionExecutionInput, BattleStrategyContext
+from ...runtime import ActionExecutionInput, BattleStrategyContext
 
 
 class ActionStrategy(ABC):

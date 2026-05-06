@@ -1,7 +1,7 @@
 """Shared placeholder for weather effect strategies pending implementation."""
 
 from ...exceptions import BattleValidationError
-from ..context import BattleStrategyContext, WeatherEffectExecutionInput
+from ...runtime import BattleStrategyContext, WeatherEffectExecutionInput
 from .base import WeatherEffectStrategy
 
 

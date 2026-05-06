@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ..context import BattleStrategyContext, StrategyHook, WeatherEffectExecutionInput
+from ...runtime import BattleStrategyContext, StrategyHook, WeatherEffectExecutionInput
 
 
 class WeatherEffectStrategy(ABC):

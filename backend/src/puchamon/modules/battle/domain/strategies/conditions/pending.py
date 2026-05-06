@@ -1,7 +1,7 @@
 """Shared placeholder for condition effect strategies pending implementation."""
 
 from ...exceptions import BattleValidationError
-from ..context import BattleStrategyContext, ConditionEffectExecutionInput
+from ...runtime import BattleStrategyContext, ConditionEffectExecutionInput
 from .base import ConditionEffectStrategy
 
 

@@ -1,7 +1,7 @@
 """Shared placeholder for move effect strategies pending implementation."""
 
 from ...exceptions import BattleValidationError
-from ..context import BattleStrategyContext, MoveEffectExecutionInput
+from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
 from .base import MoveEffectStrategy
 
 

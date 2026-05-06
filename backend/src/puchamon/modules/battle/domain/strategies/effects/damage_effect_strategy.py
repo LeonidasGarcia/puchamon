@@ -1,9 +1,10 @@
 """Strategy for `damage` move effects."""
 
 from .....pokedex.domain.entities.effects import DamagePayload
+from ...battlefield import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
 from ...exceptions import BattleValidationError
-from ..context import BattleStrategyContext, MoveEffectExecutionInput
-from ..field_utils import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
+from ...mechanics import calculate_damage, resolve_damage_hit_count, resolve_damage_roll_percent
+from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
 from .pending import PendingMoveEffectStrategy
 
 
@@ -31,14 +32,30 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
             )
             return
 
-        hit_count = payload.hits if isinstance(payload.hits, int) else payload.hits.min
-        base_damage = max(1, execution.metadata.get("resolved_damage", execution.movement.power))
-        total_damage = max(1, base_damage * max(1, hit_count))
+        hit_count = resolve_damage_hit_count(payload)
+        resolved_damage = execution.metadata.get("resolved_damage")
+        configured_damage_roll_percent = execution.metadata.get("damage_roll_percent")
+        source_instance = context.get_instance(execution.source_instance_id)
 
         for target_instance_id in execution.target_instance_ids:
             target_instance = context.get_instance(target_instance_id)
             if target_instance.fainted or target_instance.current_hp <= 0:
                 continue
+
+            damage_roll_percent: int | None = None
+            if resolved_damage is not None:
+                total_damage = max(1, int(resolved_damage) * hit_count)
+            elif source_instance.stats is not None and target_instance.stats is not None:
+                damage_roll_percent = resolve_damage_roll_percent(configured_damage_roll_percent)
+                total_damage = calculate_damage(
+                    movement=execution.movement,
+                    payload=payload,
+                    source_instance=source_instance,
+                    target_instance=target_instance,
+                    damage_roll_percent=damage_roll_percent,
+                )
+            else:
+                total_damage = max(1, execution.movement.power * hit_count)
 
             applied_damage = min(target_instance.current_hp, total_damage)
             target_instance.current_hp -= applied_damage
@@ -50,6 +67,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
                 target_instance_id=target_instance_id,
                 move_id=execution.movement.id,
                 value=applied_damage,
+                damage_roll_percent=damage_roll_percent,
                 hits=hit_count,
             )
 

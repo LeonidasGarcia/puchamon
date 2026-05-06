@@ -1,8 +1,8 @@
 """Strategy for executing switch actions."""
 
+from ...battlefield import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
 from ...exceptions import BattleConflictError, BattleValidationError
-from ..context import ActionExecutionInput, BattleStrategyContext
-from ..field_utils import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
+from ...runtime import ActionExecutionInput, BattleStrategyContext
 from .base import ActionStrategy
 
 

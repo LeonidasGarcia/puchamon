@@ -1,6 +1,6 @@
 """Strategy for `cannot_move` condition effects."""
 
-from ..context import BattleStrategyContext, ConditionEffectExecutionInput
+from ...runtime import BattleStrategyContext, ConditionEffectExecutionInput
 from .pending import PendingConditionEffectStrategy
 
 

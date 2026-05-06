@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ..context import BattleStrategyContext, ConditionEffectExecutionInput, StrategyHook
+from ...runtime import BattleStrategyContext, ConditionEffectExecutionInput, StrategyHook
 
 
 class ConditionEffectStrategy(ABC):

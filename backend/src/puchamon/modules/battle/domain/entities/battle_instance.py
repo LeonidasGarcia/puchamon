@@ -3,6 +3,7 @@
 from pydantic import Field
 
 from .....core.domain.entities import BaseEmbeddedModel, BaseEntity
+from ..rules import DEFAULT_BATTLE_LEVEL
 
 
 class MoveState(BaseEmbeddedModel):
@@ -20,13 +21,24 @@ class StatStages(BaseEmbeddedModel):
     eva: int = 0
 
 
+class BattleStats(BaseEmbeddedModel):
+    hp: int
+    atk: int
+    def_: int = Field(default=0, validation_alias="def", serialization_alias="def")
+    spa: int
+    spd: int
+    spe: int
+
+
 class BattleInstance(BaseEntity):
     battle_id: str
     trainer_id: str
     slot: int
     pokemon_id: str
     moveset_id: str
-    level: int
+    types: list[str] = Field(default_factory=list)
+    level: int = DEFAULT_BATTLE_LEVEL
+    stats: BattleStats | None = None
     current_hp: int
     max_hp: int
     ability: str
