@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     ]
     DEBUG: bool = Field(default=False)
 
-    DATABASE_URI: str | None = Field(default=..., env="DATABASE_URI")
-    DATABASE_NAME: str | None = Field(default=..., env="DATABASE_NAME")
+    DATABASE_URI: str = Field(default="mongodb://localhost:27017", env="DATABASE_URI")
+    DATABASE_NAME: str = Field(default="puchamon", env="DATABASE_NAME")
 
     DATABASE_POOL_SIZE: int = Field(default=5)
     DATABASE_MAX_OVERFLOW: int = Field(default=5)

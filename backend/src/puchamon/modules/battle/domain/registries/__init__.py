@@ -126,10 +126,10 @@ def build_default_move_effect_strategy_registry() -> MoveEffectStrategyRegistry:
             SetHazardEffectStrategy(),
             RemoveHazardEffectStrategy(),
             ProtectEffectStrategy(),
-            HealHpEffectStrategy(),
+            # HealHpEffectStrategy(),
             SelfSwitchEffectStrategy(),
-            SwapItemEffectStrategy(),
-            PainSplitEffectStrategy(),
+            # SwapItemEffectStrategy(),
+            # PainSplitEffectStrategy(),
         ]
     )
 

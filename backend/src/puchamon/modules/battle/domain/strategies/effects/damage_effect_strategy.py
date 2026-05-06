@@ -36,6 +36,22 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
         configured_damage_roll_percent = execution.metadata.get("damage_roll_percent")
         source_instance = context.get_instance(execution.source_instance_id)
 
+        # TODO: Implement proper special damage calculation for moves like Gyro Ball
+        # that have power=null but still deal damage based on speed or other stats.
+        # For now, skip damage calculation when power is None.
+        if execution.movement.power is None:
+            for target_instance_id in execution.target_instance_ids:
+                target_instance = context.get_instance(target_instance_id)
+                context.add_event(
+                    kind="damage",
+                    message=f"{target_instance.pokemon_id} took 0 damage from {execution.movement.name}",
+                    source_instance_id=execution.source_instance_id,
+                    target_instance_id=target_instance_id,
+                    move_id=execution.movement.id,
+                    value=0,
+                )
+            return
+
         for target_instance_id in execution.target_instance_ids:
             target_instance = context.get_instance(target_instance_id)
             if target_instance.fainted or target_instance.current_hp <= 0:

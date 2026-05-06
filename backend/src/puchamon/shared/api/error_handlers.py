@@ -8,8 +8,22 @@ from loguru import logger
 from ...core.domain import AppError
 
 
-async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+async def _handle_websocket_error(request: Request, exc: Exception, close_code: int = 1011) -> None:
+    """Handle WebSocket errors by closing the connection properly."""
+    if request.scope.get("type") == "websocket":
+        try:
+            await request.close(code=close_code, reason=str(exc))
+        except Exception:
+            pass
+        return True
+    return False
+
+
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse | None:
     """Error handler for custom application exceptions."""
+    if _handle_websocket_error(request, exc):
+        return None
+
     request_id = getattr(request.state, "request_id", "unknown")
 
     log_msg = f"[{request_id}] {exc.__class__.__name__}: {exc.message}"
@@ -28,8 +42,12 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         },
     )
 
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse | None:
     """Error handler for HTTP exceptions."""
+    if _handle_websocket_error(request, exc, close_code=1000):
+        return None
+
     request_id = getattr(request.state, "request_id", "unknown")
     logger.warning(f"[{request_id}] HTTP/Validation Error: {exc.detail}")
 
@@ -43,8 +61,16 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         },
     )
 
-async def global_exception_handler(request: Request, _exc: Exception) -> JSONResponse:
-    """Global error handler for unhandled exceptions."""
+
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse | None:
+    """Global error handler for unhandled exceptions.
+
+    Handles both HTTP and WebSocket connections properly.
+    For WebSocket, closes the connection with code 1011 (Unexpected Error).
+    """
+    if _handle_websocket_error(request, exc):
+        return None
+
     request_id = getattr(request.state, "request_id", "unknown")
     logger.exception(f"[{request_id}] Unhandled Server Error")
 
@@ -58,8 +84,12 @@ async def global_exception_handler(request: Request, _exc: Exception) -> JSONRes
         },
     )
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse | None:
     """Error handler for validation exceptions."""
+    if _handle_websocket_error(request, exc):
+        return None
+
     request_id = getattr(request.state, "request_id", "unknown")
     errors = exc.errors()
     error_messages = []

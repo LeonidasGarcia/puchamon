@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.13.3",
     "pydantic-settings>=2.14.0",
     "beanie>=2.1.0",
+    "websockets>=16.0",
 ]
 
 [project.scripts]

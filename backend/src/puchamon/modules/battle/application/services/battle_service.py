@@ -148,7 +148,7 @@ class BattleService:
         if trainer_id not in trainer_ids:
             raise ValueError(f"Trainer {trainer_id} not in battle")
 
-        instances_list = await BattleInstance.find_all().to_list()
+        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
 
         actions = list(battle.current_turn_actions)
@@ -167,6 +167,7 @@ class BattleService:
                 actions.append(ai_action)
 
         data = await self._load_pokedex_data()
+        processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
             battle=battle,
             instances=instances,
@@ -190,11 +191,12 @@ class BattleService:
             declared_actions=actions,
             executed_actions=ordered_actions,
             context=context,
+            turn=processed_turn,
         )
 
         return {
             "battle_id": battle_id,
-            "turn": battle.turn,
+            "turn": processed_turn,
             "turn_data": turn_dto,
         }
 
@@ -213,7 +215,7 @@ class BattleService:
         if not battle:
             raise ValueError(f"Battle {battle_id} not found")
 
-        instances_list = await BattleInstance.find_all().to_list()
+        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
 
         actions: list[TurnAction] = list(battle.current_turn_actions)
@@ -229,6 +231,7 @@ class BattleService:
                 actions.append(ai_action)
 
         data = await self._load_pokedex_data()
+        processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
             battle=battle,
             instances=instances,
@@ -252,11 +255,12 @@ class BattleService:
             declared_actions=actions,
             executed_actions=ordered_actions,
             context=context,
+            turn=processed_turn,
         )
 
         return {
             "battle_id": battle_id,
-            "turn": battle.turn,
+            "turn": processed_turn,
             "turn_data": turn_dto,
         }
 
@@ -283,7 +287,7 @@ class BattleService:
         if not battle:
             return None
 
-        instances_list = await BattleInstance.find_all().to_list()
+        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
 
         return {
             "battle_id": str(battle.id),
