@@ -83,24 +83,24 @@ def resolve_effect_target_instance_ids(
     opponent_side: SideState = get_side_for_trainer(battle, get_opponent_trainer_id(battle, source_instance.trainer_id))
     target_instance_ids: list[str]
 
-    if effect.target == "self":
+    if effect.target in {"self", "user"}:
         target_instance_ids = [_require_instance_id(source_instance.id)]
-    elif effect.target == "ally_side":
-        target_instance_ids = _list_active_instance_ids(source_side)
-    elif effect.target == "foe_side":
+    elif effect.target in {"foe_side", "opponent_side"}:
         target_instance_ids = _list_active_instance_ids(opponent_side)
-    elif effect.target == "field":
+    elif effect.target in {"ally_side", "user_side"}:
+        target_instance_ids = _list_active_instance_ids(source_side)
+    elif effect.target in {"field", "all_sides"}:
         target_instance_ids = _list_all_active_instance_ids(source_side, opponent_side)
     else:
         if action_target is None:
             raise BattleValidationError("Targeted move effects require an action target to be resolved")
 
-        if action_target.scope == "self":
+        if action_target.scope in {"self", "user"}:
             target_instance_ids = [_require_instance_id(source_instance.id)]
         elif action_target.scope == "target":
             target_instance_id: str | None = get_active_instance_id_for_target(battle, source_instance.trainer_id, action_target)
             target_instance_ids = [target_instance_id] if target_instance_id is not None else []
-        elif action_target.scope == "all":
+        elif action_target.scope in {"all", "all_sides"}:
             target_instance_ids = _list_all_active_instance_ids(source_side, opponent_side)
         else:
             raise BattleValidationError(f"Target scope '{action_target.scope}' is not supported for move effect resolution yet")

@@ -1,9 +1,8 @@
 """Strategy for `damage` move effects."""
 
 from .....pokedex.domain.entities.effects import DamagePayload
-from ...battlefield import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
 from ...exceptions import BattleValidationError
-from ...mechanics import calculate_damage, resolve_damage_hit_count, resolve_damage_roll_percent
+from ...mechanics import calculate_damage, faint_instance, resolve_damage_hit_count, resolve_damage_roll_percent
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
 from .pending import PendingMoveEffectStrategy
 
@@ -53,6 +52,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
                     source_instance=source_instance,
                     target_instance=target_instance,
                     damage_roll_percent=damage_roll_percent,
+                    type_chart=context.transient.get("type_chart", {}),
                 )
             else:
                 total_damage = max(1, execution.movement.power * hit_count)
@@ -72,14 +72,4 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
             )
 
             if target_instance.current_hp == 0:
-                target_instance.fainted = True
-                target_side = get_side_for_trainer(context.battle, target_instance.trainer_id)
-                target_active_slot = get_active_slot_for_instance(target_side, target_instance_id)
-                set_active_instance_for_slot(target_side, target_active_slot, None)
-                context.mark_fainted(target_instance_id)
-                context.add_event(
-                    kind="pokemon_fainted",
-                    message=f"{target_instance.pokemon_id} fainted",
-                    target_instance_id=target_instance_id,
-                    active_slot=target_active_slot,
-                )
+                faint_instance(context, target_instance)

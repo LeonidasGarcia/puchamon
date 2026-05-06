@@ -101,6 +101,14 @@ def _calculate_non_hp_stat(*, base_stat: int, ev: int, level: int, iv: int, natu
     return floor(value * nature_multiplier)
 
 
+def calculate_effective_stat(base_value: int, stages: int) -> int:
+    """Calculate the effective stat after applying stages."""
+    stages = max(-6, min(6, stages))
+    numerator = max(2, 2 + stages)
+    denominator = max(2, 2 - stages)
+    return floor(base_value * numerator / denominator)
+
+
 def build_battle_stats(*, pokemon: Pokemon, moveset: Moveset, level: int = DEFAULT_BATTLE_LEVEL, iv: int = DEFAULT_BATTLE_IV) -> BattleStats:
     """Build the immutable stats a Pokemon carries into battle."""
     if level <= 0:

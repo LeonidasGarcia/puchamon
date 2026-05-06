@@ -1,4 +1,4 @@
-const database = db.getSiblingDB("pokemon_battle_db");
+const database = db.getSiblingDB("puchamon");
 
 const DATA = {
   type_chart: [

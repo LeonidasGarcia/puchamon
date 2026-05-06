@@ -2,12 +2,16 @@
 
 from math import floor
 from random import randint
+from typing import TYPE_CHECKING
 
 from ....pokedex.domain.entities import Movement
 from ....pokedex.domain.entities.effects import DamagePayload, RandomRange
 from ..entities import BattleInstance
 from ..exceptions import BattleValidationError
 from ..rules import MAX_DAMAGE_ROLL_PERCENT, MIN_DAMAGE_ROLL_PERCENT
+
+if TYPE_CHECKING:
+    from ....pokedex.domain.entities import Type
 
 _ATTACK_STAT_BY_CATEGORY: dict[str, str] = {
     "physical": "atk",
@@ -93,6 +97,25 @@ def _apply_stage(base_stat: int, stage: int) -> int:
     return max(1, floor(base_stat * multiplier))
 
 
+def calculate_type_effectiveness(movement_type: str, target_types: list[str], type_chart: dict[str, "Type"]) -> float:
+    """Calculate the cumulative type effectiveness multiplier."""
+    effectiveness = 1.0
+    type_data = type_chart.get(movement_type)
+
+    if not type_data:
+        return effectiveness
+
+    for target_type in target_types:
+        if target_type in type_data.super_effective:
+            effectiveness *= 2.0
+        elif target_type in type_data.not_very_effective:
+            effectiveness *= 0.5
+        elif target_type in type_data.no_effect:
+            effectiveness *= 0.0
+
+    return effectiveness
+
+
 def calculate_damage(
     *,
     movement: Movement,
@@ -100,6 +123,7 @@ def calculate_damage(
     source_instance: BattleInstance,
     target_instance: BattleInstance,
     damage_roll_percent: int,
+    type_chart: dict[str, "Type"],
 ) -> int:
     """Calculate deterministic damage for a resolved source, target and movement."""
     attack_stat_key = _resolve_attack_stat_key(movement)
@@ -118,6 +142,12 @@ def calculate_damage(
     base_damage = floor((((level_factor * max(1, movement.power) * attack) / defense) / 50) + 2)
 
     stab = 1.5 if movement.type in source_instance.types else 1.0
+
+    effectiveness = calculate_type_effectiveness(movement.type, target_instance.types, type_chart)
+
     hit_count = resolve_damage_hit_count(payload)
-    per_hit_damage = max(1, floor((base_damage * stab * damage_roll_percent) / MAX_DAMAGE_ROLL_PERCENT))
+
+    # Apply STAB, Effectiveness and Roll
+    per_hit_damage = max(1, floor((base_damage * stab * effectiveness * damage_roll_percent) / MAX_DAMAGE_ROLL_PERCENT))
+
     return per_hit_damage * hit_count

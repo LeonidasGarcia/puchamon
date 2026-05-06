@@ -11,7 +11,7 @@ class PendingConditionEffectStrategy(ConditionEffectStrategy):
     kind: str
     hook: str
 
-    def apply(self, _context: BattleStrategyContext, execution: ConditionEffectExecutionInput) -> None:
+    def apply(self, context: BattleStrategyContext, execution: ConditionEffectExecutionInput) -> None:  # noqa: ARG002
         """Guard effect dispatch while the concrete logic is still pending."""
         if execution.effect.kind != self.kind:
             raise BattleValidationError(f"{self.__class__.__name__} cannot apply condition effect kind '{execution.effect.kind}'")

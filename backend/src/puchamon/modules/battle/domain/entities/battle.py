@@ -34,6 +34,7 @@ class TurnAction(BaseEmbeddedModel):
     user_instance_id: str
     move_id: str | None = None
     target: TargetScope | None = None
+    replacement_instance_id: str | None = None
 
 
 class BattleResult(BaseEmbeddedModel):

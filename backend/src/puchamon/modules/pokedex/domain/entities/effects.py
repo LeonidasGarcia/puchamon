@@ -77,7 +77,7 @@ class MoveEffect(BaseEntity):
         "pain_split",
     ]
 
-    target: Literal["target", "self", "foe_side", "ally_side", "field"]
+    target: Literal["target", "self", "user", "foe_side", "opponent_side", "user_side", "ally_side", "field", "all_sides"]
     chance: int
     order: int
 

@@ -1,9 +1,11 @@
 """Strategy for executing move actions."""
 
+import random
 from typing import TYPE_CHECKING
 
 from .....pokedex.domain.entities import Movement
 from ...battlefield import get_side_for_trainer, resolve_effect_target_instance_ids
+from ...mechanics import calculate_accuracy
 from ...entities import BattleInstance
 from ...exceptions import BattleValidationError
 from ...runtime import ActionExecutionInput, BattleStrategyContext
@@ -38,6 +40,11 @@ def _apply_move_effects(
                 move_id=execution.action.move_id,
             )
             continue
+
+        # Chance Check: Roll for secondary effects (e.g. flinch, burn chance)
+        if effect.chance < 100:
+            if random.randint(1, 100) > effect.chance:
+                continue
 
         effect_strategy = move_effect_strategy_registry.get(effect.kind)
         effect_strategy.apply(
@@ -111,5 +118,27 @@ class MoveActionStrategy(ActionStrategy):
             source_instance_id=execution.action.user_instance_id,
             move_id=execution.action.move_id,
         )
+
+        # Accuracy Check (only for moves that target specific pokemons)
+        if movement.target in {"target", "all_foes", "all_adjacent"}:
+            # For simplicity, we check against the first resolved target
+            # TODO: Handle multi-target accuracy checks for each target separately
+            target_instance_ids = resolve_effect_target_instance_ids(
+                battle=context.battle,
+                source_instance=source_instance,
+                action_target=execution.action.target,
+                effect=execution.move_effects[0] if execution.move_effects else None,
+            )
+            
+            if target_instance_ids:
+                target = context.get_instance(target_instance_ids[0])
+                if not calculate_accuracy(context, movement, source_instance, target):
+                    context.add_event(
+                        kind="move_missed",
+                        message=f"{source_instance.pokemon_id}'s attack missed!",
+                        source_instance_id=execution.action.user_instance_id,
+                        move_id=execution.action.move_id,
+                    )
+                    return
 
         _apply_move_effects(context, execution, move_effect_strategy_registry, movement, source_instance)
