@@ -3,9 +3,11 @@
 import random
 from typing import TYPE_CHECKING
 
+from loguru import logger
+
 from ...domain.entities import Battle, BattleInstance, TurnAction
 from ...domain.entities.battle import BattleResult
-from ...domain.mechanics import apply_entry_hazards
+from ...domain.mechanics import apply_entry_hazards, switch_in_instance
 from ...domain.mechanics.stats import calculate_effective_stat
 from ...domain.registries import (
     ActionStrategyRegistry,
@@ -58,10 +60,8 @@ class TurnResolutionService:
         """Executes a full turn and returns the context with the resulting state and event log."""
         context = BattleStrategyContext(battle=battle, battle_instances=instances)
         context.transient["type_chart"] = type_chart
-        
-        from loguru import logger
-        logger.debug(f"Resolving turn {battle.turn} with {len(actions)} actions")
 
+        logger.debug(f"Resolving turn {battle.turn} with {len(actions)} actions")
         # 1. Phase: Pre-Action (Switches and Hazards)
         self._resolve_switches(context, actions, type_chart)
 
@@ -70,7 +70,7 @@ class TurnResolutionService:
         logger.debug(f"Ordered actions: {len(ordered_actions)}")
 
         # 3. Phase: Execution (Moves)
-        self._execute_actions(context, ordered_actions, movements, move_effects)
+        self._execute_actions(context, ordered_actions, movements, move_effects, type_chart)
         logger.debug(f"Events after execution: {len(context.events)}")
 
         # 4. Phase: End of Turn (Residuals: Weather, Status conditions like Burn/Poison)
@@ -156,6 +156,7 @@ class TurnResolutionService:
         actions: list[TurnAction],
         movements: dict[str, "Movement"],
         move_effects: dict[str, "MoveEffect"],
+        type_chart: dict[str, "Type"],
     ) -> None:
         """Iterate over ordered actions and execute them.
 
@@ -163,8 +164,6 @@ class TurnResolutionService:
         (Sleep, Paralysis, Confusion), checks Accuracy, and applies
         Move Effects (Damage, Stat changes).
         """
-        from loguru import logger
-
         for action in actions:
             if action.type != "move":
                 logger.debug(f"Skipping action type {action.type}")
@@ -195,6 +194,36 @@ class TurnResolutionService:
 
             # This triggers all validations (PP, target accuracy, damage calculation, etc.)
             strategy.execute(context, execution)
+
+            # --- Mid-turn Replacement Check ---
+            # After each action, we check if any side has an empty active slot that needs filling.
+            # In a real scenario, this would pause the turn, but for simulation/AI, we automate it.
+            self._handle_mid_turn_replacements(context, type_chart)
+
+    def _handle_mid_turn_replacements(self, context: BattleStrategyContext, type_chart: dict[str, "Type"]) -> None:
+        """Checks for empty active slots and attempts to fill them if replacements are available."""
+        for trainer_id, side in context.battle.sides.items():
+            for slot_index, instance_id in enumerate(side.active_pokemon_instance_ids):
+                if instance_id is None:
+                    # Slot is empty! Find a replacement
+                    replacement = self._find_best_replacement(context, trainer_id)
+                    if replacement:
+                        switch_in_instance(context, replacement.id, trainer_id, slot_index, type_chart)
+
+    def _find_best_replacement(self, context: BattleStrategyContext, trainer_id: str) -> "BattleInstance | None":
+        """Simple AI to find the first non-fainted pokemon in the party that is not currently active."""
+        # Get all pokemon belonging to this trainer
+        trainer_pokemon = [inst for inst in context.battle_instances.values() if inst.trainer_id == trainer_id]
+
+        # Get currently active IDs for this trainer
+        active_ids = set(context.battle.sides[trainer_id].active_pokemon_instance_ids)
+
+        # Find first available
+        for pokemon in trainer_pokemon:
+            if not pokemon.fainted and pokemon.current_hp > 0 and pokemon.id not in active_ids:
+                return pokemon
+
+        return None
 
 
     def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"], weathers: dict[str, "Weather"]) -> None:

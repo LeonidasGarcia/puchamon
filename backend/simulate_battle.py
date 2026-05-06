@@ -79,7 +79,7 @@ async def simulate():
 
     # 5. Load necessary data for resolution
     logger.info("Loading move and condition data for resolution...")
-    
+
     move_count = await Movement.count()
     poke_count = await Pokemon.count()
     mset_count = await Moveset.count()

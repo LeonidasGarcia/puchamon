@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 
 from .....pokedex.domain.entities import Movement
 from ...battlefield import get_side_for_trainer, resolve_effect_target_instance_ids
-from ...mechanics import calculate_accuracy
 from ...entities import BattleInstance
 from ...exceptions import BattleValidationError
+from ...mechanics import calculate_accuracy
 from ...runtime import ActionExecutionInput, BattleStrategyContext
 from .base import ActionStrategy
 
@@ -42,8 +42,9 @@ def _apply_move_effects(
             continue
 
         # Chance Check: Roll for secondary effects (e.g. flinch, burn chance)
-        if effect.chance < 100:
-            if random.randint(1, 100) > effect.chance:
+        full_chance = 100
+        if effect.chance < full_chance:
+            if random.randint(1, full_chance) > effect.chance:
                 continue
 
         effect_strategy = move_effect_strategy_registry.get(effect.kind)
@@ -129,7 +130,7 @@ class MoveActionStrategy(ActionStrategy):
                 action_target=execution.action.target,
                 effect=execution.move_effects[0] if execution.move_effects else None,
             )
-            
+
             if target_instance_ids:
                 target = context.get_instance(target_instance_ids[0])
                 if not calculate_accuracy(context, movement, source_instance, target):

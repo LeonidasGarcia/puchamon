@@ -15,7 +15,20 @@ class Movement(BaseEntity):
     accuracy: int | None = None
     pp: int
     priority: int = Field(default=0)
-    target: Literal["target", "self", "user", "foe_side", "opponent_side", "ally_side", "user_side", "field", "all", "all_foes", "all_adjacent", "all_sides"]
+    target: Literal[
+        "target",
+        "self",
+        "user",
+        "foe_side",
+        "opponent_side",
+        "ally_side",
+        "user_side",
+        "field",
+        "all",
+        "all_foes",
+        "all_adjacent",
+        "all_sides",
+    ]
     makes_contact: bool
     protectable: bool
     effect_ids: list[str] = Field(default_factory=list)
