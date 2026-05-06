@@ -2,7 +2,6 @@
 
 from ...domain.entities import Battle, BattleInstance, TurnAction
 from ...domain.runtime.context import BattleStrategyContext, BattleStrategyEvent
-from ..mappers.battle_snapshot_mapper import to_battle_snapshot_dto
 from ..dto.battle_turn_dto import (
     BattleTurnDTO,
     BattleTurnEventDTO,
@@ -11,6 +10,7 @@ from ..dto.battle_turn_dto import (
     ForcedReplacementDTO,
     TurnActionTargetDTO,
 )
+from ..mappers.battle_snapshot_mapper import to_battle_snapshot_dto
 
 
 def to_turn_action_target_dto(target: "TurnAction | None") -> "TurnActionTargetDTO | None":
