@@ -1,7 +1,8 @@
 """Service for handling battle-related logic and lifecycle."""
 
-from typing import Any
+from typing import Any, Literal
 
+from bson import ObjectId
 from loguru import logger
 
 from ....agentia.application.services import IAService
@@ -57,20 +58,56 @@ class BattleService:
 
     async def create_battle(
         self,
-        battle_type: str,
-        players: list[Player],
-        team_size: int = 3,
+        trainer_name: str,
+        controller_type: Literal["human", "ai"],
+        battle_type: Literal["1v1", "2v2", "3v3"],
+        difficulty: int = 1,
     ) -> tuple[Battle, list[BattleInstance]]:
         """Creates a new battle with random Pokemon for each player.
 
         Args:
+            trainer_name: Name of the human player (or first AI in AI vs AI).
+            controller_type: "human" for Player vs AI, "ai" for AI vs AI.
             battle_type: Type of battle ("1v1", "2v2", "3v3").
-            players: List of players (human or AI).
-            team_size: Number of Pokemon per team.
+            difficulty: AI difficulty level (1=easy, 2=medium, 3=hard). Only used when controller_type is "human".
 
         Returns:
             A tuple of (Battle, list of BattleInstance).
         """
+        trainer_id = str(ObjectId())
+
+        client_player = Player(
+            trainer_id=trainer_id,
+            name=trainer_name,
+            controller_type=controller_type,
+            ai_level=None,
+        )
+
+        if controller_type == "human":
+            opponent = Player(
+                trainer_id=str(ObjectId()),
+                name="AI Opponent",
+                controller_type="ai",
+                ai_level=difficulty,
+            )
+            players = [client_player, opponent]
+        else:
+            ai_player_1 = Player(
+                trainer_id=str(ObjectId()),
+                name="AI Player 1",
+                controller_type="ai",
+                ai_level=difficulty,
+            )
+            ai_player_2 = Player(
+                trainer_id=str(ObjectId()),
+                name="AI Player 2",
+                controller_type="ai",
+                ai_level=difficulty,
+            )
+            players = [ai_player_1, ai_player_2]
+
+        team_size = int(battle_type[0])
+
         battle, instances = await BattleSetupService.create_battle(
             battle_type=battle_type,
             players=players,
@@ -125,6 +162,69 @@ class BattleService:
                     player=player,
                     battle=battle,
                     instances=instances,
+                    ai_level=player.ai_level or 1,
+                )
+                actions.append(ai_action)
+
+        data = await self._load_pokedex_data()
+        context: BattleStrategyContext = self._turn_service.resolve_turn(
+            battle=battle,
+            instances=instances,
+            actions=actions,
+            movements=data["movements"],
+            conditions=data["conditions"],
+            weathers=data["weathers"],
+            move_effects=data["move_effects"],
+            type_chart=data["types"],
+        )
+
+        battle.current_turn_actions = []
+        await battle.save()
+        for instance in instances.values():
+            await instance.save()
+
+        ordered_actions = self._sort_actions_for_dto(actions)
+
+        turn_dto = map_context_to_turn_dto(
+            battle=battle,
+            declared_actions=actions,
+            executed_actions=ordered_actions,
+            context=context,
+        )
+
+        return {
+            "battle_id": battle_id,
+            "turn": battle.turn,
+            "turn_data": turn_dto,
+        }
+
+    async def process_ai_turn(self, battle_id: str) -> dict[str, Any]:
+        """Process a turn where all players are AI.
+
+        Generates actions for all players and resolves the turn.
+
+        Args:
+            battle_id: ID of the battle.
+
+        Returns:
+            A dict containing battle_id, turn, and the BattleTurnDTO.
+        """
+        battle = await Battle.get(battle_id)
+        if not battle:
+            raise ValueError(f"Battle {battle_id} not found")
+
+        instances_list = await BattleInstance.find_all().to_list()
+        instances = {str(inst.id): inst for inst in instances_list}
+
+        actions: list[TurnAction] = list(battle.current_turn_actions)
+
+        for player in battle.players:
+            if player.controller_type == "ai":
+                ai_action = await self._ia_service.generate_action(
+                    player=player,
+                    battle=battle,
+                    instances=instances,
+                    ai_level=player.ai_level or 1,
                 )
                 actions.append(ai_action)
 

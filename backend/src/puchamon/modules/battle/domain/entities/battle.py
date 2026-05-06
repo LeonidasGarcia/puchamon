@@ -20,6 +20,7 @@ class Player(BaseEmbeddedModel):
     trainer_id: str
     name: str
     controller_type: Literal["human", "ai"]
+    ai_level: Literal[1, 2, 3] | None = None
 
 
 class TargetScope(BaseEmbeddedModel):
