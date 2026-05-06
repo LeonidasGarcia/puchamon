@@ -1,7 +1,10 @@
 """Service for handling IA-related logic."""
 
 import random
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from ....pokedex.domain.entities import MoveEffect, Movement
 
 from ....battle.domain.entities import (
     Battle,
@@ -16,6 +19,8 @@ AI_LEVEL_EASY = 1
 AI_LEVEL_MEDIUM = 2
 AI_LEVEL_HARD = 3
 
+UNIMPLEMENTED_EFFECT_KINDS = {"heal_hp", "swap_item", "pain_split"}
+
 
 class IAService:
     """Service class for generating AI actions in battles."""
@@ -25,6 +30,8 @@ class IAService:
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
+        movements: dict[str, "Movement"],
+        move_effects: dict[str, "MoveEffect"],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
     ) -> TurnAction:
         """Generate a TurnAction for an AI player.
@@ -60,7 +67,7 @@ class IAService:
                 return switch_action
 
         move_action = await self.generate_move_action(
-            player, active_instance, ai_level
+            player, active_instance, movements, move_effects, ai_level
         )
         if move_action:
             return move_action
@@ -77,6 +84,8 @@ class IAService:
         self,
         player: Player,
         active_instance: BattleInstance,
+        movements: dict[str, "Movement"],
+        move_effects: dict[str, "MoveEffect"],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
     ) -> TurnAction | None:
         """Generate a move action for the AI.
@@ -84,7 +93,8 @@ class IAService:
         Args:
             player: The AI player entity.
             active_instance: The active BattleInstance.
-            instances: Dict of battle instances keyed by ID.
+            movements: Dict of Movement entities keyed by ID.
+            move_effects: Dict of MoveEffect entities keyed by ID.
             ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
 
         Returns:
@@ -94,10 +104,18 @@ class IAService:
             ms for ms in active_instance.move_state if ms.current_pp > 0
         ]
 
+        available_moves = [
+            ms for ms in available_moves
+            if self._is_move_implemented(ms.move_id, movements, move_effects)
+        ]
+
         if not available_moves:
             return None
 
         move_id = self._select_move_by_level(available_moves, ai_level)
+
+        if move_id is None:
+            return None
 
         return TurnAction(
             player=player.trainer_id,
@@ -159,16 +177,19 @@ class IAService:
         self,
         available_moves: list,
         ai_level: AIDifficultyLevel,
-    ) -> str:
+    ) -> str | None:
         """Select a move based on AI difficulty level.
 
         Args:
-            available_moves: List of MoveState with PP > 0.
+            available_moves: List of MoveState with PP > 0 and implemented effects.
             ai_level: AI difficulty level.
 
         Returns:
-            The move_id of the selected move.
+            The move_id of the selected move or None if no moves available.
         """
+        if not available_moves:
+            return None
+
         if ai_level == AI_LEVEL_EASY:
             return self._select_random_move(available_moves)
         elif ai_level == AI_LEVEL_MEDIUM:
@@ -204,3 +225,30 @@ class IAService:
             A random move_id (placeholder for HP-based logic).
         """
         return random.choice(available_moves).move_id
+
+    def _is_move_implemented(
+        self,
+        move_id: str,
+        movements: dict[str, "Movement"],
+        move_effects: dict[str, "MoveEffect"],
+    ) -> bool:
+        """Check if a move has any unimplemented effect.
+
+        Args:
+            move_id: The move identifier.
+            movements: Dict of Movement entities keyed by ID.
+            move_effects: Dict of MoveEffect entities keyed by ID.
+
+        Returns:
+            True if the move has no unimplemented effects, False otherwise.
+        """
+        movement = movements.get(move_id)
+        if not movement or not movement.effect_ids:
+            return True
+
+        for effect_id in movement.effect_ids:
+            effect = move_effects.get(effect_id)
+            if effect and effect.kind in UNIMPLEMENTED_EFFECT_KINDS:
+                return False
+
+        return True

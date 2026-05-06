@@ -154,6 +154,8 @@ class BattleService:
         actions = list(battle.current_turn_actions)
         actions.append(action)
 
+        data = await self._load_pokedex_data()
+
         for player in battle.players:
             if player.trainer_id == trainer_id:
                 continue
@@ -162,11 +164,11 @@ class BattleService:
                     player=player,
                     battle=battle,
                     instances=instances,
+                    movements=data["movements"],
+                    move_effects=data["move_effects"],
                     ai_level=player.ai_level or 1,
                 )
                 actions.append(ai_action)
-
-        data = await self._load_pokedex_data()
         processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
             battle=battle,
@@ -220,17 +222,20 @@ class BattleService:
 
         actions: list[TurnAction] = list(battle.current_turn_actions)
 
+        data = await self._load_pokedex_data()
+
         for player in battle.players:
             if player.controller_type == "ai":
                 ai_action = await self._ia_service.generate_action(
                     player=player,
                     battle=battle,
                     instances=instances,
+                    movements=data["movements"],
+                    move_effects=data["move_effects"],
                     ai_level=player.ai_level or 1,
                 )
                 actions.append(ai_action)
 
-        data = await self._load_pokedex_data()
         processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
             battle=battle,
