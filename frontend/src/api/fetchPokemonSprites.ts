@@ -1,10 +1,10 @@
-import type PokemonSprites from "../types/PokemonSprites";
+import type PokemonSprites from "../types/sprites/PokemonSprites";
 import {
   miniPokeSpritesAxiosInstance,
   pokeSpritesAxiosInstance,
 } from "./axiosInstance";
 
-export default async function getPokemonSprites(
+export async function fetchPokemonSprites(
   name: string,
 ): Promise<PokemonSprites> {
   const normalResponse = await pokeSpritesAxiosInstance.get(

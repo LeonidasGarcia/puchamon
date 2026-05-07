@@ -1,4 +1,4 @@
-import HpBar from "../HpBar";
+import HpBar from '../battle/HpBar';
 
 interface PokemonStateProps {
   name: string;
@@ -10,16 +10,20 @@ interface PokemonStateProps {
 
 export default function PokemonState(props: PokemonStateProps) {
   return (
-    <div className="flex bg-pokemon-state flex-col gap-0.5 px-3 py-2 rounded-tl-xl rounded-br-xl rounded-tr-xs rounded-bl-xs border-4 border-black min-w-3xs">
-      <div className="flex flex-row justify-between gap-4 items-baseline">
-        <p className="text-body/[12px]">{props.name}</p>
-        <p className="text-small/[28px]">Lv. {props.level}</p>
+    <div className="flex bg-card-bg flex-col gap-2 px-2 py-2 rounded-lg border border-card-border min-w-52 shadow-sm">
+      <div className="flex flex-row justify-between items-baseline">
+        <span className="text-body font-medium text-[--color-text-primary] tracking-wide leading-none">
+          {props.name}
+        </span>
+        <span className="text-small text-text-secondary font-medium leading-none">
+          Lv. {props.level}
+        </span>
       </div>
-      <div className="flex flex-col gap-2 items-end">
+      <div className="flex flex-row items-center gap-3">
         <HpBar hpPercentage={props.hpPercentage} />
-        <p className="text-small/[12px]">
+        <span className="text-hp-ratio text-text-secondary font-medium shrink-0 leading-none">
           {props.currentHp}/{props.maxHp}
-        </p>
+        </span>
       </div>
     </div>
   );

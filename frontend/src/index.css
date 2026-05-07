@@ -1,30 +1,37 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --text-h1: 40px;
   --text-h2: 36px;
   --text-body: 28px;
   --text-small: 24px;
-  --text-text: 24px;
+  --text-text: 20px;
+  --text-movement-type: 16px;
+  --text-hp-ratio: 16px;
 
   --color-hp-bar-label: #e18e6b;
-  --color-hp-bar-full: #19be22;
-  --color-hp-bar-mid: #fad72f;
-  --color-hp-bar-low: #e82e2e;
+  --color-hp-bar-full: #22c55e;
+  --color-hp-bar-mid: #eab308;
+  --color-hp-bar-low: #ef4444;
 
+  --color-card-bg: #f8f8f8;
+  --color-card-border: #c8c8c8;
+  --color-text-primary: #3a3a3a;
+  --color-text-secondary: #666666;
+  --color-hp-bar-bg: #818181;
   --color-pokemon-state: #fcfcda;
 }
 
 @font-face {
-  font-family: "PokemonBW";
-  src: url("./assets/fonts/pokemon-bw.otf.woff2") format("woff2");
+  font-family: 'PokemonBW';
+  src: url('./assets/fonts/pokemon-bw.otf.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  font-family: "PokemonBW";
+  font-family: 'PokemonBW';
 }
 
 body {
