@@ -108,10 +108,14 @@ class BattleService:
 
         team_size = int(battle_type[0])
 
+        data = await self._load_pokedex_data()
+
         battle, instances = await BattleSetupService.create_battle(
             battle_type=battle_type,
             players=players,
             team_size=team_size,
+            movements=data["movements"],
+            move_effects=data["move_effects"],
         )
 
         await battle.save()
@@ -126,7 +130,7 @@ class BattleService:
         battle_id: str,
         trainer_id: str,
         action: TurnAction,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """Process a single turn when a player submits an action.
 
         If the player is AI, generates their action automatically.
@@ -139,10 +143,15 @@ class BattleService:
 
         Returns:
             A dict containing battle_id, turn, and the BattleTurnDTO.
+            If battle is finished, returns the battle snapshot.
+            If battle is not found, returns None.
         """
         battle = await Battle.get(battle_id)
         if not battle:
-            raise ValueError(f"Battle {battle_id} not found")
+            return None
+
+        if battle.status == "finished":
+            return await self.get_battle_snapshot(battle_id)
 
         trainer_ids = [p.trainer_id for p in battle.players]
         if trainer_id not in trainer_ids:
@@ -164,8 +173,6 @@ class BattleService:
                     player=player,
                     battle=battle,
                     instances=instances,
-                    movements=data["movements"],
-                    move_effects=data["move_effects"],
                     ai_level=player.ai_level or 1,
                 )
                 actions.append(ai_action)
@@ -230,8 +237,6 @@ class BattleService:
                     player=player,
                     battle=battle,
                     instances=instances,
-                    movements=data["movements"],
-                    move_effects=data["move_effects"],
                     ai_level=player.ai_level or 1,
                 )
                 actions.append(ai_action)

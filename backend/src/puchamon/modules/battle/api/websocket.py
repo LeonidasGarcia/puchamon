@@ -8,6 +8,7 @@ from ...agentia.application.services import IAService
 from ..application.dto.battle_turn_dto import BattleTurnDTO
 from ..application.mappers.battle_snapshot_mapper import to_battle_snapshot_dto
 from ..application.services.battle_service import BattleService
+from ..domain.entities.battle import TargetScope
 from .schemas import ConnectionRequest, TurnSubmit
 
 router = APIRouter(tags=["Battle"])
@@ -115,12 +116,14 @@ async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit) -> None:
     service = _get_battle_service()
 
     action_data = payload.action.model_dump()
+    target_data = action_data.get("target")
+    target = TargetScope(**target_data) if target_data else None
     action_dict = {
         "player": payload.trainer_id,
         "type": action_data["type"],
         "user_instance_id": action_data["user_instance_id"],
         "move_id": action_data.get("move_id"),
-        "target": action_data.get("target"),
+        "target": target,
         "replacement_instance_id": action_data.get("replacement_instance_id"),
     }
     action = type("TurnAction", (), action_dict)()
@@ -131,10 +134,20 @@ async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit) -> None:
         action=action,
     )
 
-    await _send_json(ws, {
-        "address": "turn:result",
-        "payload": result["turn_data"].model_dump(),
-    })
+    if result is None:
+        return
+
+    turn_data = result.get("turn_data")
+    if turn_data:
+        await _send_json(ws, {
+            "address": "turn:result",
+            "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
+        })
+    else:
+        await _send_json(ws, {
+            "address": "turn:result",
+            "payload": result,
+        })
 
 
 @router.websocket("/ws")
