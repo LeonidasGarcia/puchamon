@@ -27,6 +27,7 @@ export default function App() {
     players,
     myPokemon,
     opponentPokemon,
+    pendingMyPokemon,
     pendingOpponentPokemon,
     turnHistory,
     trainerId,
@@ -58,9 +59,17 @@ export default function App() {
     ? (activeOpponentPokemon ?? pendingOpponentPokemon?.find((p) => p.fainted))
     : (activeOpponentPokemon ?? opponentPokemon.find((p) => p.fainted));
 
+  const displayedPlayerPokemon = isAnimating
+    ? (activePokemon ?? pendingMyPokemon?.find((p) => p.fainted))
+    : (activePokemon ?? myPokemon.find((p) => p.fainted));
+
   const isOpponentFainted =
     displayedOpponentPokemon?.fainted &&
     displayedOpponentPokemon?.instance_id !== activeOpponentInstanceId;
+
+  const isPlayerFainted =
+    displayedPlayerPokemon?.fainted &&
+    displayedPlayerPokemon?.instance_id !== myActiveInstanceId;
 
   const isVictory = winnerTrainerId === trainerId;
 
@@ -77,6 +86,13 @@ export default function App() {
   const allTeamBySlot = [...myPokemon].sort(
     (a, b) => a.team_slot - b.team_slot,
   );
+
+  const displayedTeamPokemon = (() => {
+    if (isAnimating && pendingMyPokemon) {
+      return [...pendingMyPokemon].sort((a, b) => a.team_slot - b.team_slot);
+    }
+    return allTeamBySlot;
+  })();
 
   const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -186,6 +202,7 @@ export default function App() {
           myPokemon={myPokemon}
           opponentPokemon={opponentPokemon}
           isOpponentFainted={isOpponentFainted}
+          isPlayerFainted={isPlayerFainted}
         />
         <div className="flex flex-col gap-6 pb-8">
           <Section label={`Equipo de ${myName}`}>
@@ -233,24 +250,24 @@ export default function App() {
           </Section>
           {
             <Section label="Cambiar Pokemon">
-              {allTeamBySlot
-                .filter((p) => !p.fainted)
-                .map((pokemon) => (
-                  <PokemonSwitch
-                    key={pokemon.instance_id}
-                    name={pokemon.pokemon_id}
-                    currentHp={pokemon.current_hp}
-                    maxHp={pokemon.max_hp}
-                    hpPercentage={Math.round(
-                      (pokemon.current_hp / pokemon.max_hp) * 100,
-                    )}
-                    sprite={allSprites[pokemon.pokemon_id]?.minisprite}
-                    onClick={() => handleSwitchSelect(pokemon.instance_id)}
-                    disabled={
-                      pokemon.instance_id === myActiveInstanceId || isAnimating
-                    }
-                  />
-                ))}
+              {displayedTeamPokemon.map((pokemon) => (
+                <PokemonSwitch
+                  key={pokemon.instance_id}
+                  name={pokemon.pokemon_id}
+                  currentHp={pokemon.current_hp}
+                  maxHp={pokemon.max_hp}
+                  hpPercentage={Math.round(
+                    (pokemon.current_hp / pokemon.max_hp) * 100,
+                  )}
+                  sprite={allSprites[pokemon.pokemon_id]?.minisprite}
+                  onClick={() => handleSwitchSelect(pokemon.instance_id)}
+                  disabled={
+                    pokemon.fainted ||
+                    pokemon.instance_id === myActiveInstanceId ||
+                    isAnimating
+                  }
+                />
+              ))}
             </Section>
           }
         </div>
@@ -287,7 +304,7 @@ export default function App() {
             currentEventIndex={currentEventIndex}
           />
         </Section>
-        {status === 'finished' && (
+        {status === 'finished' && !isAnimating && currentEvents.length === 0 && (
           <Modal isOpen>
             <h2 className="text-2xl font-bold text-white mb-4">
               {isVictory ? '¡Victoria!' : 'Derrota'}
