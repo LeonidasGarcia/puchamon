@@ -192,7 +192,7 @@ class IAService:
         if ai_level == AI_LEVEL_EASY:
             return self._select_random_move(available_moves)
         else:
-            return self._select_best_first_by_hp(
+            return self._greedy_hp(
                 available_moves, battle, instances, movements
             )
 
@@ -207,7 +207,7 @@ class IAService:
         """
         return random.choice(available_moves).move_id
 
-    def _select_best_first_by_hp(
+    def _greedy_hp(
         self,
         available_moves: list,
         battle: Battle | None,
@@ -300,51 +300,3 @@ class IAService:
                 if opponent and not opponent.fainted:
                     return (opponent.current_hp, opponent.max_hp)
         return None
-
-    def _calculate_hp_difference(
-        self,
-        player: Player,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-    ) -> float | None:
-        """Calculate HP difference between player and opponent.
-
-        Heuristic formula:
-            h(n) = HP_player_percent - HP_opponent_percent
-
-        Args:
-            player: The AI player.
-            battle: The current battle state.
-            instances: Dict of battle instances keyed by ID.
-
-        Returns:
-            HP difference as a float (positive = advantage, negative = disadvantage).
-        """
-        player_side = battle.sides.get(player.trainer_id)
-        if not player_side:
-            return None
-
-        player_hp_percent = 0.0
-        opponent_hp_percent = 0.0
-        player_count = 0
-        opponent_count = 0
-
-        for trainer_id, side in battle.sides.items():
-            for uid in side.active_pokemon_instance_ids:
-                inst = instances.get(uid)
-                if inst and not inst.fainted:
-                    hp_percent = inst.current_hp / inst.max_hp if inst.max_hp > 0 else 0
-                    if trainer_id == player.trainer_id:
-                        player_hp_percent += hp_percent
-                        player_count += 1
-                    else:
-                        opponent_hp_percent += hp_percent
-                        opponent_count += 1
-
-        if player_count == 0 or opponent_count == 0:
-            return None
-
-        avg_player_hp = player_hp_percent / player_count
-        avg_opponent_hp = opponent_hp_percent / opponent_count
-
-        return avg_player_hp - avg_opponent_hp
