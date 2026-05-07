@@ -77,7 +77,7 @@ export default function App() {
     disconnect();
     connect({
       name: 'Leo',
-      controller_type: 'human',
+      controller_type: 'ai',
       battle_type: '1v1',
       difficulty: 1,
     });
@@ -114,7 +114,7 @@ export default function App() {
   useEffect(() => {
     connect({
       name: 'Leo',
-      controller_type: 'human',
+      controller_type: 'ai',
       battle_type: '1v1',
       difficulty: 2,
     });
@@ -304,19 +304,21 @@ export default function App() {
             currentEventIndex={currentEventIndex}
           />
         </Section>
-        {status === 'finished' && !isAnimating && currentEvents.length === 0 && (
-          <Modal isOpen>
-            <h2 className="text-2xl font-bold text-white mb-4">
-              {isVictory ? '¡Victoria!' : 'Derrota'}
-            </h2>
-            <button
-              onClick={handlePlayAgain}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Jugar de Nuevo
-            </button>
-          </Modal>
-        )}
+        {status === 'finished' &&
+          !isAnimating &&
+          currentEvents.length === 0 && (
+            <Modal isOpen>
+              <h2 className="text-2xl font-bold text-white mb-4">
+                {isVictory ? '¡Victoria!' : 'Derrota'}
+              </h2>
+              <button
+                onClick={handlePlayAgain}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Jugar de Nuevo
+              </button>
+            </Modal>
+          )}
       </div>
     </div>
   );

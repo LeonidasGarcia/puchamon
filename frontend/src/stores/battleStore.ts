@@ -39,6 +39,7 @@ interface BattleState {
   currentEvents: BattleTurnEvent[];
   pendingMyPokemon: PokemonInstanceSnapshot[] | null;
   pendingOpponentPokemon: PokemonInstanceSnapshot[] | null;
+  pendingTurnResults: BattleTurnDTO[];
   winnerTrainerId: string | null;
   connect: (request: ConnectionRequest) => void;
   disconnect: () => void;
@@ -79,6 +80,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   currentEvents: [],
   pendingMyPokemon: null,
   pendingOpponentPokemon: null,
+  pendingTurnResults: [],
   winnerTrainerId: null,
 
   connect: (request: ConnectionRequest) => {
@@ -117,6 +119,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       currentEvents: [],
       pendingMyPokemon: null,
       pendingOpponentPokemon: null,
+      pendingTurnResults: [],
     });
   },
 
@@ -167,12 +170,19 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       currentEvents: [],
       pendingMyPokemon: null,
       pendingOpponentPokemon: null,
+      pendingTurnResults: [],
       winnerTrainerId: null,
     });
   },
 
   _handleTurnResult: (turn: BattleTurnDTO) => {
-    const { trainerId } = get();
+    const { trainerId, isAnimating, pendingTurnResults } = get();
+    
+    // Si ya estamos animando, encolar este turno para procesarlo después
+    if (isAnimating) {
+      set({ pendingTurnResults: [...pendingTurnResults, turn] });
+      return;
+    }
     const snapshot = turn.post_turn_snapshot;
 
     const newMyPokemon: PokemonInstanceSnapshot[] = [];
@@ -239,10 +249,80 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       currentEvents,
       pendingMyPokemon,
       pendingOpponentPokemon,
+      pendingTurnResults,
+      trainerId,
     } = get();
     const nextIndex = currentEventIndex + 1;
 
     if (nextIndex >= currentEvents.length) {
+      // Hay turnos en cola → procesar siguiente turno
+      if (pendingTurnResults.length > 0) {
+        const nextTurn = pendingTurnResults[0];
+        const newQueue = pendingTurnResults.slice(1);
+        const snapshot = nextTurn.post_turn_snapshot;
+
+        const newMyPokemon: PokemonInstanceSnapshot[] = [];
+        const newOpponentPokemon: PokemonInstanceSnapshot[] = [];
+
+        snapshot.pokemon_instances.forEach((pokemon) => {
+          if (pokemon.trainer_id === trainerId) {
+            newMyPokemon.push(pokemon);
+          } else {
+            newOpponentPokemon.push(pokemon);
+          }
+        });
+
+        const awaitingSwitch = nextTurn.required_replacements.length > 0;
+        const availableSwitches = awaitingSwitch
+          ? (nextTurn.required_replacements.find((r) => r.trainer_id === trainerId)
+              ?.available_instance_ids ?? [])
+          : [];
+
+        if (nextTurn.events.length === 0) {
+          set({
+            currentTurn: snapshot.turn,
+            status: snapshot.status,
+            phase: snapshot.phase ?? null,
+            weather: snapshot.weather,
+            sides: snapshot.sides,
+            myPokemon: newMyPokemon,
+            opponentPokemon: newOpponentPokemon,
+            turnHistory: [...get().turnHistory, nextTurn],
+            isMyTurn: false,
+            awaitingSwitch,
+            availableSwitches,
+            isAnimating: false,
+            currentEventIndex: 0,
+            currentEvents: [],
+            pendingMyPokemon: null,
+            pendingOpponentPokemon: null,
+            pendingTurnResults: newQueue,
+            winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
+          });
+        } else {
+          set({
+            currentTurn: snapshot.turn,
+            status: snapshot.status,
+            phase: snapshot.phase ?? null,
+            weather: snapshot.weather,
+            sides: snapshot.sides,
+            turnHistory: [...get().turnHistory, nextTurn],
+            isMyTurn: false,
+            awaitingSwitch,
+            availableSwitches,
+            isAnimating: true,
+            currentEventIndex: 0,
+            currentEvents: nextTurn.events,
+            pendingMyPokemon: newMyPokemon,
+            pendingOpponentPokemon: newOpponentPokemon,
+            pendingTurnResults: newQueue,
+            winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
+          });
+        }
+        return;
+      }
+
+      // No hay turnos en cola → comportamiento normal
       set({
         isAnimating: false,
         currentEventIndex: 0,
