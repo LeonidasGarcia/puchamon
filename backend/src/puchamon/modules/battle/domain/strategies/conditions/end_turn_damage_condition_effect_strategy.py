@@ -5,6 +5,7 @@ from math import floor
 from .....pokedex.domain.entities.conditions import EndTurnDamageEffect
 from ...mechanics import faint_instance
 from ...runtime import BattleStrategyContext, ConditionEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import ConditionEffectStrategy
 
 
@@ -28,7 +29,7 @@ class EndTurnDamageConditionEffectStrategy(ConditionEffectStrategy):
 
         context.add_event(
             kind="condition_damage",
-            message=f"{instance.pokemon_id} was hurt by its {execution.condition.name}!",
+            message=f"{format_pokemon_name(instance.pokemon_id)} was hurt by its {execution.condition.name}!",
             target_instance_id=instance.id,
             condition_id=execution.condition.id,
             value=applied_damage,

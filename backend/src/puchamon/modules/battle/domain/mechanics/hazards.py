@@ -12,6 +12,7 @@ from ..rules import (
     STEALTH_ROCK_BASE_RATIO,
     TOXIC_SPIKES_TOXIC_THRESHOLD,
 )
+from ..utils import format_pokemon_name
 
 if TYPE_CHECKING:
     from ....pokedex.domain.entities import Type
@@ -82,7 +83,7 @@ def apply_entry_hazards(
             instance.current_hp -= applied_damage
             context.add_event(
                 kind="hazard_damage",
-                message=f"Pointed stones dug into {instance.pokemon_id}!",
+                message=f"Pointed stones dug into {format_pokemon_name(instance.pokemon_id)}!",
                 target_instance_id=instance.id,
                 value=applied_damage,
             )
@@ -99,7 +100,7 @@ def apply_entry_hazards(
             instance.current_hp -= applied_damage
             context.add_event(
                 kind="hazard_damage",
-                message=f"{instance.pokemon_id} was hurt by spikes!",
+                message=f"{format_pokemon_name(instance.pokemon_id)} was hurt by spikes!",
                 target_instance_id=instance.id,
                 value=applied_damage,
             )
@@ -115,7 +116,7 @@ def apply_entry_hazards(
             side.hazards = [h for h in side.hazards if h != "toxic_spikes"]
             context.add_event(
                 kind="hazard_cleared",
-                message=f"{instance.pokemon_id} absorbed the Toxic Spikes!",
+                message=f"{format_pokemon_name(instance.pokemon_id)} absorbed the Toxic Spikes!",
                 target_instance_id=instance.id,
                 hazard_id="toxic_spikes",
             )
@@ -125,7 +126,7 @@ def apply_entry_hazards(
             instance.status = status_to_apply
             context.add_event(
                 kind="status_applied",
-                message=f"{instance.pokemon_id} was poisoned by the Toxic Spikes!",
+                message=f"{format_pokemon_name(instance.pokemon_id)} was poisoned by the Toxic Spikes!",
                 target_instance_id=instance.id,
                 status_id=status_to_apply,
             )

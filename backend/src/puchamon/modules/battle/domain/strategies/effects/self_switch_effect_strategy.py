@@ -2,6 +2,7 @@
 
 from ...battlefield import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import MoveEffectStrategy
 
 
@@ -28,7 +29,7 @@ class SelfSwitchEffectStrategy(MoveEffectStrategy):
 
         context.add_event(
             kind="self_switch",
-            message=f"{source.pokemon_id} went back to its trainer!",
+            message=f"{format_pokemon_name(source.pokemon_id)} went back to its trainer!",
             source_instance_id=execution.source_instance_id,
             active_slot=slot,
         )

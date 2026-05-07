@@ -5,6 +5,7 @@ from math import floor
 from .....pokedex.domain.entities.weathers import EndTurnDamageEffect
 from ...mechanics import faint_instance
 from ...runtime import BattleStrategyContext, WeatherEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import WeatherEffectStrategy
 
 
@@ -32,7 +33,7 @@ class EndTurnDamageWeatherEffectStrategy(WeatherEffectStrategy):
 
             context.add_event(
                 kind="weather_damage",
-                message=f"{instance.pokemon_id} is buffeted by the {execution.weather.name}!",
+                message=f"{format_pokemon_name(instance.pokemon_id)} is buffeted by the {execution.weather.name}!",
                 target_instance_id=instance.id,
                 value=applied_damage,
             )

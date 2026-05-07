@@ -1,6 +1,7 @@
 """Strategy for `cannot_move` condition effects."""
 
 from ...runtime import BattleStrategyContext, ConditionEffectExecutionInput
+from ...utils import format_pokemon_name
 from .pending import PendingConditionEffectStrategy
 
 
@@ -17,7 +18,7 @@ class CannotMoveConditionEffectStrategy(PendingConditionEffectStrategy):
         context.mark_action_blocked(execution.holder_instance_id, self.kind)
         context.add_event(
             kind="cannot_move",
-            message=f"{holder_instance.pokemon_id} cannot move because of {execution.condition.name}",
+            message=f"{format_pokemon_name(holder_instance.pokemon_id)} cannot move because of {execution.condition.name}",
             source_instance_id=execution.holder_instance_id,
             status_id=execution.condition.id,
         )

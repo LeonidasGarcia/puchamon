@@ -1,43 +1,69 @@
-import { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import type { BattleTurnEvent } from '../../types/schemas/Battle';
 
-interface PokemonProps {
+interface PokemonSpriteProps {
   name?: string;
   sprite: string | undefined;
+  isAnimating?: boolean;
+  currentEventIndex?: number;
+  currentEvents?: BattleTurnEvent[];
+  instanceId?: string;
+  instanceIds?: string[];
+  trainerId?: string;
+  direction?: 'left' | 'right';
 }
 
-// TODO Solucionar el problema del rescalado multiplicativo y el rescalado incorrecto al cambiar de cara (no necesario)
-export default function PokemonSprite(props: PokemonProps) {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+export default function PokemonSprite(props: PokemonSpriteProps) {
+  const shouldAnimate =
+    props.isAnimating &&
+    props.currentEvents &&
+    props.currentEventIndex !== undefined &&
+    props.instanceId &&
+    props.currentEvents[props.currentEventIndex]?.source_instance_id ===
+      props.instanceId;
 
-  const RESCALING_CONSTANT = 2;
+  const dx = props.direction === 'left' ? -30 : 30;
+  const dy = props.direction === 'left' ? 15 : -15;
 
-  const imgRef = useRef<HTMLImageElement | null>(null);
+  const hasFaintedEvent =
+    props.currentEvents?.some(
+      (e) =>
+        e.kind === 'pokemon_fainted' &&
+        e.source_instance_id === props.instanceId,
+    ) ?? false;
 
-  const onLoad = () => {
-    if (imgRef.current) {
-      const naturalWidth = imgRef.current.width;
-      const naturalHeight = imgRef.current.height;
-
-      console.log(naturalWidth, naturalHeight);
-
-      setDimensions({
-        width: naturalWidth * RESCALING_CONSTANT,
-        height: naturalHeight * RESCALING_CONSTANT,
-      });
-    }
-  };
+  const isFaintAnimating =
+    props.isAnimating && props.instanceId && hasFaintedEvent;
 
   return (
-    <img
-      className="inline-block h-fit z-50"
-      style={{
-        width: dimensions.width ? `${dimensions.width}px` : '',
-        height: dimensions.height ? `${dimensions.height}px` : '',
-      }}
-      onLoad={onLoad}
-      src={props.sprite}
-      alt={props.name}
-      ref={imgRef}
-    />
+    <motion.div
+      className="relative z-50"
+      initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
+      animate={
+        isFaintAnimating
+          ? { x: 0, y: 20, opacity: 0, rotate: 90 }
+          : shouldAnimate
+            ? { x: [0, dx, 0], y: [0, dy, 0] }
+            : { x: 0, y: 0 }
+      }
+      transition={
+        isFaintAnimating
+          ? { duration: 0.8, ease: 'easeIn' }
+          : shouldAnimate
+            ? { duration: 0.4, ease: 'easeOut' }
+            : { duration: 0 }
+      }
+    >
+      <img
+        className="relative inline-block h-fit"
+        style={{
+          transform: 'scale(2)',
+          transformOrigin: 'center bottom',
+          zIndex: 50,
+        }}
+        src={props.sprite}
+        alt={props.name}
+      />
+    </motion.div>
   );
 }

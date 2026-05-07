@@ -3,6 +3,7 @@
 from ...battlefield import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
 from ...exceptions import BattleConflictError, BattleValidationError
 from ...runtime import ActionExecutionInput, BattleStrategyContext
+from ...utils import format_pokemon_name
 from .base import ActionStrategy
 
 
@@ -42,7 +43,10 @@ class SwitchActionStrategy(ActionStrategy):
 
         context.add_event(
             kind="switch",
-            message=(f"{source_instance.pokemon_id} switched out and {replacement_instance.pokemon_id} entered the battlefield"),
+            message=(
+                f"{format_pokemon_name(source_instance.pokemon_id)} switched out and "
+                f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield"
+            ),
             source_instance_id=execution.action.user_instance_id,
             target_instance_id=execution.replacement_instance_id,
             active_slot=source_active_slot,

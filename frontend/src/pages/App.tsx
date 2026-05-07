@@ -1,174 +1,274 @@
+import { useEffect, useRef } from 'react';
 import BattleScenario from '../components/battle/BattleScenario';
 import LoadingScreen from '../components/LoadingScreen';
 import TurnLog from '../components/battle/TurnLog';
-import { POKE_DATA } from '../types/Pokemon';
-import { SAMPLE_TURNS } from '../data/sampleTurns';
+import { useBattleStore } from '../stores/battleStore';
 import usePokemonSpritesQuery from '../hooks/usePokemonSpritesQuery';
 import PokemonSwitch from '../components/cards/PokemonSwitch';
 import Section from '../components/ui/Section';
 import PokemonState from '../components/cards/PokemonState';
 import PokemonMovement from '../components/cards/PokemonMovement';
-
-const p1Pokemons = shufflePokemons();
-const p2Pokemons = shufflePokemons();
-
-const p1PokemonsMovesets = p1Pokemons.map((pokemon) =>
-  pickPokemonMoveset(pokemon._id),
-);
-const p2PokemonsMovesets = p2Pokemons.map((pokemon) =>
-  pickPokemonMoveset(pokemon._id),
-);
-
-const p1PokemonMoves = {};
-const p2PokemonMoves = {};
-
-p1PokemonsMovesets.forEach((set) => {
-  p1PokemonMoves[set.pokemonId] = set.moves.map((move) =>
-    POKE_DATA.moves.find((savedMove) => savedMove._id === move),
-  );
-});
-
-p2PokemonsMovesets.forEach((set) => {
-  p2PokemonMoves[set.pokemonId] = set.moves.map((move) =>
-    POKE_DATA.moves.find((savedMove) => savedMove._id === move),
-  );
-});
-
-const trainers = {
-  p1: {
-    name: 'Leo',
-    pokemons: p1Pokemons,
-    pokemonsMovesets: p1PokemonsMovesets,
-    pokemonMoves: p1PokemonMoves,
-  },
-  p2: {
-    name: 'Nick',
-    pokemons: p2Pokemons,
-    pokemonsMovesets: p2PokemonsMovesets,
-    pokemonMoves: p2PokemonMoves,
-  },
-};
+import { POKE_DATA } from '../types/Pokemon';
+import type { WeatherColorsKeys } from '../types/colors/WeatherColors';
+import type { HazardColorsKeys } from '../types/colors/HazardColors';
+import type { TypeColorsKeys } from '../types/colors/TypeColors';
 
 export default function App() {
-  const { spritesMap: p1Sprites, isLoading: p1Loading } =
-    usePokemonSpritesQuery(trainers.p1.pokemons.map((poke) => poke._id));
-  const { spritesMap: p2Sprites, isLoading: p2Loading } =
-    usePokemonSpritesQuery(trainers.p2.pokemons.map((poke) => poke._id));
+  const {
+    isConnected,
+    isMyTurn,
+    isAnimating,
+    currentEventIndex,
+    currentEvents,
+    lastError,
+    weather,
+    sides,
+    players,
+    myPokemon,
+    opponentPokemon,
+    turnHistory,
+    trainerId,
+    connect,
+    disconnect,
+    submitAction,
+    _advanceAnimation,
+  } = useBattleStore();
 
-  const areSpritesLoading = p1Loading || p2Loading;
+  const myName =
+    players.find((p) => p.controller_type === 'human')?.name ?? 'Mi equipo';
+  const opponentName =
+    players.find((p) => p.controller_type === 'ai')?.name ?? 'Equipo rival';
+
+  const myActiveInstanceId =
+    sides[trainerId ?? '']?.active_pokemon_instance_ids?.[0];
+  const activePokemon =
+    myPokemon.find((p) => p.instance_id === myActiveInstanceId) ?? myPokemon[0];
+  const activeOpponentInstanceId = Object.entries(sides).find(
+    ([key]) => key !== trainerId,
+  )?.[1]?.active_pokemon_instance_ids?.[0];
+  const activeOpponentPokemon = opponentPokemon.find(
+    (p) => p.instance_id === activeOpponentInstanceId,
+  );
+
+  const displayedOpponentPokemon =
+    activeOpponentPokemon ??
+    (isAnimating || status === 'finished'
+      ? null
+      : opponentPokemon.find((p) => p.fainted));
+
+  const allTeamBySlot = [...myPokemon].sort(
+    (a, b) => a.team_slot - b.team_slot,
+  );
+
+  const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isAnimating && currentEvents.length > 0) {
+      animationTimerRef.current = setInterval(() => {
+        _advanceAnimation();
+      }, 1000);
+    }
+
+    return () => {
+      if (animationTimerRef.current) {
+        clearInterval(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+    };
+  }, [isAnimating, currentEvents.length, _advanceAnimation]);
+
+  useEffect(() => {
+    connect({
+      name: 'Leo',
+      controller_type: 'human',
+      battle_type: '1v1',
+      difficulty: 2,
+    });
+
+    return () => {
+      if (animationTimerRef.current) {
+        clearInterval(animationTimerRef.current);
+      }
+      disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const allPokemonIds = [
+    ...myPokemon.map((p) => p.pokemon_id),
+    ...opponentPokemon.map((p) => p.pokemon_id),
+  ];
+
+  const { spritesMap: allSprites, isLoading: spritesLoading } =
+    usePokemonSpritesQuery(allPokemonIds);
+
+  const p1Sprites = activePokemon
+    ? [allSprites[activePokemon.pokemon_id]].filter(Boolean)
+    : [];
+  const p2Sprites = displayedOpponentPokemon
+    ? [allSprites[displayedOpponentPokemon.pokemon_id]].filter(Boolean)
+    : [];
+
+  const activeMoves = activePokemon?.move_state ?? [];
+
+  const handleMoveSelect = (moveId: string) => {
+    if (!activePokemon || !isMyTurn || isAnimating) return;
+
+    submitAction({
+      type: 'move',
+      user_instance_id: activePokemon.instance_id,
+      move_id: moveId,
+      target: {
+        scope: 'target',
+        target_side: 'foe_side',
+        target_active_slot: 0,
+      },
+      replacement_instance_id: null,
+    });
+  };
+
+  const handleSwitchSelect = (replacementInstanceId: string) => {
+    if (!activePokemon || isAnimating) return;
+
+    submitAction({
+      type: 'switch',
+      user_instance_id: activePokemon.instance_id,
+      move_id: null,
+      target: null,
+      replacement_instance_id: replacementInstanceId,
+    });
+  };
+
+  const isLoading = !isConnected || spritesLoading;
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (lastError) {
+    return (
+      <div className="w-screen h-screen flex bg-neutral-900 justify-center items-center">
+        <p className="text-red-500 text-body">Error: {lastError.message}</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {areSpritesLoading ? (
-        <LoadingScreen />
-      ) : (
-        <div className="w-screen h-screen flex bg-neutral-900 overflow-hidden">
-          <div className="flex flex-col gap-4 flex-1 h-full">
-            <BattleScenario
-              p1Sprites={Object.values(p1Sprites)
-                .slice(0, 3)
-                .map((sprite) => sprite)}
-              p2Sprites={Object.values(p2Sprites)
-                .slice(0, 3)
-                .map((sprite) => sprite)}
-              weatherId="hail"
-              weatherRemainingTurns={3}
-              hazards={['spikes', 'stealth-rock']}
-            />
-            <div className="flex flex-col gap-6 pb-8">
-              <Section label="Leo">
-                {trainers.p1.pokemons.slice(0, 3).map((pokemon) => (
-                  <PokemonState
-                    name={pokemon.name}
-                    currentHp={pokemon.baseStats.hp}
-                    maxHp={pokemon.baseStats.hp}
-                    level={100}
-                    hpPercentage={100}
+    <div className="w-screen h-screen flex bg-neutral-900 overflow-hidden">
+      <div className="flex flex-col gap-4 flex-1 h-full">
+        <BattleScenario
+          p1Sprites={p1Sprites}
+          p2Sprites={p2Sprites}
+          weatherId={(weather?.weather_id as WeatherColorsKeys) ?? null}
+          weatherRemainingTurns={weather?.remaining_turns ?? null}
+          hazards={(sides['p1']?.hazards as HazardColorsKeys[]) ?? []}
+          isAnimating={isAnimating}
+          currentEventIndex={currentEventIndex}
+          currentEvents={currentEvents}
+          myPokemon={myPokemon}
+          opponentPokemon={opponentPokemon}
+        />
+        <div className="flex flex-col gap-6 pb-8">
+          <Section label={`Equipo de ${myName}`}>
+            {activePokemon && (
+              <PokemonState
+                key={activePokemon.instance_id}
+                name={
+                  activePokemon.pokemon_id.charAt(0).toUpperCase() +
+                  activePokemon.pokemon_id.slice(1)
+                }
+                currentHp={activePokemon.current_hp}
+                maxHp={activePokemon.max_hp}
+                level={activePokemon.level}
+                hpPercentage={Math.round(
+                  (activePokemon.current_hp / activePokemon.max_hp) * 100,
+                )}
+              />
+            )}
+          </Section>
+          <Section
+            label={`¿Qué debería hacer ${
+              activePokemon?.pokemon_id
+                ? activePokemon.pokemon_id.charAt(0).toUpperCase() +
+                  activePokemon.pokemon_id.slice(1)
+                : ''
+            }?`}
+          >
+            {activeMoves.map((move) => {
+              const moveData = POKE_DATA.moves.find(
+                (m) => m._id === move.move_id,
+              );
+              const isDisabled = move.current_pp === 0 || isAnimating;
+              return (
+                <PokemonMovement
+                  key={move.move_id}
+                  name={moveData?.name ?? move.move_id}
+                  type={(moveData?.type as TypeColorsKeys) ?? 'Normal'}
+                  currentPP={move.current_pp}
+                  maxPP={moveData?.pp ?? move.current_pp}
+                  disabled={isDisabled}
+                  onClick={() => handleMoveSelect(move.move_id)}
+                />
+              );
+            })}
+          </Section>
+          {
+            <Section label="Cambiar Pokemon">
+              {allTeamBySlot
+                .filter((p) => !p.fainted)
+                .map((pokemon) => (
+                  <PokemonSwitch
+                    key={pokemon.instance_id}
+                    name={pokemon.pokemon_id}
+                    currentHp={pokemon.current_hp}
+                    maxHp={pokemon.max_hp}
+                    hpPercentage={Math.round(
+                      (pokemon.current_hp / pokemon.max_hp) * 100,
+                    )}
+                    sprite={allSprites[pokemon.pokemon_id]?.minisprite}
+                    onClick={() => handleSwitchSelect(pokemon.instance_id)}
+                    disabled={
+                      pokemon.instance_id === myActiveInstanceId || isAnimating
+                    }
                   />
                 ))}
-              </Section>
-              <Section label="¿Qué debería hacer Pikachu?">
-                {trainers.p1.pokemonMoves[trainers.p1.pokemons[0]._id].map(
-                  (move) => (
-                    <PokemonMovement
-                      name={move.name}
-                      type={move.type}
-                      currentPP={move.pp}
-                      maxPP={move.pp}
-                    />
-                  ),
-                )}
-              </Section>
-              <Section label="Cambiar Pokemon">
-                <PokemonSwitch
-                  name={p1Pokemons[3].name}
-                  currentHp={Math.round(p1Pokemons[3].baseStats.hp * 0.35)}
-                  maxHp={p1Pokemons[3].baseStats.hp}
-                  hpPercentage={35}
-                  sprite={p1Sprites[p1Pokemons[3]._id]?.minisprite}
-                />
-                <PokemonSwitch
-                  name={p1Pokemons[4].name}
-                  currentHp={Math.round(p1Pokemons[4].baseStats.hp * 0.35)}
-                  maxHp={p1Pokemons[4].baseStats.hp}
-                  hpPercentage={35}
-                  sprite={p1Sprites[p1Pokemons[4]._id]?.minisprite}
-                />
-                <PokemonSwitch
-                  name={p1Pokemons[5].name}
-                  currentHp={Math.round(p1Pokemons[5].baseStats.hp * 0.35)}
-                  maxHp={p1Pokemons[5].baseStats.hp}
-                  hpPercentage={35}
-                  sprite={p1Sprites[p1Pokemons[5]._id]?.minisprite}
-                />
-              </Section>
-            </div>
-          </div>
-          <div className="flex flex-col gap-8 flex-1 py-6 h-full">
-            <div className="flex flex-col gap-6">
-              <Section label="Trainer Nick">
-                <PokemonState
-                  name="Pikachu"
-                  currentHp={100}
-                  maxHp={145}
-                  level={50}
-                  hpPercentage={90}
-                />
-                <PokemonState
-                  name="Pikachu"
-                  currentHp={100}
-                  maxHp={145}
-                  level={50}
-                  hpPercentage={90}
-                />
-                <PokemonState
-                  name="Pikachu"
-                  currentHp={100}
-                  maxHp={145}
-                  level={50}
-                  hpPercentage={90}
-                />
-              </Section>
-            </div>
-            <Section
-              className="flex flex-col items-start justify-start overflow-scroll"
-              label="Turnos"
-            >
-              <TurnLog turns={SAMPLE_TURNS} />
             </Section>
-          </div>
+          }
         </div>
-      )}
-    </>
+      </div>
+      <div className="flex flex-col gap-8 flex-1 py-6 h-full">
+        <div className="flex flex-col gap-6">
+          <Section label={`Equipo de ${opponentName}`}>
+            {displayedOpponentPokemon && (
+              <PokemonState
+                key={displayedOpponentPokemon.instance_id}
+                name={
+                  displayedOpponentPokemon.pokemon_id.charAt(0).toUpperCase() +
+                  displayedOpponentPokemon.pokemon_id.slice(1)
+                }
+                currentHp={displayedOpponentPokemon.current_hp}
+                maxHp={displayedOpponentPokemon.max_hp}
+                level={displayedOpponentPokemon.level}
+                hpPercentage={Math.round(
+                  (displayedOpponentPokemon.current_hp /
+                    displayedOpponentPokemon.max_hp) *
+                    100,
+                )}
+              />
+            )}
+          </Section>
+        </div>
+        <Section
+          className="flex flex-col items-start justify-start overflow-scroll"
+          label="Turnos"
+        >
+          <TurnLog
+            turns={turnHistory}
+            isAnimating={isAnimating}
+            currentEventIndex={currentEventIndex}
+          />
+        </Section>
+      </div>
+    </div>
   );
-}
-
-function shufflePokemons() {
-  return [...POKE_DATA.pokemons].sort(() => 0.5 - Math.random()).slice(0, 6);
-}
-
-function pickPokemonMoveset(pokemonId: string) {
-  return [...POKE_DATA.movesets]
-    .filter((set) => set.pokemonId == pokemonId)
-    .sort(() => 0.5 - Math.random())[0];
 }

@@ -314,13 +314,16 @@ class TurnResolutionService:
             winner_id = active_trainers[0]
             context.battle.status = "finished"
             context.battle.result = BattleResult(winner_trainer_id=winner_id, reason="knockout")
+            winner_name = next(
+                (player.name for player in context.battle.players if player.trainer_id == winner_id),
+                winner_id,
+            )
             context.add_event(
                 kind="battle_finished",
-                message=f"Trainer {winner_id} won the battle!",
+                message=f"{winner_name} won the battle!",
                 winner_trainer_id=winner_id,
             )
         elif len(active_trainers) == 0:
-            # Tie? Rare but possible in double knockouts
             context.battle.status = "finished"
             context.add_event(kind="battle_finished", message="The battle ended in a draw!")
 

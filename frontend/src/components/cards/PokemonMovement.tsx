@@ -1,13 +1,12 @@
-import {
-  getTypeColor,
-  type TypeColorsKeys,
-} from '../../types/colors/TypeColors';
+import { getTypeColor, type TypeColorsKeys } from '../../types/colors/TypeColors';
 
 interface PokemonMovementProps {
   name: string;
   type: TypeColorsKeys;
   currentPP: number;
   maxPP: number;
+  onClick: () => void;
+  disabled?: boolean;
 }
 
 function blendWithWhite(hex: string, intensity: number): string {
@@ -27,9 +26,22 @@ export default function PokemonMovement(props: PokemonMovementProps) {
   const typeColor = getTypeColor(props.type);
   const backgroundColor = blendWithWhite(typeColor, 0.25);
 
+  const handleClick = () => {
+    if (!props.disabled) {
+      props.onClick();
+    }
+  };
+
   return (
-    <div
-      className="flex flex-row items-center justify-between px-3 py-2 rounded-lg border-2 min-w-52 shadow-sm"
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={props.disabled}
+      className={`
+        flex flex-row items-center justify-between px-3 py-2 rounded-lg border-2 min-w-52 shadow-sm
+        transition-opacity duration-200
+        ${props.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'}
+      `}
       style={{ backgroundColor, borderColor: typeColor }}
     >
       <div className="flex flex-col gap-0.5">
@@ -43,9 +55,9 @@ export default function PokemonMovement(props: PokemonMovementProps) {
           {props.type}
         </span>
       </div>
-      <span className="text-movement-type text-text-secondary font-medium leading-none shrink-0">
+      <span className="text-movement-type text-[--color-text-secondary] font-medium leading-none shrink-0">
         {props.currentPP}/{props.maxPP}
       </span>
-    </div>
+    </button>
   );
 }

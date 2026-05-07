@@ -3,6 +3,7 @@
 from .....pokedex.domain.entities.effects import ModifyStatPayload
 from ...exceptions import BattleValidationError
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import MoveEffectStrategy
 
 
@@ -37,7 +38,7 @@ class ModifyStatEffectStrategy(MoveEffectStrategy):
 
                 if new_stage == current_stage:
                     # No change occurred (already at max/min)
-                    message = f"{target.pokemon_id}'s {change.stat.upper()} won't go any {'higher' if change.stages > 0 else 'lower'}!"
+                    message = f"{format_pokemon_name(target.pokemon_id)}'s {change.stat.upper()} won't go any {'higher' if change.stages > 0 else 'lower'}!"
                     context.add_event(
                         kind="stat_change_failed",
                         message=message,
@@ -64,7 +65,7 @@ class ModifyStatEffectStrategy(MoveEffectStrategy):
 
                 context.add_event(
                     kind="stat_changed",
-                    message=f"{target.pokemon_id}'s {change.stat.upper()} {desc}!",
+                    message=f"{format_pokemon_name(target.pokemon_id)}'s {change.stat.upper()} {desc}!",
                     target_instance_id=target_id,
                     stat=change.stat,
                     change=change.stages,

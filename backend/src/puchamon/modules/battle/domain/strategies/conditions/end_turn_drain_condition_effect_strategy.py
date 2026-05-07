@@ -7,6 +7,7 @@ from .....pokedex.domain.entities.conditions import EndTurnDrainEffect
 from ...battlefield import get_active_slot_for_instance, get_side_for_trainer
 from ...mechanics import faint_instance
 from ...runtime import BattleStrategyContext, ConditionEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import ConditionEffectStrategy
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ class EndTurnDrainConditionEffectStrategy(ConditionEffectStrategy):
 
         context.add_event(
             kind="condition_drain",
-            message=f"{instance.pokemon_id}'s health is sapped by {execution.condition.name}!",
+            message=f"{format_pokemon_name(instance.pokemon_id)}'s health is sapped by {execution.condition.name}!",
             target_instance_id=instance.id,
             condition_id=execution.condition.id,
             value=applied_drain,
@@ -50,7 +51,7 @@ class EndTurnDrainConditionEffectStrategy(ConditionEffectStrategy):
 
             context.add_event(
                 kind="condition_heal",
-                message=f"{beneficiary.pokemon_id} regained health from {execution.condition.name}!",
+                message=f"{format_pokemon_name(beneficiary.pokemon_id)} regained health from {execution.condition.name}!",
                 target_instance_id=beneficiary.id,
                 condition_id=execution.condition.id,
                 value=actual_heal,

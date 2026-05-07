@@ -12,6 +12,7 @@ import type {
   Player,
   TurnAction,
   ErrorPayload,
+  BattleTurnEvent,
 } from '../types/schemas/Battle';
 
 interface BattleState {
@@ -33,12 +34,18 @@ interface BattleState {
   availableSwitches: string[];
   lastError: ErrorPayload | null;
   _ws: BattleWebSocket | null;
+  isAnimating: boolean;
+  currentEventIndex: number;
+  currentEvents: BattleTurnEvent[];
+  pendingMyPokemon: PokemonInstanceSnapshot[] | null;
+  pendingOpponentPokemon: PokemonInstanceSnapshot[] | null;
   connect: (request: ConnectionRequest) => void;
   disconnect: () => void;
   submitAction: (action: TurnAction) => void;
   _handleConnectionResponse: (response: ConnectionResponse) => void;
   _handleTurnResult: (turn: BattleTurnDTO) => void;
   _handleError: (error: ErrorPayload) => void;
+  _advanceAnimation: () => void;
 }
 
 const _callbacks: ConnectionCallbacks = {
@@ -66,6 +73,11 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   availableSwitches: [],
   lastError: null,
   _ws: null,
+  isAnimating: false,
+  currentEventIndex: 0,
+  currentEvents: [],
+  pendingMyPokemon: null,
+  pendingOpponentPokemon: null,
 
   connect: (request: ConnectionRequest) => {
     const ws = new BattleWebSocket();
@@ -98,6 +110,11 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       awaitingSwitch: false,
       availableSwitches: [],
       _ws: null,
+      isAnimating: false,
+      currentEventIndex: 0,
+      currentEvents: [],
+      pendingMyPokemon: null,
+      pendingOpponentPokemon: null,
     });
   },
 
@@ -105,6 +122,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const { trainerId, _ws } = get();
     if (trainerId && _ws?.isConnected()) {
       _ws.sendTurnSubmit(trainerId, action);
+      set({ isMyTurn: false });
     }
   },
 
@@ -129,7 +147,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       trainerId: response.trainer_id,
       battleId: response.battle_id,
       battleType: response.battle_type,
-      currentTurn: snapshot.turn,
+      currentTurn: 0,
       status: snapshot.status,
       phase: snapshot.phase ?? null,
       players: snapshot.players,
@@ -137,8 +155,14 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       sides: snapshot.sides,
       myPokemon,
       opponentPokemon,
-      turnHistory: [initial_state],
+      turnHistory: [],
+      isMyTurn: true,
+      awaitingSwitch: false,
+      availableSwitches: [],
       lastError: null,
+      isAnimating: false,
+      currentEventIndex: 0,
+      currentEvents: [],
     });
   },
 
@@ -146,39 +170,80 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const { trainerId } = get();
     const snapshot = turn.post_turn_snapshot;
 
-    const myPokemon: PokemonInstanceSnapshot[] = [];
-    const opponentPokemon: PokemonInstanceSnapshot[] = [];
+    const newMyPokemon: PokemonInstanceSnapshot[] = [];
+    const newOpponentPokemon: PokemonInstanceSnapshot[] = [];
 
     snapshot.pokemon_instances.forEach((pokemon) => {
       if (pokemon.trainer_id === trainerId) {
-        myPokemon.push(pokemon);
+        newMyPokemon.push(pokemon);
       } else {
-        opponentPokemon.push(pokemon);
+        newOpponentPokemon.push(pokemon);
       }
     });
 
-    const isMyTurn = turn.required_replacements.some(
-      (r) => r.trainer_id === trainerId,
-    );
     const awaitingSwitch = turn.required_replacements.length > 0;
-    const availableSwitches = isMyTurn
+    const availableSwitches = awaitingSwitch
       ? (turn.required_replacements.find((r) => r.trainer_id === trainerId)
           ?.available_instance_ids ?? [])
       : [];
 
-    set((state) => ({
-      currentTurn: snapshot.turn,
-      status: snapshot.status,
-      phase: snapshot.phase ?? null,
-      weather: snapshot.weather,
-      sides: snapshot.sides,
-      myPokemon,
-      opponentPokemon,
-      turnHistory: [...state.turnHistory, turn],
-      isMyTurn,
-      awaitingSwitch,
-      availableSwitches,
-    }));
+    if (turn.events.length === 0) {
+      set({
+        currentTurn: snapshot.turn,
+        status: snapshot.status,
+        phase: snapshot.phase ?? null,
+        weather: snapshot.weather,
+        sides: snapshot.sides,
+        myPokemon: newMyPokemon,
+        opponentPokemon: newOpponentPokemon,
+        turnHistory: [...get().turnHistory, turn],
+        isMyTurn: snapshot.status !== 'finished',
+        awaitingSwitch,
+        availableSwitches,
+        isAnimating: false,
+        currentEventIndex: 0,
+        currentEvents: [],
+        pendingMyPokemon: null,
+        pendingOpponentPokemon: null,
+      });
+    } else {
+      set({
+        currentTurn: snapshot.turn,
+        status: snapshot.status,
+        phase: snapshot.phase ?? null,
+        weather: snapshot.weather,
+        sides: snapshot.sides,
+        turnHistory: [...get().turnHistory, turn],
+        isMyTurn: false,
+        awaitingSwitch,
+        availableSwitches,
+        isAnimating: true,
+        currentEventIndex: 0,
+        currentEvents: turn.events,
+        pendingMyPokemon: newMyPokemon,
+        pendingOpponentPokemon: newOpponentPokemon,
+      });
+    }
+  },
+
+  _advanceAnimation: () => {
+    const { currentEventIndex, currentEvents, pendingMyPokemon, pendingOpponentPokemon } = get();
+    const nextIndex = currentEventIndex + 1;
+
+    if (nextIndex >= currentEvents.length) {
+      set({
+        isAnimating: false,
+        currentEventIndex: 0,
+        currentEvents: [],
+        myPokemon: pendingMyPokemon ?? [],
+        opponentPokemon: pendingOpponentPokemon ?? [],
+        pendingMyPokemon: null,
+        pendingOpponentPokemon: null,
+        isMyTurn: true,
+      });
+    } else {
+      set({ currentEventIndex: nextIndex });
+    }
   },
 
   _handleError: (error: ErrorPayload) => {

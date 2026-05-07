@@ -17,6 +17,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/mini-poke-sprites/, ""),
       },
+      "/ws": {
+        target: "ws://localhost:8000",
+        ws: true,
+      },
     },
   },
 });

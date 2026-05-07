@@ -4,6 +4,7 @@ from .....pokedex.domain.entities.effects import DamagePayload
 from ...exceptions import BattleValidationError
 from ...mechanics import calculate_damage, faint_instance, resolve_damage_hit_count, resolve_damage_roll_percent
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
+from ...utils import format_pokemon_name
 from .pending import PendingMoveEffectStrategy
 
 
@@ -44,7 +45,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
                 target_instance = context.get_instance(target_instance_id)
                 context.add_event(
                     kind="damage",
-                    message=f"{target_instance.pokemon_id} took 0 damage from {execution.movement.name}",
+                    message=f"{format_pokemon_name(target_instance.pokemon_id)} took 0 damage from {execution.movement.name}",
                     source_instance_id=execution.source_instance_id,
                     target_instance_id=target_instance_id,
                     move_id=execution.movement.id,
@@ -78,7 +79,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
 
             context.add_event(
                 kind="damage",
-                message=f"{target_instance.pokemon_id} took {applied_damage} damage from {execution.movement.name}",
+                message=f"{format_pokemon_name(target_instance.pokemon_id)} took {applied_damage} damage from {execution.movement.name}",
                 source_instance_id=execution.source_instance_id,
                 target_instance_id=target_instance_id,
                 move_id=execution.movement.id,

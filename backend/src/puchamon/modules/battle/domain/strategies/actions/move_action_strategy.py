@@ -9,6 +9,7 @@ from ...entities import BattleInstance
 from ...exceptions import BattleValidationError
 from ...mechanics import calculate_accuracy
 from ...runtime import ActionExecutionInput, BattleStrategyContext
+from ...utils import format_pokemon_name
 from .base import ActionStrategy
 
 if TYPE_CHECKING:
@@ -92,7 +93,7 @@ class MoveActionStrategy(ActionStrategy):
         if skip_reason is not None:
             context.add_event(
                 kind="action_skipped",
-                message=f"{source_instance.pokemon_id} could not act because of {skip_reason}",
+                message=f"{format_pokemon_name(source_instance.pokemon_id)} could not act because of {skip_reason}",
                 source_instance_id=execution.action.user_instance_id,
                 move_id=execution.action.move_id,
                 reason=skip_reason,
@@ -115,7 +116,7 @@ class MoveActionStrategy(ActionStrategy):
 
         context.add_event(
             kind="move_used",
-            message=f"{source_instance.pokemon_id} used {movement.name}",
+            message=f"{format_pokemon_name(source_instance.pokemon_id)} used {movement.name}",
             source_instance_id=execution.action.user_instance_id,
             move_id=execution.action.move_id,
         )
@@ -136,7 +137,7 @@ class MoveActionStrategy(ActionStrategy):
                 if not calculate_accuracy(context, movement, source_instance, target):
                     context.add_event(
                         kind="move_missed",
-                        message=f"{source_instance.pokemon_id}'s attack missed!",
+                        message=f"{format_pokemon_name(source_instance.pokemon_id)}'s attack missed!",
                         source_instance_id=execution.action.user_instance_id,
                         move_id=execution.action.move_id,
                     )

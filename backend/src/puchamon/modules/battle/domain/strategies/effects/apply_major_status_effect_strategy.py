@@ -3,6 +3,7 @@
 from .....pokedex.domain.entities.effects import StatusPayload
 from ...mechanics import is_immune_to_status
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import MoveEffectStrategy
 
 
@@ -31,7 +32,7 @@ class ApplyMajorStatusEffectStrategy(MoveEffectStrategy):
             if is_immune_to_status(target, payload.condition_id):
                 context.add_event(
                     kind="status_failed_immune",
-                    message=f"It doesn't affect {target.pokemon_id}...",
+                    message=f"It doesn't affect {format_pokemon_name(target.pokemon_id)}...",
                     target_instance_id=target_id,
                 )
                 continue
@@ -40,7 +41,7 @@ class ApplyMajorStatusEffectStrategy(MoveEffectStrategy):
 
             context.add_event(
                 kind="status_applied",
-                message=f"{target.pokemon_id} was {payload.condition_id}ed!",
+                message=f"{format_pokemon_name(target.pokemon_id)} was {payload.condition_id}ed!",
                 target_instance_id=target_id,
                 status_id=payload.condition_id,
             )

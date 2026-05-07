@@ -3,6 +3,7 @@
 from .....pokedex.domain.entities.effects import ProtectPayload
 from ...exceptions import BattleValidationError
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
+from ...utils import format_pokemon_name
 from .base import MoveEffectStrategy
 
 
@@ -26,7 +27,7 @@ class ProtectEffectStrategy(MoveEffectStrategy):
         if "protect" in source.volatile_status:
             context.add_event(
                 kind="move_failed",
-                message=f"{source.pokemon_id} is already protected!",
+                message=f"{format_pokemon_name(source.pokemon_id)} is already protected!",
                 source_instance_id=execution.source_instance_id,
             )
             return
@@ -34,7 +35,7 @@ class ProtectEffectStrategy(MoveEffectStrategy):
         source.volatile_status.append("protect")
         context.add_event(
             kind="status_applied",
-            message=f"{source.pokemon_id} protected itself!",
+            message=f"{format_pokemon_name(source.pokemon_id)} protected itself!",
             target_instance_id=execution.source_instance_id,
             status_id="protect",
         )

@@ -174,6 +174,7 @@ class BattleService:
                     battle=battle,
                     instances=instances,
                     ai_level=player.ai_level or 1,
+                    movements=data["movements"],
                 )
                 actions.append(ai_action)
         processed_turn = battle.turn
@@ -238,6 +239,7 @@ class BattleService:
                     battle=battle,
                     instances=instances,
                     ai_level=player.ai_level or 1,
+                    movements=data["movements"],
                 )
                 actions.append(ai_action)
 
