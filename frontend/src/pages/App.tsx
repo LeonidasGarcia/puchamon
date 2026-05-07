@@ -114,8 +114,8 @@ export default function App() {
   useEffect(() => {
     connect({
       name: 'Leo',
-      controller_type: 'ai',
-      battle_type: '1v1',
+      controller_type: 'human',
+      battle_type: '3v3',
       difficulty: 2,
     });
 
