@@ -44,8 +44,6 @@ class BattleSetupService:
         if move_effects is None:
             move_effects = {}
 
-        active_slots = int(battle_type[0])
-
         for player in players:
             trainer_instances: list[BattleInstance] = []
             total_attempts = 0
@@ -103,10 +101,7 @@ class BattleSetupService:
 
             instances.extend(trainer_instances)
 
-            active_ids: list[str | None] = [
-                str(trainer_instances[i].id) if i < len(trainer_instances) else None
-                for i in range(active_slots)
-            ]
+            active_ids: list[str | None] = [str(trainer_instances[0].id)]
 
             sides[player.trainer_id] = SideState(hazards=[], active_pokemon_instance_ids=active_ids)
 

@@ -21,7 +21,7 @@ async def _handle_websocket_error(request: Request, exc: Exception, close_code: 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse | None:
     """Error handler for custom application exceptions."""
-    if _handle_websocket_error(request, exc):
+    if await _handle_websocket_error(request, exc):
         return None
 
     request_id = getattr(request.state, "request_id", "unknown")
@@ -45,7 +45,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse | N
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse | None:
     """Error handler for HTTP exceptions."""
-    if _handle_websocket_error(request, exc, close_code=1000):
+    if await _handle_websocket_error(request, exc, close_code=1000):
         return None
 
     request_id = getattr(request.state, "request_id", "unknown")
@@ -68,7 +68,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     Handles both HTTP and WebSocket connections properly.
     For WebSocket, closes the connection with code 1011 (Unexpected Error).
     """
-    if _handle_websocket_error(request, exc):
+    if await _handle_websocket_error(request, exc):
         return None
 
     request_id = getattr(request.state, "request_id", "unknown")
@@ -87,7 +87,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse | None:
     """Error handler for validation exceptions."""
-    if _handle_websocket_error(request, exc):
+    if await _handle_websocket_error(request, exc):
         return None
 
     request_id = getattr(request.state, "request_id", "unknown")
