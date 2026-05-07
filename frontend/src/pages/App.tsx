@@ -6,6 +6,7 @@ import { useBattleStore } from '../stores/battleStore';
 import usePokemonSpritesQuery from '../hooks/usePokemonSpritesQuery';
 import PokemonSwitch from '../components/cards/PokemonSwitch';
 import Section from '../components/ui/Section';
+import Modal from '../components/ui/Modal';
 import PokemonState from '../components/cards/PokemonState';
 import PokemonMovement from '../components/cards/PokemonMovement';
 import { POKE_DATA } from '../types/Pokemon';
@@ -29,6 +30,8 @@ export default function App() {
     pendingOpponentPokemon,
     turnHistory,
     trainerId,
+    status,
+    winnerTrainerId,
     connect,
     disconnect,
     submitAction,
@@ -58,6 +61,18 @@ export default function App() {
   const isOpponentFainted =
     displayedOpponentPokemon?.fainted &&
     displayedOpponentPokemon?.instance_id !== activeOpponentInstanceId;
+
+  const isVictory = winnerTrainerId === trainerId;
+
+  const handlePlayAgain = () => {
+    disconnect();
+    connect({
+      name: 'Leo',
+      controller_type: 'human',
+      battle_type: '1v1',
+      difficulty: 1,
+    });
+  };
 
   const allTeamBySlot = [...myPokemon].sort(
     (a, b) => a.team_slot - b.team_slot,
@@ -272,6 +287,19 @@ export default function App() {
             currentEventIndex={currentEventIndex}
           />
         </Section>
+        {status === 'finished' && (
+          <Modal isOpen>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              {isVictory ? '¡Victoria!' : 'Derrota'}
+            </h2>
+            <button
+              onClick={handlePlayAgain}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Jugar de Nuevo
+            </button>
+          </Modal>
+        )}
       </div>
     </div>
   );

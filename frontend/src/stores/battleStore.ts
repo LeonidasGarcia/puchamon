@@ -39,6 +39,7 @@ interface BattleState {
   currentEvents: BattleTurnEvent[];
   pendingMyPokemon: PokemonInstanceSnapshot[] | null;
   pendingOpponentPokemon: PokemonInstanceSnapshot[] | null;
+  winnerTrainerId: string | null;
   connect: (request: ConnectionRequest) => void;
   disconnect: () => void;
   submitAction: (action: TurnAction) => void;
@@ -78,6 +79,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   currentEvents: [],
   pendingMyPokemon: null,
   pendingOpponentPokemon: null,
+  winnerTrainerId: null,
 
   connect: (request: ConnectionRequest) => {
     const ws = new BattleWebSocket();
@@ -163,6 +165,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       isAnimating: false,
       currentEventIndex: 0,
       currentEvents: [],
+      pendingMyPokemon: null,
+      pendingOpponentPokemon: null,
+      winnerTrainerId: null,
     });
   },
 
@@ -205,6 +210,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         currentEvents: [],
         pendingMyPokemon: null,
         pendingOpponentPokemon: null,
+        winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
       });
     } else {
       set({
@@ -222,12 +228,18 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         currentEvents: turn.events,
         pendingMyPokemon: newMyPokemon,
         pendingOpponentPokemon: newOpponentPokemon,
+        winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
       });
     }
   },
 
   _advanceAnimation: () => {
-    const { currentEventIndex, currentEvents, pendingMyPokemon, pendingOpponentPokemon } = get();
+    const {
+      currentEventIndex,
+      currentEvents,
+      pendingMyPokemon,
+      pendingOpponentPokemon,
+    } = get();
     const nextIndex = currentEventIndex + 1;
 
     if (nextIndex >= currentEvents.length) {
