@@ -1,6 +1,4 @@
-import { useRef, useState } from "react";
-
-const RESCALING_CONSTANT = 0.7;
+import { useRef, useState } from 'react';
 
 interface PokemonProps {
   name: string;
@@ -13,6 +11,8 @@ export default function MiniPokemonSprite(
 ) {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const RESCALING_CONSTANT = 0.7;
 
   const onLoad = () => {
     if (imgRef.current) {
@@ -30,8 +30,8 @@ export default function MiniPokemonSprite(
     <img
       className={`inline ${props.className}`}
       style={{
-        width: dimensions.width ? `${dimensions.width}px` : "auto",
-        height: dimensions.height ? `${dimensions.height}px` : "auto",
+        width: dimensions.width ? `${dimensions.width}px` : 'auto',
+        height: dimensions.height ? `${dimensions.height}px` : 'auto',
       }}
       onLoad={onLoad}
       src={props.sprite}

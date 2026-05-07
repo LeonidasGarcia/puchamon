@@ -1,6 +1,4 @@
-import { useRef, useState } from "react";
-
-const RESCALING_CONSTANT = 2;
+import { useRef, useState } from 'react';
 
 interface PokemonProps {
   name?: string;
@@ -10,6 +8,8 @@ interface PokemonProps {
 // TODO Solucionar el problema del rescalado multiplicativo y el rescalado incorrecto al cambiar de cara (no necesario)
 export default function PokemonSprite(props: PokemonProps) {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  const RESCALING_CONSTANT = 2;
 
   const imgRef = useRef<HTMLImageElement | null>(null);
 
@@ -31,8 +31,8 @@ export default function PokemonSprite(props: PokemonProps) {
     <img
       className="inline-block h-fit z-50"
       style={{
-        width: dimensions.width ? `${dimensions.width}px` : "",
-        height: dimensions.height ? `${dimensions.height}px` : "",
+        width: dimensions.width ? `${dimensions.width}px` : '',
+        height: dimensions.height ? `${dimensions.height}px` : '',
       }}
       onLoad={onLoad}
       src={props.sprite}
