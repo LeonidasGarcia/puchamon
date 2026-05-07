@@ -11,6 +11,7 @@ interface PokemonSpriteProps {
   instanceIds?: string[];
   trainerId?: string;
   direction?: 'left' | 'right';
+  isFainted?: boolean;
 }
 
 export default function PokemonSprite(props: PokemonSpriteProps) {
@@ -25,29 +26,19 @@ export default function PokemonSprite(props: PokemonSpriteProps) {
   const dx = props.direction === 'left' ? -30 : 30;
   const dy = props.direction === 'left' ? 15 : -15;
 
-  const hasFaintedEvent =
-    props.currentEvents?.some(
-      (e) =>
-        e.kind === 'pokemon_fainted' &&
-        e.source_instance_id === props.instanceId,
-    ) ?? false;
-
-  const isFaintAnimating =
-    props.isAnimating && props.instanceId && hasFaintedEvent;
-
   return (
     <motion.div
       className="relative z-50"
       initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
       animate={
-        isFaintAnimating
+        props.isFainted
           ? { x: 0, y: 20, opacity: 0, rotate: 90 }
           : shouldAnimate
             ? { x: [0, dx, 0], y: [0, dy, 0] }
             : { x: 0, y: 0 }
       }
       transition={
-        isFaintAnimating
+        props.isFainted
           ? { duration: 0.8, ease: 'easeIn' }
           : shouldAnimate
             ? { duration: 0.4, ease: 'easeOut' }

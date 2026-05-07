@@ -26,6 +26,7 @@ export default function App() {
     players,
     myPokemon,
     opponentPokemon,
+    pendingOpponentPokemon,
     turnHistory,
     trainerId,
     connect,
@@ -50,11 +51,13 @@ export default function App() {
     (p) => p.instance_id === activeOpponentInstanceId,
   );
 
-  const displayedOpponentPokemon =
-    activeOpponentPokemon ??
-    (isAnimating || status === 'finished'
-      ? null
-      : opponentPokemon.find((p) => p.fainted));
+  const displayedOpponentPokemon = isAnimating
+    ? (activeOpponentPokemon ?? pendingOpponentPokemon?.find((p) => p.fainted))
+    : (activeOpponentPokemon ?? opponentPokemon.find((p) => p.fainted));
+
+  const isOpponentFainted =
+    displayedOpponentPokemon?.fainted &&
+    displayedOpponentPokemon?.instance_id !== activeOpponentInstanceId;
 
   const allTeamBySlot = [...myPokemon].sort(
     (a, b) => a.team_slot - b.team_slot,
@@ -167,6 +170,7 @@ export default function App() {
           currentEvents={currentEvents}
           myPokemon={myPokemon}
           opponentPokemon={opponentPokemon}
+          isOpponentFainted={isOpponentFainted}
         />
         <div className="flex flex-col gap-6 pb-8">
           <Section label={`Equipo de ${myName}`}>

@@ -26,6 +26,7 @@ interface BattleScenarioProps {
   currentEvents?: BattleTurnEvent[];
   myPokemon?: PokemonInstanceSnapshot[];
   opponentPokemon?: PokemonInstanceSnapshot[];
+  isOpponentFainted?: boolean;
 }
 
 export default function BattleScenario(props: BattleScenarioProps) {
@@ -67,6 +68,7 @@ export default function BattleScenario(props: BattleScenarioProps) {
             instanceIds={props.opponentPokemon?.map((p) => p.instance_id) ?? []}
             trainerId={props.opponentPokemon?.[idx]?.trainer_id}
             direction="left"
+            isFainted={props.isOpponentFainted}
           />
         ))}
       </div>
