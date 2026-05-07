@@ -2,7 +2,7 @@ asyncapi: 3.1.0
 
 info:
   title: Puchamon Battle API
-  version: 1.0.0
+  version: 1.0.0s
   description: |
     Real-time Pokemon battle API via WebSocket.
     Single WebSocket connection per client.
@@ -101,8 +101,10 @@ operations:
     summary: Client submits a turn action
     description: |
       Action can be a move or a forced switch (after a Pokemon fainted).
-      This is only used in Human vs AI mode.
-      In AI vs AI mode, the server computes all turns and sends them via serverTurnResult.
+      This operation is ONLY used in Human vs AI mode. In AI vs AI mode, the server
+      computes all turns automatically and sends them via serverTurnResult - no client
+      action is required or accepted.
+      The client must wait for turn:result before sending another turn:submit.
     messages:
       - $ref: '#/channels/turnSubmit/messages/turnSubmit'
 
@@ -408,7 +410,7 @@ components:
           type: integer
           enum: [1, 2, 3]
           nullable: true
-          description: AI difficulty level, only present if controller_type is ai
+          description: AI difficulty level. Only applies when controller_type is "ai", null otherwise.
       required: [trainer_id, name, controller_type]
 
     SideState:
@@ -423,7 +425,9 @@ components:
           description: Entry hazards affecting this side (spikes, stealth_rock, toxic_spikes)
         active_pokemon_instance_ids:
           type: array
-          description: List of active Pokemon instance IDs. Always exactly 1 element (1v1 battle format).
+          description: |
+            List of active Pokemon instance IDs. Always exactly 1 element (1v1 battle format).
+            The string value is the instance_id of the active Pokemon, or null if no Pokemon is active in that slot.
           items:
             type: string
             nullable: true
