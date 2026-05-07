@@ -216,11 +216,26 @@ class IAService:
     ) -> str | None:
         """Select a move using greedy best-first with HP-based heuristic.
 
-        Uses the heuristic:
-            h(move) = HP_rival_post_golpe_percent = (HP_rival_actual - damage) / HP_max_rival
+        =============================================================
+        HEURÍSTICA: h(move) = 1 - HP_oponente_post_percent
+        =============================================================
 
-        Greedy best-first selects: move* = argmax_{m} h(m)
-        Which is equivalent to: move* = argmax_{m} damage(m)
+        El objetivo es minimizar el HP del oponente después del ataque.
+        Esto se logra maximizando el daño inflicted.
+
+        Formula detallada:
+            HP_oponente_post = max(0, HP_oponente_actual - damage)
+            HP_percent_post   = HP_oponente_post / HP_max_oponente
+            h(move)           = 1 - HP_percent_post
+
+        Equivalencia (para ordenamiento relativo):
+            argmax(h(move)) = argmax(damage)
+            Ya que h es monotonic con damage
+
+        Algoritmo Best-First Greedy:
+            1. Evaluar cada move disponible
+            2. Seleccionar el move con mayor h(move)
+            3. Retornar ese move
 
         Args:
             available_moves: List of MoveState with PP > 0.
@@ -238,7 +253,16 @@ class IAService:
             return available_moves[0].move_id
 
         def get_h_score(ms) -> float:
+            """Calcular score heurístico para un movimiento.
+
+            Formula:
+                h(move) = 1 - HP_oponente_post_percent
+
+            Returns:
+                Score heurístico (mayor = mejor movimiento)
+            """
             move = movements.get(ms.move_id) if movements else None
+
             if not move or not move.power:
                 return 0.0
 
@@ -248,8 +272,10 @@ class IAService:
 
             opponent_current, opponent_max = opponent_hp
             damage = move.power
+
             hp_post = opponent_current - damage
             hp_percent_post = max(0, hp_post) / opponent_max
+
             return 1.0 - hp_percent_post
 
         best_move_state = max(available_moves, key=get_h_score)
@@ -260,14 +286,12 @@ class IAService:
         battle: Battle,
         instances: dict[str, BattleInstance],
     ) -> tuple[int, int] | None:
-        """Get opponent's current and max HP.
+        """Get the opponent's current and max HP.
 
-        Args:
-            battle: The current battle state.
-            instances: Dict of battle instances keyed by ID.
+        Busca el primer pokemon activo del rival (no el del jugador actual).
 
         Returns:
-            Tuple of (current_hp, max_hp) or None if not available.
+            Tuple of (current_hp, max_hp) or None if no opponent found.
         """
         for _trainer_id, side in battle.sides.items():
             active_id = side.active_pokemon_instance_ids[0]
