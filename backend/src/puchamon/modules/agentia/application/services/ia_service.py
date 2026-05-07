@@ -15,6 +15,7 @@ AIDifficultyLevel = Literal[1, 2, 3]
 AI_LEVEL_EASY = 1
 AI_LEVEL_MEDIUM = 2
 AI_LEVEL_HARD = 3
+AI_HP_THRESHOLD = 0.5
 
 
 class IAService:
@@ -26,6 +27,7 @@ class IAService:
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
+        movements: dict | None = None,
     ) -> TurnAction:
         """Generate a TurnAction for an AI player.
 
@@ -34,6 +36,7 @@ class IAService:
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
             ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
+            movements: Dict of Movement entities keyed by ID.
 
         Returns:
             A TurnAction for the AI player.
@@ -60,7 +63,7 @@ class IAService:
                 return switch_action
 
         move_action = await self.generate_move_action(
-            player, active_instance, ai_level
+            player, active_instance, ai_level, battle, instances, movements
         )
         if move_action:
             return move_action
@@ -73,11 +76,14 @@ class IAService:
 
         raise ValueError("AI has no valid actions available")
 
-    async def generate_move_action(
+    async def generate_move_action(  # noqa: PLR0913
         self,
         player: Player,
         active_instance: BattleInstance,
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
+        battle: Battle | None = None,
+        instances: dict[str, BattleInstance] | None = None,
+        movements: dict | None = None,
     ) -> TurnAction | None:
         """Generate a move action for the AI.
 
@@ -85,6 +91,9 @@ class IAService:
             player: The AI player entity.
             active_instance: The active BattleInstance.
             ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
+            battle: The current battle state (needed for medium AI).
+            instances: Dict of battle instances (needed for medium AI).
+            movements: Dict of Movement entities keyed by ID.
 
         Returns:
             A TurnAction with type="move" or None if no moves available.
@@ -96,7 +105,11 @@ class IAService:
         if not available_moves:
             return None
 
-        move_id = self._select_move_by_level(available_moves, ai_level)
+        opponent_hp_percent = None
+        if ai_level == AI_LEVEL_MEDIUM and battle and instances:
+            opponent_hp_percent = self._get_opponent_hp_percent(player, battle, instances)
+
+        move_id = self._select_move_by_level(available_moves, ai_level, movements, opponent_hp_percent)
 
         if move_id is None:
             return None
@@ -161,12 +174,16 @@ class IAService:
         self,
         available_moves: list,
         ai_level: AIDifficultyLevel,
+        movements: dict | None = None,
+        opponent_hp_percent: float | None = None,
     ) -> str | None:
         """Select a move based on AI difficulty level.
 
         Args:
             available_moves: List of MoveState with PP > 0.
             ai_level: AI difficulty level.
+            movements: Dict of Movement entities keyed by ID.
+            opponent_hp_percent: Opponent's HP as percentage (0.0 to 1.0).
 
         Returns:
             The move_id of the selected move or None if no moves available.
@@ -177,7 +194,7 @@ class IAService:
         if ai_level == AI_LEVEL_EASY:
             return self._select_random_move(available_moves)
         elif ai_level == AI_LEVEL_MEDIUM:
-            return self._select_move_by_hp(available_moves)
+            return self._select_move_by_hp(available_moves, opponent_hp_percent, movements)
         else:
             return self._select_random_move(available_moves)
 
@@ -195,17 +212,87 @@ class IAService:
     def _select_move_by_hp(
         self,
         available_moves: list,
+        opponent_hp_percent: float | None,
+        movements: dict | None,
     ) -> str:
         """Select a move based on target HP (Level 2 - Medium).
 
-        Selects the move of the opponent with the lowest HP percentage,
-        then picks a random available move. This is a placeholder
-        for a more sophisticated HP-based selection.
+        - If opponent HP > 50%: select highest power move (maximize damage)
+        - If opponent HP <= 50%: select move with lowest max PP (conserve PP)
 
         Args:
             available_moves: List of MoveState with PP > 0.
+            opponent_hp_percent: Opponent's HP as percentage (0.0 to 1.0).
+            movements: Dict of Movement entities keyed by ID.
 
         Returns:
-            A random move_id (placeholder for HP-based logic).
+            The move_id of the selected move.
         """
-        return random.choice(available_moves).move_id
+        if not available_moves:
+            return None
+
+        if opponent_hp_percent is None or opponent_hp_percent > AI_HP_THRESHOLD:
+            return self._select_highest_power_move(available_moves, movements)
+        else:
+            return self._select_lowest_pp_move(available_moves, movements)
+
+    def _select_highest_power_move(self, available_moves: list, movements: dict | None) -> str:
+        """Select the move with highest power value.
+
+        Args:
+            available_moves: List of MoveState with PP > 0.
+            movements: Dict of Movement entities keyed by ID.
+
+        Returns:
+            The move_id with highest power.
+        """
+        def get_power(ms):
+            if not movements:
+                return 0
+            move = movements.get(ms.move_id)
+            return move.power if move and move.power else 0
+
+        return max(available_moves, key=get_power).move_id
+
+    def _select_lowest_pp_move(self, available_moves: list, movements: dict | None) -> str:
+        """Select the move with lowest max PP (most uses remaining).
+
+        Args:
+            available_moves: List of MoveState with PP > 0.
+            movements: Dict of Movement entities keyed by ID.
+
+        Returns:
+            The move_id with lowest max PP.
+        """
+        def get_pp(ms):
+            if not movements:
+                return 999
+            move = movements.get(ms.move_id)
+            return move.pp if move else 999
+
+        return min(available_moves, key=get_pp).move_id
+
+    def _get_opponent_hp_percent(
+        self,
+        player: Player,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+    ) -> float | None:
+        """Get the opponent's active Pokemon HP percentage.
+
+        Args:
+            player: The AI player.
+            battle: The current battle state.
+            instances: Dict of battle instances keyed by ID.
+
+        Returns:
+            HP as percentage (0.0 to 1.0) or None if not available.
+        """
+        for trainer_id, side in battle.sides.items():
+            if trainer_id != player.trainer_id:
+                active_id = side.active_pokemon_instance_ids[0]
+                if active_id:
+                    opponent = instances.get(active_id)
+                    if opponent:
+                        return opponent.current_hp / opponent.max_hp
+        return None
