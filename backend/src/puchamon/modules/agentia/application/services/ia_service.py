@@ -11,11 +11,9 @@ from ....battle.domain.entities import (
     TurnAction,
 )
 
-AIDifficultyLevel = Literal[1, 2, 3]
+AIDifficultyLevel = Literal[1, 2]
 AI_LEVEL_EASY = 1
 AI_LEVEL_MEDIUM = 2
-AI_LEVEL_HARD = 3
-AI_HP_THRESHOLD = 0.5
 
 
 class IAService:
@@ -35,7 +33,7 @@ class IAService:
             player: The AI player entity.
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
-            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
+            ai_level: AI difficulty level (1=easy, 2=medium).
             movements: Dict of Movement entities keyed by ID.
 
         Returns:
@@ -90,7 +88,7 @@ class IAService:
         Args:
             player: The AI player entity.
             active_instance: The active BattleInstance.
-            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
+            ai_level: AI difficulty level (1=easy, 2=medium).
             battle: The current battle state (needed for medium AI).
             instances: Dict of battle instances (needed for medium AI).
             movements: Dict of Movement entities keyed by ID.
@@ -105,11 +103,9 @@ class IAService:
         if not available_moves:
             return None
 
-        opponent_hp_percent = None
-        if ai_level == AI_LEVEL_MEDIUM and battle and instances:
-            opponent_hp_percent = self._get_opponent_hp_percent(player, battle, instances)
-
-        move_id = self._select_move_by_level(available_moves, ai_level, movements, opponent_hp_percent)
+        move_id = self._select_move_by_level(
+            available_moves, ai_level, battle, instances, movements
+        )
 
         if move_id is None:
             return None
@@ -174,16 +170,18 @@ class IAService:
         self,
         available_moves: list,
         ai_level: AIDifficultyLevel,
+        battle: Battle | None = None,
+        instances: dict[str, BattleInstance] | None = None,
         movements: dict | None = None,
-        opponent_hp_percent: float | None = None,
     ) -> str | None:
         """Select a move based on AI difficulty level.
 
         Args:
             available_moves: List of MoveState with PP > 0.
             ai_level: AI difficulty level.
+            battle: The current battle state (needed for medium AI).
+            instances: Dict of battle instances (needed for medium AI).
             movements: Dict of Movement entities keyed by ID.
-            opponent_hp_percent: Opponent's HP as percentage (0.0 to 1.0).
 
         Returns:
             The move_id of the selected move or None if no moves available.
@@ -193,10 +191,10 @@ class IAService:
 
         if ai_level == AI_LEVEL_EASY:
             return self._select_random_move(available_moves)
-        elif ai_level == AI_LEVEL_MEDIUM:
-            return self._select_move_by_hp(available_moves, opponent_hp_percent, movements)
         else:
-            return self._select_random_move(available_moves)
+            return self._select_best_first_by_hp(
+                available_moves, battle, instances, movements
+            )
 
     def _select_random_move(self, available_moves: list) -> str:
         """Select a random move (Level 1 - Easy).
@@ -209,20 +207,25 @@ class IAService:
         """
         return random.choice(available_moves).move_id
 
-    def _select_move_by_hp(
+    def _select_best_first_by_hp(
         self,
         available_moves: list,
-        opponent_hp_percent: float | None,
+        battle: Battle | None,
+        instances: dict[str, BattleInstance] | None,
         movements: dict | None,
-    ) -> str:
-        """Select a move based on target HP (Level 2 - Medium).
+    ) -> str | None:
+        """Select a move using greedy best-first with HP-based heuristic.
 
-        - If opponent HP > 50%: select highest power move (maximize damage)
-        - If opponent HP <= 50%: select move with lowest max PP (conserve PP)
+        Uses the heuristic:
+            h(move) = HP_rival_post_golpe_percent = (HP_rival_actual - damage) / HP_max_rival
+
+        Greedy best-first selects: move* = argmax_{m} h(m)
+        Which is equivalent to: move* = argmax_{m} damage(m)
 
         Args:
             available_moves: List of MoveState with PP > 0.
-            opponent_hp_percent: Opponent's HP as percentage (0.0 to 1.0).
+            battle: The current battle state.
+            instances: Dict of battle instances keyed by ID.
             movements: Dict of Movement entities keyed by ID.
 
         Returns:
@@ -231,54 +234,59 @@ class IAService:
         if not available_moves:
             return None
 
-        if opponent_hp_percent is None or opponent_hp_percent > AI_HP_THRESHOLD:
-            return self._select_highest_power_move(available_moves, movements)
-        else:
-            return self._select_lowest_pp_move(available_moves, movements)
+        if not battle or not instances:
+            return available_moves[0].move_id
 
-    def _select_highest_power_move(self, available_moves: list, movements: dict | None) -> str:
-        """Select the move with highest power value.
+        def get_h_score(ms) -> float:
+            move = movements.get(ms.move_id) if movements else None
+            if not move or not move.power:
+                return 0.0
+
+            opponent_hp = self._get_opponent_hp_values(battle, instances)
+            if not opponent_hp:
+                return 0.0
+
+            opponent_current, opponent_max = opponent_hp
+            damage = move.power
+            hp_post = opponent_current - damage
+            hp_percent_post = max(0, hp_post) / opponent_max
+            return 1.0 - hp_percent_post
+
+        best_move_state = max(available_moves, key=get_h_score)
+        return best_move_state.move_id
+
+    def _get_opponent_hp_values(
+        self,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+    ) -> tuple[int, int] | None:
+        """Get opponent's current and max HP.
 
         Args:
-            available_moves: List of MoveState with PP > 0.
-            movements: Dict of Movement entities keyed by ID.
+            battle: The current battle state.
+            instances: Dict of battle instances keyed by ID.
 
         Returns:
-            The move_id with highest power.
+            Tuple of (current_hp, max_hp) or None if not available.
         """
-        def get_power(ms):
-            if not movements:
-                return 0
-            move = movements.get(ms.move_id)
-            return move.power if move and move.power else 0
+        for _trainer_id, side in battle.sides.items():
+            active_id = side.active_pokemon_instance_ids[0]
+            if active_id:
+                opponent = instances.get(active_id)
+                if opponent and not opponent.fainted:
+                    return (opponent.current_hp, opponent.max_hp)
+        return None
 
-        return max(available_moves, key=get_power).move_id
-
-    def _select_lowest_pp_move(self, available_moves: list, movements: dict | None) -> str:
-        """Select the move with lowest max PP (most uses remaining).
-
-        Args:
-            available_moves: List of MoveState with PP > 0.
-            movements: Dict of Movement entities keyed by ID.
-
-        Returns:
-            The move_id with lowest max PP.
-        """
-        def get_pp(ms):
-            if not movements:
-                return 999
-            move = movements.get(ms.move_id)
-            return move.pp if move else 999
-
-        return min(available_moves, key=get_pp).move_id
-
-    def _get_opponent_hp_percent(
+    def _calculate_hp_difference(
         self,
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
     ) -> float | None:
-        """Get the opponent's active Pokemon HP percentage.
+        """Calculate HP difference between player and opponent.
+
+        Heuristic formula:
+            h(n) = HP_player_percent - HP_opponent_percent
 
         Args:
             player: The AI player.
@@ -286,13 +294,33 @@ class IAService:
             instances: Dict of battle instances keyed by ID.
 
         Returns:
-            HP as percentage (0.0 to 1.0) or None if not available.
+            HP difference as a float (positive = advantage, negative = disadvantage).
         """
+        player_side = battle.sides.get(player.trainer_id)
+        if not player_side:
+            return None
+
+        player_hp_percent = 0.0
+        opponent_hp_percent = 0.0
+        player_count = 0
+        opponent_count = 0
+
         for trainer_id, side in battle.sides.items():
-            if trainer_id != player.trainer_id:
-                active_id = side.active_pokemon_instance_ids[0]
-                if active_id:
-                    opponent = instances.get(active_id)
-                    if opponent:
-                        return opponent.current_hp / opponent.max_hp
-        return None
+            for uid in side.active_pokemon_instance_ids:
+                inst = instances.get(uid)
+                if inst and not inst.fainted:
+                    hp_percent = inst.current_hp / inst.max_hp if inst.max_hp > 0 else 0
+                    if trainer_id == player.trainer_id:
+                        player_hp_percent += hp_percent
+                        player_count += 1
+                    else:
+                        opponent_hp_percent += hp_percent
+                        opponent_count += 1
+
+        if player_count == 0 or opponent_count == 0:
+            return None
+
+        avg_player_hp = player_hp_percent / player_count
+        avg_opponent_hp = opponent_hp_percent / opponent_count
+
+        return avg_player_hp - avg_opponent_hp
