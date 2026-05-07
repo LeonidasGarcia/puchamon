@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BattleScenario from '../components/battle/BattleScenario';
 import LoadingScreen from '../components/LoadingScreen';
 import TurnLog from '../components/battle/TurnLog';
 import { useBattleStore } from '../stores/battleStore';
+import { useConnectionStore } from '../stores/connectionStore';
 import usePokemonSpritesQuery from '../hooks/usePokemonSpritesQuery';
 import PokemonSwitch from '../components/cards/PokemonSwitch';
 import Section from '../components/ui/Section';
@@ -73,14 +75,22 @@ export default function App() {
 
   const isVictory = winnerTrainerId === trainerId;
 
+  const navigate = useNavigate();
+
   const handlePlayAgain = () => {
+    const { name, controllerType, difficulty, battleType } = useConnectionStore.getState();
     disconnect();
     connect({
-      name: 'Leo',
-      controller_type: 'ai',
-      battle_type: '1v1',
-      difficulty: 1,
+      name,
+      controller_type: controllerType,
+      battle_type: battleType,
+      difficulty,
     });
+  };
+
+  const handleGoToLobby = () => {
+    disconnect();
+    navigate('/');
   };
 
   const allTeamBySlot = [...myPokemon].sort(
@@ -112,11 +122,12 @@ export default function App() {
   }, [isAnimating, currentEvents.length, _advanceAnimation]);
 
   useEffect(() => {
+    const { name, controllerType, difficulty, battleType } = useConnectionStore.getState();
     connect({
-      name: 'Leo',
-      controller_type: 'human',
-      battle_type: '3v3',
-      difficulty: 2,
+      name,
+      controller_type: controllerType,
+      battle_type: battleType,
+      difficulty,
     });
 
     return () => {
@@ -308,15 +319,23 @@ export default function App() {
           !isAnimating &&
           currentEvents.length === 0 && (
             <Modal isOpen>
-              <h2 className="text-2xl font-bold text-white mb-4">
+              <h2 className="text-2xl font-bold text-white mb-4 text-center">
                 {isVictory ? '¡Victoria!' : 'Derrota'}
               </h2>
-              <button
-                onClick={handlePlayAgain}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Jugar de Nuevo
-              </button>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={handlePlayAgain}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Volver a Jugar
+                </button>
+                <button
+                  onClick={handleGoToLobby}
+                  className="px-4 py-2 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700"
+                >
+                  Ir al Inicio
+                </button>
+              </div>
             </Modal>
           )}
       </div>
