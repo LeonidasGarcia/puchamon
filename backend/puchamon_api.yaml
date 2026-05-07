@@ -7,7 +7,8 @@ info:
     Real-time Pokemon battle API via WebSocket.
     Single WebSocket connection per client.
     Supports Player vs AI and AI vs AI modes.
-    Battles are 1v1, 2v2, or 3v3 (Pokemon per player, not player count).
+    Battles are always 1v1 (single active Pokemon per trainer).
+    The battle_type (1v1, 2v2, 3v3) indicates the team size (number of Pokemon in reserve), not active Pokemon count.
 
     Connection Flow:
     1. Client connects to /ws
@@ -169,10 +170,10 @@ components:
         battle_type:
           type: string
           enum: ['1v1', '2v2', '3v3']
-          description: Same value as requested
+          description: Team composition. '2v2' means each trainer has 2 Pokemon total (1 active + 1 reserve), '3v3' means 3 Pokemon total (1 active + 2 reserve).
         team_size:
           type: integer
-          description: Number of Pokemon per team
+          description: Number of Pokemon per team (same as battle_type first digit). 1v1=1, 2v2=2, 3v3=3.
         initial_state:
           $ref: '#/components/schemas/BattleTurnDTO'
       required: [trainer_id, battle_id, battle_type, team_size, initial_state]
@@ -413,15 +414,21 @@ components:
     SideState:
       type: object
       additionalProperties: false
+      description: State of one side of the battlefield. Always contains exactly one active Pokemon.
       properties:
         hazards:
           type: array
           items:
             type: string
+          description: Entry hazards affecting this side (spikes, stealth_rock, toxic_spikes)
         active_pokemon_instance_ids:
           type: array
+          description: List of active Pokemon instance IDs. Always exactly 1 element (1v1 battle format).
           items:
             type: string
+            nullable: true
+          minItems: 1
+          maxItems: 1
       required: [hazards, active_pokemon_instance_ids]
 
     PokemonInstanceSnapshot:
