@@ -108,6 +108,8 @@ class ActionExecutionInput:
     move_effects: list[MoveEffect] = field(default_factory=list)
     replacement_instance_id: str | None = None
     move_effect_strategy_registry: "MoveEffectStrategyRegistry | None" = None
+    condition_effect_strategy_registry: "Any | None" = None
+    conditions: "dict[str, Condition] | None" = None
 
     def build_move_effect_execution(self, *, effect: MoveEffect, target_instance_ids: list[str]) -> "MoveEffectExecutionInput":
         """Build the effect execution input derived from the current action resolution."""

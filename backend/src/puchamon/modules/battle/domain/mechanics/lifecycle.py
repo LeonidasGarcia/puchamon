@@ -1,8 +1,10 @@
 """Mechanics for battle instance lifecycle events (fainting, etc.)."""
+
 from typing import TYPE_CHECKING
 
 from ..battlefield import get_active_slot_for_instance, get_side_for_trainer, set_active_instance_for_slot
 from ..utils import format_pokemon_name
+from .hazards import apply_entry_hazards
 
 if TYPE_CHECKING:
     from ....pokedex.domain.entities import Type
@@ -43,8 +45,6 @@ def switch_in_instance(
     type_chart: dict[str, "Type"],
 ) -> None:
     """Handle a pokemon entering the field."""
-    from .hazards import apply_entry_hazards
-
     instance = context.get_instance(instance_id)
     side = get_side_for_trainer(context.battle, trainer_id)
 
@@ -62,4 +62,3 @@ def switch_in_instance(
 
     # 3. Apply Entry Hazards
     apply_entry_hazards(context, instance_id, type_chart)
-
