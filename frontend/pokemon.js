@@ -25,7 +25,7 @@ const DATA = {
       superEffective: ["Water", "Flying"],
       notVeryEffective: ["Electric", "Grass", "Dragon"],
       noEffect: ["Ground"],
-    },
+    },  
     {
       _id: "Grass",
       superEffective: ["Water", "Ground", "Rock"],
@@ -280,34 +280,6 @@ const DATA = {
       defaultDuration: 1,
       effects: [{ kind: "block_protectable_moves", payload: {} }],
     },
-    {
-      _id: "substitute",
-      name: "Substitute",
-      category: "volatile",
-      defaultDuration: null,
-      effects: [{ kind: "proxy_hp", payload: { ratio: 0.25 } }],
-    },
-    {
-      _id: "seeded",
-      name: "Leech Seed",
-      category: "volatile",
-      defaultDuration: null,
-      effects: [{ kind: "end_turn_drain", payload: { ratio: 0.125 } }],
-    },
-    {
-      _id: "taunt",
-      name: "Taunt",
-      category: "volatile",
-      defaultDuration: 3,
-      effects: [{ kind: "block_status_moves", payload: {} }],
-    },
-    {
-      _id: "perish-song",
-      name: "Perish Song",
-      category: "volatile",
-      defaultDuration: 3,
-      effects: [{ kind: "faint_on_expire", payload: {} }],
-    },
   ],
 
   move_effects: [
@@ -334,14 +306,6 @@ const DATA = {
       chance: 100,
       order: 1,
       payload: { hits: 1, onSwitchMultiplier: 2 },
-    },
-    {
-      _id: "fx-damage-gyro-ball",
-      kind: "damage",
-      target: "target",
-      chance: 100,
-      order: 1,
-      payload: { hits: 1, mode: "gyro_ball" },
     },
     {
       _id: "fx-damage-focus-punch",
@@ -471,16 +435,7 @@ const DATA = {
       order: 2,
       payload: {
         hazardIds: ["spikes", "toxic-spikes", "stealth-rock"],
-        clearConditions: ["seeded"],
       },
-    },
-    {
-      _id: "fx-leech-seed",
-      kind: "apply_volatile_status",
-      target: "target",
-      chance: 100,
-      order: 1,
-      payload: { conditionId: "seeded" },
     },
     {
       _id: "fx-protect",
@@ -489,14 +444,6 @@ const DATA = {
       chance: 100,
       order: 1,
       payload: { duration: 1 },
-    },
-    {
-      _id: "fx-substitute",
-      kind: "apply_volatile_status",
-      target: "user",
-      chance: 100,
-      order: 1,
-      payload: { conditionId: "substitute", hpCostRatio: 0.25 },
     },
     {
       _id: "fx-recover-50",
@@ -535,34 +482,7 @@ const DATA = {
       order: 2,
       payload: { changes: [{ stat: "spe", stages: -1 }] },
     },
-    {
-      _id: "fx-self-switch",
-      kind: "self_switch",
-      target: "user",
-      chance: 100,
-      order: 3,
-      payload: {},
-    },
-    {
-    },
-    {
-      _id: "fx-pain-split",
-      kind: "pain_split",
-      target: "target",
-      chance: 100,
-      order: 1,
-      payload: {},
-    },
-    {
-      _id: "fx-perish-song",
-      kind: "apply_volatile_status",
-      target: "field",
-      chance: 100,
-      order: 1,
-      payload: { conditionId: "perish-song", scope: "all_active", duration: 3 },
-    },
-  ],
-
+    ],
   moves: [
     {
       _id: "stone-edge",
@@ -677,18 +597,18 @@ const DATA = {
       effectIds: ["fx-toxic-100"],
     },
     {
-      _id: "perish-song",
-      name: "Perish Song",
-      type: "Normal",
+      _id: "toxic",
+      name: "Toxic",
+      type: "Poison",
       category: "Status",
       power: null,
-      accuracy: null,
-      pp: 5,
+      accuracy: 85,
+      pp: 15,
       priority: 0,
       makesContact: false,
-      protectable: false,
-      target: "field",
-      effectIds: ["fx-perish-song"],
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-toxic-100"],
     },
     {
       _id: "protect",
@@ -747,20 +667,6 @@ const DATA = {
       effectIds: ["fx-set-spikes"],
     },
     {
-      _id: "leech-seed",
-      name: "Leech Seed",
-      type: "Grass",
-      category: "Status",
-      power: null,
-      accuracy: 90,
-      pp: 10,
-      priority: 0,
-      makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-leech-seed"],
-    },
-    {
       _id: "power-whip",
       name: "Power Whip",
       type: "Grass",
@@ -775,18 +681,18 @@ const DATA = {
       effectIds: ["fx-damage-single"],
     },
     {
-      _id: "gyro-ball",
-      name: "Gyro Ball",
+      _id: "iron-head",
+      name: "Iron Head",
       type: "Steel",
       category: "Physical",
-      power: null,
+      power: 80,
       accuracy: 100,
-      pp: 5,
+      pp: 15,
       priority: 0,
       makesContact: true,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-gyro-ball"],
+      effectIds: ["fx-damage-single", "fx-flinch-30"],
     },
     {
       _id: "thunder-wave",
@@ -845,13 +751,6 @@ const DATA = {
       effectIds: ["fx-damage-single"],
     },
     {
-      _id: "thunderbolt",
-      name: "Trick",
-      type: "Psychic",
-      category: "Status",
-      power: null,
-      accuracy: null,
-    {
       _id: "rapid-spin",
       name: "Rapid Spin",
       type: "Normal",
@@ -908,18 +807,18 @@ const DATA = {
       effectIds: ["fx-damage-single", "fx-flinch-30"],
     },
     {
-      _id: "u-turn",
-      name: "U-turn",
+      _id: "x-scissor",
+      name: "X-Scissor",
       type: "Bug",
       category: "Physical",
-      power: 70,
+      power: 80,
       accuracy: 100,
-      pp: 20,
+      pp: 15,
       priority: 0,
       makesContact: true,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-single", "fx-self-switch"],
+      effectIds: ["fx-damage-single"],
     },
     {
       _id: "fire-punch",
@@ -936,18 +835,18 @@ const DATA = {
       effectIds: ["fx-damage-single", "fx-burn-10"],
     },
     {
-      _id: "volt-switch",
-      name: "Volt Switch",
+      _id: "thunderbolt",
+      name: "Thunderbolt",
       type: "Electric",
       category: "Special",
-      power: 70,
+      power: 90,
       accuracy: 100,
-      pp: 20,
+      pp: 15,
       priority: 0,
       makesContact: false,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-single", "fx-self-switch"],
+      effectIds: ["fx-damage-single", "fx-para-10"],
     },
     {
       _id: "will-o-wisp",
@@ -964,8 +863,8 @@ const DATA = {
       effectIds: ["fx-burn-100"],
     },
     {
-      _id: "pain-split",
-      name: "Pain Split",
+      _id: "swords-dance",
+      name: "Swords Dance",
       type: "Normal",
       category: "Status",
       power: null,
@@ -973,9 +872,9 @@ const DATA = {
       pp: 20,
       priority: 0,
       makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-pain-split"],
+      protectable: false,
+      target: "self",
+      effectIds: ["fx-swords-dance"],
     },
     {
       _id: "mach-punch",
@@ -1034,18 +933,18 @@ const DATA = {
       effectIds: ["fx-swords-dance"],
     },
     {
-      _id: "substitute",
-      name: "Substitute",
-      type: "Normal",
+      _id: "thunder-wave",
+      name: "Thunder Wave",
+      type: "Electric",
       category: "Status",
       power: null,
-      accuracy: null,
-      pp: 10,
+      accuracy: 100,
+      pp: 20,
       priority: 0,
       makesContact: false,
-      protectable: false,
-      target: "user",
-      effectIds: ["fx-substitute"],
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-para-100"],
     },
     {
       _id: "focus-punch",
@@ -1235,7 +1134,7 @@ const DATA = {
       ability: "drizzle",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["scald", "toxic", "perish-song", "protect"]
+      moves: ["scald", "toxic", "swords-dance", "protect"]
     },
     {
       _id: "politoed-choice-specs",
@@ -1255,7 +1154,7 @@ const DATA = {
       ability: "iron-barbs",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 88, spa: 0, spd: 168, spe: 0 },
-      moves: ["spikes", "leech-seed", "power-whip", "gyro-ball"]
+      moves: ["spikes", "stealth-rock", "power-whip", "iron-head"]
     },
     {
       _id: "ferrothorn-stealth-rock",
@@ -1315,7 +1214,7 @@ const DATA = {
       ability: "serene-grace",
       item: "choice-scarf",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["iron-head", "u-turn", "fire-punch", "thunderbolt"]
+      moves: ["iron-head", "x-scissor", "fire-punch", "thunderbolt"]
     },
     {
       _id: "jirachi-spdef-rocks",
@@ -1325,7 +1224,7 @@ const DATA = {
       ability: "serene-grace",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 0, spa: 0, spd: 224, spe: 32 },
-      moves: ["iron-head", "toxic", "stealth-rock", "u-turn"]
+      moves: ["iron-head", "toxic", "stealth-rock", "x-scissor"]
     },
     {
       _id: "rotom-wash-choice-scarf",
@@ -1335,7 +1234,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 },
-      moves: ["volt-switch", "hydro-pump", "thunderbolt", "will-o-wisp"]
+      moves: ["thunderbolt", "hydro-pump", "thunder-wave", "will-o-wisp"]
     },
     {
       _id: "rotom-wash-defensive",
@@ -1345,7 +1244,7 @@ const DATA = {
       ability: "levitate",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["volt-switch", "hydro-pump", "pain-split", "will-o-wisp"]
+      moves: ["thunderbolt", "hydro-pump", "swords-dance", "will-o-wisp"]
     },
     {
       _id: "breloom-technician-sd",
@@ -1365,7 +1264,7 @@ const DATA = {
       ability: "poison-heal",
       item: "toxic-orb",
       evs: { hp: 236, atk: 252, def: 0, spa: 0, spd: 20, spe: 0 },
-      moves: ["protect", "substitute", "focus-punch", "seed-bomb"]
+      moves: ["swords-dance", "focus-punch", "seed-bomb", "mach-punch"]
     },
     {
       _id: "heatran-spdef",
@@ -1385,7 +1284,7 @@ const DATA = {
       ability: "flash-fire",
       item: "leftovers",
       evs: { hp: 8, atk: 0, def: 0, spa: 156, spd: 100, spe: 244 },
-      moves: ["substitute", "lava-plume", "toxic", "protect"]
+      moves: ["swords-dance", "lava-plume", "toxic", "protect"]
     },
     {
       _id: "keldeo-choice-specs",
@@ -1405,7 +1304,7 @@ const DATA = {
       ability: "justified",
       item: "leftovers",
       evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
-      moves: ["calm-mind", "surf", "secret-sword", "substitute"]
+      moves: ["calm-mind", "surf", "secret-sword", "swords-dance"]
     }
   ]
 };

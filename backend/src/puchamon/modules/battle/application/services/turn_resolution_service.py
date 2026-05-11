@@ -13,13 +13,11 @@ from ...domain.registries import (
     ActionStrategyRegistry,
     ConditionEffectStrategyRegistry,
     MoveEffectStrategyRegistry,
-    WeatherEffectStrategyRegistry,
 )
 from ...domain.runtime.context import (
     ActionExecutionInput,
     BattleStrategyContext,
     ConditionEffectExecutionInput,
-    WeatherEffectExecutionInput,
 )
 
 if TYPE_CHECKING:
@@ -39,12 +37,10 @@ class TurnResolutionService:
         action_registry: ActionStrategyRegistry,
         move_effect_registry: MoveEffectStrategyRegistry,
         condition_effect_registry: ConditionEffectStrategyRegistry,
-        weather_effect_registry: WeatherEffectStrategyRegistry,
     ):
         self._action_registry = action_registry
         self._move_effect_registry = move_effect_registry
         self._condition_effect_registry = condition_effect_registry
-        self._weather_effect_registry = weather_effect_registry
 
     def resolve_turn(
         self,
@@ -53,7 +49,6 @@ class TurnResolutionService:
         actions: list[TurnAction],
         movements: dict[str, "Movement"],
         conditions: dict[str, "Condition"],
-        weathers: dict[str, "Weather"],
         move_effects: dict[str, "MoveEffect"],
         type_chart: dict[str, "Type"],
     ) -> BattleStrategyContext:
@@ -73,8 +68,8 @@ class TurnResolutionService:
         self._execute_actions(context, ordered_actions, movements, move_effects)
         logger.debug(f"Events after execution: {len(context.events)}")
 
-        # 4. Phase: End of Turn (Residuals: Weather, Status conditions like Burn/Poison)
-        self._resolve_residuals(context, conditions, weathers)
+        # 4. Phase: End of Turn (Residuals: Status conditions like Burn/Poison)
+        self._resolve_residuals(context, conditions)
 
         # 5. Phase: Faint Resolution & Turn Cleanup
         self._resolve_faints_and_cleanup(context)
@@ -201,37 +196,9 @@ class TurnResolutionService:
             # we just leave the slot empty and let _resolve_faints_and_cleanup handle the phase change.
             pass
 
-    def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"], weathers: dict[str, "Weather"]) -> None:
-        """Applies end-of-turn effects like Sandstorm damage, Burn, Poison, Leech Seed."""
-        # 1. Weather
-        if context.battle.weather:
-            weather = weathers.get(context.battle.weather.weather_id)
-            if weather:
-                strategies = self._weather_effect_registry.for_hook("end_turn")
-                for strategy in strategies:
-                    effect = next((e for e in weather.effects if e.kind == strategy.kind), None)
-                    if effect:
-                        execution = WeatherEffectExecutionInput(weather=weather, effect=effect)
-                        strategy.apply(context, execution)
-
-        # 2. Leech Seed (Volatiles)
-        # Gen 5 order: Leech Seed is resolved after Weather
-        leech_seed_id = "seeded"  # ID in MongoDB is 'seeded'
-        leech_seed_condition = conditions.get(leech_seed_id)
-        if leech_seed_condition:
-            strategies = self._condition_effect_registry.for_hook("end_turn")
-            for instance in context.battle_instances.values():
-                if instance.fainted or instance.current_hp <= 0:
-                    continue
-                if leech_seed_id in instance.volatile_status:
-                    # Find end_turn_drain strategy
-                    strategy = next((s for s in strategies if s.kind == "end_turn_drain"), None)
-                    effect = next((e for e in leech_seed_condition.effects if e.kind == "end_turn_drain"), None)
-                    if strategy and effect:
-                        execution = ConditionEffectExecutionInput(condition=leech_seed_condition, effect=effect, holder_instance_id=instance.id)
-                        strategy.apply(context, execution)
-
-        # 3. Major Status (Burn, Poison, Toxic)
+    def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"]) -> None:
+        """Applies end-of-turn effects like Burn, Poison."""
+        # Major Status (Burn, Poison, Toxic)
         for instance in context.battle_instances.values():
             if instance.fainted or instance.current_hp <= 0 or not instance.status:
                 continue
@@ -253,18 +220,7 @@ class TurnResolutionService:
         # 1. Increment Turn
         context.battle.turn += 1
 
-        # 2. Update Weather Duration
-        if context.battle.weather:
-            context.battle.weather.remaining_turns -= 1
-            if context.battle.weather.remaining_turns <= 0:
-                context.add_event(
-                    kind="weather_ended",
-                    message=f"The {context.battle.weather.weather_id.replace('_', ' ')} subsided.",
-                    weather_id=context.battle.weather.weather_id,
-                )
-                context.battle.weather = None
-
-        # 3. Check for Win Conditions
+        # 2. Check for Win Conditions
         # A trainer loses if all their pokemon are fainted (not just active ones).
         # However, for the scope of this resolution step, we check if anyone has NO pokemon left.
         # The logic for "replacements" will be handled by the phase transition.

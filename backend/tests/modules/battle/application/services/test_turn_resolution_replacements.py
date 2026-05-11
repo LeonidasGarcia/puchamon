@@ -1,12 +1,11 @@
 import pytest
 from puchamon.modules.battle.application.services.turn_resolution_service import TurnResolutionService
-from puchamon.modules.battle.domain.entities.battle import Battle, SideState, WeatherState
+from puchamon.modules.battle.domain.entities.battle import Battle, SideState
 from puchamon.modules.battle.domain.entities.battle_instance import BattleInstance, StatStages
 from puchamon.modules.battle.domain.registries import (
     build_default_action_strategy_registry,
     build_default_condition_effect_strategy_registry,
     build_default_move_effect_strategy_registry,
-    build_default_weather_effect_strategy_registry,
 )
 from puchamon.modules.battle.domain.runtime.context import BattleStrategyContext
 
@@ -17,7 +16,6 @@ def service():
         action_registry=build_default_action_strategy_registry(),
         move_effect_registry=build_default_move_effect_strategy_registry(),
         condition_effect_registry=build_default_condition_effect_strategy_registry(),
-        weather_effect_registry=build_default_weather_effect_strategy_registry(),
     )
 
 
@@ -105,7 +103,6 @@ def test_fainted_pokemon_leaves_slot_empty_for_manual_replacement(service):
         actions=[],
         movements={},
         conditions={},
-        weathers={},
         move_effects={},
         type_chart={},
     )
