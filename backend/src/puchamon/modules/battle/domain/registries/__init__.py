@@ -33,7 +33,6 @@ from ..strategies.effects import (
     RemoveHazardEffectStrategy,
     SelfSwitchEffectStrategy,
     SetHazardEffectStrategy,
-    SwapItemEffectStrategy,
 )
 from ..strategies.weather import (
     EndTurnDamageWeatherEffectStrategy,

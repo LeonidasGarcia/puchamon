@@ -11,7 +11,6 @@ from .protect_effect_strategy import ProtectEffectStrategy
 from .remove_hazard_effect_strategy import RemoveHazardEffectStrategy
 from .self_switch_effect_strategy import SelfSwitchEffectStrategy
 from .set_hazard_effect_strategy import SetHazardEffectStrategy
-from .swap_item_effect_strategy import SwapItemEffectStrategy
 
 __all__: list[str] = [
     "ApplyMajorStatusEffectStrategy",
@@ -25,5 +24,4 @@ __all__: list[str] = [
     "RemoveHazardEffectStrategy",
     "SelfSwitchEffectStrategy",
     "SetHazardEffectStrategy",
-    "SwapItemEffectStrategy",
 ]

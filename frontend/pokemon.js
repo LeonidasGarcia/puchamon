@@ -544,12 +544,6 @@ const DATA = {
       payload: {},
     },
     {
-      _id: "fx-trick-swap-item",
-      kind: "swap_item",
-      target: "target",
-      chance: 100,
-      order: 2,
-      payload: {},
     },
     {
       _id: "fx-pain-split",
@@ -851,19 +845,12 @@ const DATA = {
       effectIds: ["fx-damage-single"],
     },
     {
-      _id: "trick",
+      _id: "thunderbolt",
       name: "Trick",
       type: "Psychic",
       category: "Status",
       power: null,
       accuracy: null,
-      pp: 10,
-      priority: 0,
-      makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-trick-swap-item"],
-    },
     {
       _id: "rapid-spin",
       name: "Rapid Spin",
@@ -1288,7 +1275,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-specs",
       evs: { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 },
-      moves: ["draco-meteor", "psyshock", "surf", "trick"]
+      moves: ["draco-meteor", "psyshock", "surf", "thunderbolt"]
     },
     {
       _id: "latios-choice-scarf",
@@ -1298,7 +1285,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252 },
-      moves: ["draco-meteor", "surf", "psyshock", "trick"]
+      moves: ["draco-meteor", "surf", "psyshock", "thunderbolt"]
     },
     {
       _id: "starmie-analytic-lo",
@@ -1328,7 +1315,7 @@ const DATA = {
       ability: "serene-grace",
       item: "choice-scarf",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["iron-head", "u-turn", "fire-punch", "trick"]
+      moves: ["iron-head", "u-turn", "fire-punch", "thunderbolt"]
     },
     {
       _id: "jirachi-spdef-rocks",
@@ -1348,7 +1335,7 @@ const DATA = {
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 },
-      moves: ["volt-switch", "hydro-pump", "trick", "will-o-wisp"]
+      moves: ["volt-switch", "hydro-pump", "thunderbolt", "will-o-wisp"]
     },
     {
       _id: "rotom-wash-defensive",

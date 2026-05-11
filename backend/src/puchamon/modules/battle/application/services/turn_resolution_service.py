@@ -7,7 +7,7 @@ from loguru import logger
 
 from ...domain.entities import Battle, BattleInstance, TurnAction
 from ...domain.entities.battle import BattleResult
-from ...domain.mechanics import apply_entry_hazards, switch_in_instance
+from ...domain.mechanics import apply_entry_hazards
 from ...domain.mechanics.stats import calculate_effective_stat
 from ...domain.registries import (
     ActionStrategyRegistry,
@@ -70,7 +70,7 @@ class TurnResolutionService:
         logger.debug(f"Ordered actions: {len(ordered_actions)}")
 
         # 3. Phase: Execution (Moves)
-        self._execute_actions(context, ordered_actions, movements, move_effects, type_chart)
+        self._execute_actions(context, ordered_actions, movements, move_effects)
         logger.debug(f"Events after execution: {len(context.events)}")
 
         # 4. Phase: End of Turn (Residuals: Weather, Status conditions like Burn/Poison)
@@ -156,7 +156,6 @@ class TurnResolutionService:
         actions: list[TurnAction],
         movements: dict[str, "Movement"],
         move_effects: dict[str, "MoveEffect"],
-        type_chart: dict[str, "Type"],
     ) -> None:
         """Iterate over ordered actions and execute them.
 
@@ -196,35 +195,11 @@ class TurnResolutionService:
             strategy.execute(context, execution)
 
             # --- Mid-turn Replacement Check ---
-            # After each action, we check if any side has an empty active slot that needs filling.
-            # In a real scenario, this would pause the turn, but for simulation/AI, we automate it.
-            self._handle_mid_turn_replacements(context, type_chart)
-
-    def _handle_mid_turn_replacements(self, context: BattleStrategyContext, type_chart: dict[str, "Type"]) -> None:
-        """Checks for empty active slots and attempts to fill them if replacements are available."""
-        for trainer_id, side in context.battle.sides.items():
-            for slot_index, instance_id in enumerate(side.active_pokemon_instance_ids):
-                if instance_id is None:
-                    # Slot is empty! Find a replacement
-                    replacement = self._find_best_replacement(context, trainer_id)
-                    if replacement:
-                        switch_in_instance(context, replacement.id, trainer_id, slot_index, type_chart)
-
-    def _find_best_replacement(self, context: BattleStrategyContext, trainer_id: str) -> "BattleInstance | None":
-        """Simple AI to find the first non-fainted pokemon in the party that is not currently active."""
-        # Get all pokemon belonging to this trainer
-        trainer_pokemon = [inst for inst in context.battle_instances.values() if inst.trainer_id == trainer_id]
-
-        # Get currently active IDs for this trainer
-        active_ids = set(context.battle.sides[trainer_id].active_pokemon_instance_ids)
-
-        # Find first available
-        for pokemon in trainer_pokemon:
-            if not pokemon.fainted and pokemon.current_hp > 0 and pokemon.id not in active_ids:
-                return pokemon
-
-        return None
-
+            # We no longer auto-replace mid-turn.
+            # In Gen 5+, replacements are chosen simultaneously after all turn actions are completed
+            # unless it's a specific pivot move. Since we want manual replacements at the end of the turn,
+            # we just leave the slot empty and let _resolve_faints_and_cleanup handle the phase change.
+            pass
 
     def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"], weathers: dict[str, "Weather"]) -> None:
         """Applies end-of-turn effects like Sandstorm damage, Burn, Poison, Leech Seed."""
@@ -253,9 +228,7 @@ class TurnResolutionService:
                     strategy = next((s for s in strategies if s.kind == "end_turn_drain"), None)
                     effect = next((e for e in leech_seed_condition.effects if e.kind == "end_turn_drain"), None)
                     if strategy and effect:
-                        execution = ConditionEffectExecutionInput(
-                            condition=leech_seed_condition, effect=effect, holder_instance_id=instance.id
-                        )
+                        execution = ConditionEffectExecutionInput(condition=leech_seed_condition, effect=effect, holder_instance_id=instance.id)
                         strategy.apply(context, execution)
 
         # 3. Major Status (Burn, Poison, Toxic)
@@ -272,9 +245,7 @@ class TurnResolutionService:
                 # Find matching effect in condition
                 effect = next((e for e in status_condition.effects if e.kind == strategy.kind), None)
                 if effect:
-                    execution = ConditionEffectExecutionInput(
-                        condition=status_condition, effect=effect, holder_instance_id=instance.id
-                    )
+                    execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=instance.id)
                     strategy.apply(context, execution)
 
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
@@ -304,9 +275,7 @@ class TurnResolutionService:
             # This requires checking the party, but for now we look at the active instances
             # and assume if they all fainted and no replacements, they lose.
             # TODO: Integrate with a PartyService to check total fainted count.
-            has_alive_pokemon = any(
-                not inst.fainted for inst in context.battle_instances.values() if inst.trainer_id == trainer_id
-            )
+            has_alive_pokemon = any(not inst.fainted for inst in context.battle_instances.values() if inst.trainer_id == trainer_id)
             if has_alive_pokemon:
                 active_trainers.append(trainer_id)
 
