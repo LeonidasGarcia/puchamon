@@ -1046,7 +1046,7 @@ const DATA = {
     {
       _id: "tyranitar-choice-band",
       pokemonId: "tyranitar",
-      movesetName: "Choice Band Wallbreaker",
+      movesetName: "Choice Band",
       nature: "Jolly",
       ability: "sand-stream",
       item: "choice-band",
@@ -1056,7 +1056,7 @@ const DATA = {
     {
       _id: "tyranitar-dragon-dance",
       pokemonId: "tyranitar",
-      movesetName: "Dragon Dance Sweeper",
+      movesetName: "Dragon Dance",
       nature: "Jolly",
       ability: "sand-stream",
       item: "chople-berry",
@@ -1066,7 +1066,7 @@ const DATA = {
     {
       _id: "politoed-defensive",
       pokemonId: "politoed",
-      movesetName: "Defensive Rain Support",
+      movesetName: "Defensive Rain Setter",
       nature: "Bold",
       ability: "drizzle",
       item: "leftovers",
@@ -1076,7 +1076,7 @@ const DATA = {
     {
       _id: "politoed-choice-specs",
       pokemonId: "politoed",
-      movesetName: "Choice Specs Attacker",
+      movesetName: "Choice Specs",
       nature: "Modest",
       ability: "drizzle",
       item: "choice-specs",
@@ -1086,7 +1086,7 @@ const DATA = {
     {
       _id: "ferrothorn-spikes",
       pokemonId: "ferrothorn",
-      movesetName: "Entry Hazard Lead",
+      movesetName: "Spikes Support",
       nature: "Relaxed",
       ability: "iron-barbs",
       item: "leftovers",
@@ -1096,7 +1096,7 @@ const DATA = {
     {
       _id: "ferrothorn-stealth-rock",
       pokemonId: "ferrothorn",
-      movesetName: "Defensive Utility",
+      movesetName: "Stealth Rock Utility",
       nature: "Relaxed",
       ability: "iron-barbs",
       item: "leftovers",
@@ -1106,7 +1106,7 @@ const DATA = {
     {
       _id: "latios-choice-specs",
       pokemonId: "latios",
-      movesetName: "Special Wallbreaker",
+      movesetName: "Choice Specs",
       nature: "Timid",
       ability: "levitate",
       item: "choice-specs",
@@ -1116,7 +1116,7 @@ const DATA = {
     {
       _id: "latios-choice-scarf",
       pokemonId: "latios",
-      movesetName: "Revenge Killer",
+      movesetName: "Choice Scarf",
       nature: "Timid",
       ability: "levitate",
       item: "choice-scarf",
@@ -1126,7 +1126,7 @@ const DATA = {
     {
       _id: "starmie-analytic-lo",
       pokemonId: "starmie",
-      movesetName: "Analytic Offensive Spinner",
+      movesetName: "Analytic Life Orb Spinner",
       nature: "Timid",
       ability: "analytic",
       item: "life-orb",
@@ -1136,7 +1136,7 @@ const DATA = {
     {
       _id: "starmie-leftovers-spin",
       pokemonId: "starmie",
-      movesetName: "Defensive Rapid Spinner",
+      movesetName: "Recover Spinner",
       nature: "Timid",
       ability: "natural-cure",
       item: "leftovers",
@@ -1146,17 +1146,17 @@ const DATA = {
     {
       _id: "jirachi-choice-scarf",
       pokemonId: "jirachi",
-      movesetName: "Iron Head Flincher",
+      movesetName: "Choice Scarf",
       nature: "Jolly",
       ability: "serene-grace",
       item: "choice-scarf",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["iron-head", "u-turn", "fire-punch", "ice-punch"]
+      moves: ["iron-head", "x-scissor", "fire-punch", "thunderbolt"]
     },
     {
       _id: "jirachi-spdef-rocks",
       pokemonId: "jirachi",
-      movesetName: "Specially Defensive Support",
+      movesetName: "Specially Defensive Stealth Rock",
       nature: "Careful",
       ability: "serene-grace",
       item: "leftovers",
@@ -1166,27 +1166,27 @@ const DATA = {
     {
       _id: "rotom-wash-choice-scarf",
       pokemonId: "rotom-wash",
-      movesetName: "Fast Pivot",
+      movesetName: "Choice Scarf",
       nature: "Timid",
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 },
-      moves: ["volt-switch", "hydro-pump", "trick", "thunderbolt"]
+      moves: ["thunderbolt", "hydro-pump", "thunder-wave", "will-o-wisp"]
     },
     {
       _id: "rotom-wash-defensive",
       pokemonId: "rotom-wash",
-      movesetName: "Physically Defensive Pivot",
+      movesetName: "Defensive Pivot",
       nature: "Bold",
       ability: "levitate",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["volt-switch", "hydro-pump", "will-o-wisp", "thunderbolt"]
+      moves: ["thunderbolt", "hydro-pump", "shadow-ball", "will-o-wisp"]
     },
     {
       _id: "breloom-technician-sd",
       pokemonId: "breloom",
-      movesetName: "Technician Offensive",
+      movesetName: "Technician Swords Dance",
       nature: "Adamant",
       ability: "technician",
       item: "fighting-gem",
@@ -1196,17 +1196,17 @@ const DATA = {
     {
       _id: "breloom-poison-heal",
       pokemonId: "breloom",
-      movesetName: "Poison Heal Brawler",
+      movesetName: "Poison Heal SubPunch",
       nature: "Adamant",
       ability: "poison-heal",
       item: "toxic-orb",
       evs: { hp: 236, atk: 252, def: 0, spa: 0, spd: 20, spe: 0 },
-      moves: ["spore", "seed-bomb", "low-sweep", "stone-edge"]
+      moves: ["swords-dance", "low-sweep", "seed-bomb", "mach-punch"]
     },
     {
       _id: "heatran-spdef",
       pokemonId: "heatran",
-      movesetName: "Specially Defensive Tank",
+      movesetName: "Specially Defensive",
       nature: "Calm",
       ability: "flash-fire",
       item: "leftovers",
@@ -1216,7 +1216,7 @@ const DATA = {
     {
       _id: "heatran-subtoxic",
       pokemonId: "heatran",
-      movesetName: "Offensive Utility",
+      movesetName: "SubToxic",
       nature: "Timid",
       ability: "flash-fire",
       item: "leftovers",
@@ -1226,7 +1226,7 @@ const DATA = {
     {
       _id: "keldeo-choice-specs",
       pokemonId: "keldeo",
-      movesetName: "Choice Specs Sweeper",
+      movesetName: "Choice Specs",
       nature: "Timid",
       ability: "justified",
       item: "choice-specs",
@@ -1236,7 +1236,7 @@ const DATA = {
     {
       _id: "keldeo-calm-mind",
       pokemonId: "keldeo",
-      movesetName: "Calm Mind Setup",
+      movesetName: "Calm Mind",
       nature: "Timid",
       ability: "justified",
       item: "leftovers",
