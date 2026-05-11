@@ -25,7 +25,7 @@ const DATA = {
       superEffective: ["Water", "Flying"],
       notVeryEffective: ["Electric", "Grass", "Dragon"],
       noEffect: ["Ground"],
-    },  
+    },
     {
       _id: "Grass",
       superEffective: ["Water", "Ground", "Rock"],
@@ -316,15 +316,7 @@ const DATA = {
       payload: { hits: 1, requiresFocus: true },
     },
     {
-      _id: "fx-damage-psyshock",
-      kind: "damage",
-      target: "target",
-      chance: 100,
-      order: 1,
-      payload: { hits: 1, useTargetDefenseStat: "def" },
-    },
-    {
-      _id: "fx-damage-secret-sword",
+      _id: "fx-damage-special-def-target",
       kind: "damage",
       target: "target",
       chance: 100,
@@ -396,7 +388,7 @@ const DATA = {
       payload: { conditionId: "flinch", duration: 1 },
     },
     {
-      _id: "fx-crunch-def-drop-20",
+      _id: "fx-stat-def-down1-target-chance20",
       kind: "modify_stat",
       target: "target",
       chance: 20,
@@ -404,9 +396,9 @@ const DATA = {
       payload: { changes: [{ stat: "def", stages: -1 }] },
     },
     {
-      _id: "fx-draco-meteor-spa-2",
+      _id: "fx-stat-spa-down2-user",
       kind: "modify_stat",
-      target: "user",
+      target: "self",
       chance: 100,
       order: 2,
       payload: { changes: [{ stat: "spa", stages: -2 }] },
@@ -414,7 +406,7 @@ const DATA = {
     {
       _id: "fx-set-stealth-rock",
       kind: "set_hazard",
-      target: "opponent_side",
+      target: "foe_side",
       chance: 100,
       order: 1,
       payload: { hazardId: "stealth-rock", layers: 1, maxLayers: 1 },
@@ -422,7 +414,7 @@ const DATA = {
     {
       _id: "fx-set-spikes",
       kind: "set_hazard",
-      target: "opponent_side",
+      target: "foe_side",
       chance: 100,
       order: 1,
       payload: { hazardId: "spikes", layers: 1, maxLayers: 3 },
@@ -430,7 +422,7 @@ const DATA = {
     {
       _id: "fx-rapid-spin-cleanup",
       kind: "remove_hazard",
-      target: "user_side",
+      target: "ally_side",
       chance: 100,
       order: 2,
       payload: {
@@ -440,7 +432,7 @@ const DATA = {
     {
       _id: "fx-protect",
       kind: "protect",
-      target: "user",
+      target: "self",
       chance: 100,
       order: 1,
       payload: { duration: 1 },
@@ -448,41 +440,44 @@ const DATA = {
     {
       _id: "fx-recover-50",
       kind: "heal_hp",
-      target: "user",
+      target: "self",
       chance: 100,
       order: 1,
       payload: { ratio: 0.5 },
     },
     {
-      _id: "fx-swords-dance",
+      _id: "fx-stat-atk-up2-user",
       kind: "modify_stat",
-      target: "user",
+      target: "self",
       chance: 100,
       order: 1,
       payload: { changes: [{ stat: "atk", stages: 2 }] },
     },
     {
-      _id: "fx-calm-mind",
+      _id: "fx-stat-spa-up1-user",
       kind: "modify_stat",
-      target: "user",
+      target: "self",
       chance: 100,
       order: 1,
-      payload: {
-        changes: [
-          { stat: "spa", stages: 1 },
-          { stat: "spd", stages: 1 },
-        ],
-      },
+      payload: { changes: [{ stat: "spa", stages: 1 }] },
     },
     {
-      _id: "fx-lowsweep-spe-1",
+      _id: "fx-stat-spd-up1-user",
+      kind: "modify_stat",
+      target: "self",
+      chance: 100,
+      order: 2,
+      payload: { changes: [{ stat: "spd", stages: 1 }] },
+    },
+    {
+      _id: "fx-stat-spe-down1-target",
       kind: "modify_stat",
       target: "target",
       chance: 100,
       order: 2,
       payload: { changes: [{ stat: "spe", stages: -1 }] },
     },
-    ],
+  ],
   moves: [
     {
       _id: "stone-edge",
@@ -510,7 +505,7 @@ const DATA = {
       makesContact: true,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-single", "fx-crunch-def-drop-20"],
+      effectIds: ["fx-damage-single", "fx-stat-def-down1-target-chance20"],
     },
     {
       _id: "pursuit",
@@ -551,7 +546,7 @@ const DATA = {
       priority: 0,
       makesContact: false,
       protectable: false,
-      target: "opponent_side",
+      target: "foe_side",
       effectIds: ["fx-set-stealth-rock"],
     },
     {
@@ -621,7 +616,7 @@ const DATA = {
       priority: 4,
       makesContact: false,
       protectable: false,
-      target: "user",
+      target: "self",
       effectIds: ["fx-protect"],
     },
     {
@@ -663,7 +658,7 @@ const DATA = {
       priority: 0,
       makesContact: false,
       protectable: false,
-      target: "opponent_side",
+      target: "foe_side",
       effectIds: ["fx-set-spikes"],
     },
     {
@@ -720,7 +715,7 @@ const DATA = {
       makesContact: false,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-single", "fx-draco-meteor-spa-2"],
+      effectIds: ["fx-damage-single", "fx-stat-spa-down2-user"],
     },
     {
       _id: "psyshock",
@@ -734,7 +729,7 @@ const DATA = {
       makesContact: false,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-psyshock"],
+      effectIds: ["fx-damage-special-def-target"],
     },
     {
       _id: "surf",
@@ -789,7 +784,7 @@ const DATA = {
       priority: 0,
       makesContact: false,
       protectable: false,
-      target: "user",
+      target: "self",
       effectIds: ["fx-recover-50"],
     },
     {
@@ -874,7 +869,7 @@ const DATA = {
       makesContact: false,
       protectable: false,
       target: "self",
-      effectIds: ["fx-swords-dance"],
+      effectIds: ["fx-stat-atk-up2-user"],
     },
     {
       _id: "mach-punch",
@@ -916,7 +911,7 @@ const DATA = {
       makesContact: true,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-single", "fx-lowsweep-spe-1"],
+      effectIds: ["fx-damage-single", "fx-stat-spe-down1-target"],
     },
     {
       _id: "swords-dance",
@@ -929,8 +924,8 @@ const DATA = {
       priority: 0,
       makesContact: false,
       protectable: false,
-      target: "user",
-      effectIds: ["fx-swords-dance"],
+      target: "self",
+      effectIds: ["fx-stat-atk-up2-user"],
     },
     {
       _id: "thunder-wave",
@@ -1000,7 +995,7 @@ const DATA = {
       makesContact: false,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-secret-sword"],
+      effectIds: ["fx-damage-special-def-target"],
     },
     {
       _id: "hidden-power-ice",
@@ -1027,8 +1022,8 @@ const DATA = {
       priority: 0,
       makesContact: false,
       protectable: false,
-      target: "user",
-      effectIds: ["fx-calm-mind"],
+      target: "self",
+      effectIds: ["fx-stat-spa-up1-user", "fx-stat-spd-up1-user"],
     },
   ],
 
