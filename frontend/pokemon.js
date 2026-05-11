@@ -300,22 +300,6 @@ const DATA = {
       payload: { hits: { mode: "random_range", min: 2, max: 5 } },
     },
     {
-      _id: "fx-damage-pursuit",
-      kind: "damage",
-      target: "target",
-      chance: 100,
-      order: 1,
-      payload: { hits: 1, onSwitchMultiplier: 2 },
-    },
-    {
-      _id: "fx-damage-focus-punch",
-      kind: "damage",
-      target: "target",
-      chance: 100,
-      order: 1,
-      payload: { hits: 1, requiresFocus: true },
-    },
-    {
       _id: "fx-damage-special-def-target",
       kind: "damage",
       target: "target",
@@ -506,20 +490,6 @@ const DATA = {
       protectable: true,
       target: "target",
       effectIds: ["fx-damage-single", "fx-stat-def-down1-target-chance20"],
-    },
-    {
-      _id: "pursuit",
-      name: "Pursuit",
-      type: "Dark",
-      category: "Physical",
-      power: 40,
-      accuracy: 100,
-      pp: 20,
-      priority: 0,
-      makesContact: true,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-damage-pursuit"],
     },
     {
       _id: "earthquake",
@@ -830,20 +800,6 @@ const DATA = {
       effectIds: ["fx-damage-single", "fx-burn-10"],
     },
     {
-      _id: "thunderbolt",
-      name: "Thunderbolt",
-      type: "Electric",
-      category: "Special",
-      power: 90,
-      accuracy: 100,
-      pp: 15,
-      priority: 0,
-      makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-damage-single", "fx-para-10"],
-    },
-    {
       _id: "will-o-wisp",
       name: "Will-O-Wisp",
       type: "Fire",
@@ -900,20 +856,6 @@ const DATA = {
       effectIds: ["fx-damage-multi-2-5"],
     },
     {
-      _id: "low-sweep",
-      name: "Low Sweep",
-      type: "Fighting",
-      category: "Physical",
-      power: 65,
-      accuracy: 100,
-      pp: 20,
-      priority: 0,
-      makesContact: true,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-damage-single", "fx-stat-spe-down1-target"],
-    },
-    {
       _id: "swords-dance",
       name: "Swords Dance",
       type: "Normal",
@@ -942,18 +884,18 @@ const DATA = {
       effectIds: ["fx-para-100"],
     },
     {
-      _id: "focus-punch",
-      name: "Focus Punch",
+      _id: "low-sweep",
+      name: "Low Sweep",
       type: "Fighting",
       category: "Physical",
-      power: 150,
+      power: 65,
       accuracy: 100,
       pp: 20,
-      priority: -3,
+      priority: 0,
       makesContact: true,
       protectable: true,
       target: "target",
-      effectIds: ["fx-damage-focus-punch"],
+      effectIds: ["fx-damage-single", "fx-stat-spe-down1-target"],
     },
     {
       _id: "seed-bomb",
@@ -1104,37 +1046,37 @@ const DATA = {
     {
       _id: "tyranitar-choice-band",
       pokemonId: "tyranitar",
-      movesetName: "Choice Band",
+      movesetName: "Choice Band Wallbreaker",
       nature: "Jolly",
       ability: "sand-stream",
       item: "choice-band",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["stone-edge", "crunch", "pursuit", "earthquake"]
+      moves: ["stone-edge", "crunch", "ice-punch", "earthquake"]
     },
     {
-      _id: "tyranitar-chople-rocks",
+      _id: "tyranitar-dragon-dance",
       pokemonId: "tyranitar",
-      movesetName: "Chople Stealth Rock",
-      nature: "Sassy",
+      movesetName: "Dragon Dance Sweeper",
+      nature: "Jolly",
       ability: "sand-stream",
       item: "chople-berry",
-      evs: { hp: 248, atk: 88, def: 0, spa: 0, spd: 172, spe: 0 },
-      moves: ["stealth-rock", "crunch", "pursuit", "ice-beam"]
+      evs: { hp: 4, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 },
+      moves: ["dragon-dance", "stone-edge", "earthquake", "ice-punch"]
     },
     {
       _id: "politoed-defensive",
       pokemonId: "politoed",
-      movesetName: "Defensive Rain Setter",
+      movesetName: "Defensive Rain Support",
       nature: "Bold",
       ability: "drizzle",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["scald", "toxic", "swords-dance", "protect"]
+      moves: ["scald", "toxic", "ice-beam", "protect"]
     },
     {
       _id: "politoed-choice-specs",
       pokemonId: "politoed",
-      movesetName: "Choice Specs",
+      movesetName: "Choice Specs Attacker",
       nature: "Modest",
       ability: "drizzle",
       item: "choice-specs",
@@ -1144,7 +1086,7 @@ const DATA = {
     {
       _id: "ferrothorn-spikes",
       pokemonId: "ferrothorn",
-      movesetName: "Spikes Support",
+      movesetName: "Entry Hazard Lead",
       nature: "Relaxed",
       ability: "iron-barbs",
       item: "leftovers",
@@ -1154,7 +1096,7 @@ const DATA = {
     {
       _id: "ferrothorn-stealth-rock",
       pokemonId: "ferrothorn",
-      movesetName: "Stealth Rock Utility",
+      movesetName: "Defensive Utility",
       nature: "Relaxed",
       ability: "iron-barbs",
       item: "leftovers",
@@ -1164,7 +1106,7 @@ const DATA = {
     {
       _id: "latios-choice-specs",
       pokemonId: "latios",
-      movesetName: "Choice Specs",
+      movesetName: "Special Wallbreaker",
       nature: "Timid",
       ability: "levitate",
       item: "choice-specs",
@@ -1174,7 +1116,7 @@ const DATA = {
     {
       _id: "latios-choice-scarf",
       pokemonId: "latios",
-      movesetName: "Choice Scarf",
+      movesetName: "Revenge Killer",
       nature: "Timid",
       ability: "levitate",
       item: "choice-scarf",
@@ -1184,7 +1126,7 @@ const DATA = {
     {
       _id: "starmie-analytic-lo",
       pokemonId: "starmie",
-      movesetName: "Analytic Life Orb Spinner",
+      movesetName: "Analytic Offensive Spinner",
       nature: "Timid",
       ability: "analytic",
       item: "life-orb",
@@ -1194,7 +1136,7 @@ const DATA = {
     {
       _id: "starmie-leftovers-spin",
       pokemonId: "starmie",
-      movesetName: "Recover Spinner",
+      movesetName: "Defensive Rapid Spinner",
       nature: "Timid",
       ability: "natural-cure",
       item: "leftovers",
@@ -1204,17 +1146,17 @@ const DATA = {
     {
       _id: "jirachi-choice-scarf",
       pokemonId: "jirachi",
-      movesetName: "Choice Scarf",
+      movesetName: "Iron Head Flincher",
       nature: "Jolly",
       ability: "serene-grace",
       item: "choice-scarf",
       evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
-      moves: ["iron-head", "x-scissor", "fire-punch", "thunderbolt"]
+      moves: ["iron-head", "u-turn", "fire-punch", "ice-punch"]
     },
     {
       _id: "jirachi-spdef-rocks",
       pokemonId: "jirachi",
-      movesetName: "Specially Defensive Stealth Rock",
+      movesetName: "Specially Defensive Support",
       nature: "Careful",
       ability: "serene-grace",
       item: "leftovers",
@@ -1224,27 +1166,27 @@ const DATA = {
     {
       _id: "rotom-wash-choice-scarf",
       pokemonId: "rotom-wash",
-      movesetName: "Choice Scarf",
+      movesetName: "Fast Pivot",
       nature: "Timid",
       ability: "levitate",
       item: "choice-scarf",
       evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 0, spe: 252 },
-      moves: ["thunderbolt", "hydro-pump", "thunder-wave", "will-o-wisp"]
+      moves: ["volt-switch", "hydro-pump", "trick", "thunderbolt"]
     },
     {
       _id: "rotom-wash-defensive",
       pokemonId: "rotom-wash",
-      movesetName: "Defensive Pivot",
+      movesetName: "Physically Defensive Pivot",
       nature: "Bold",
       ability: "levitate",
       item: "leftovers",
       evs: { hp: 248, atk: 0, def: 252, spa: 0, spd: 8, spe: 0 },
-      moves: ["thunderbolt", "hydro-pump", "swords-dance", "will-o-wisp"]
+      moves: ["volt-switch", "hydro-pump", "will-o-wisp", "thunderbolt"]
     },
     {
       _id: "breloom-technician-sd",
       pokemonId: "breloom",
-      movesetName: "Technician Swords Dance",
+      movesetName: "Technician Offensive",
       nature: "Adamant",
       ability: "technician",
       item: "fighting-gem",
@@ -1254,17 +1196,17 @@ const DATA = {
     {
       _id: "breloom-poison-heal",
       pokemonId: "breloom",
-      movesetName: "Poison Heal SubPunch",
+      movesetName: "Poison Heal Brawler",
       nature: "Adamant",
       ability: "poison-heal",
       item: "toxic-orb",
       evs: { hp: 236, atk: 252, def: 0, spa: 0, spd: 20, spe: 0 },
-      moves: ["swords-dance", "focus-punch", "seed-bomb", "mach-punch"]
+      moves: ["spore", "seed-bomb", "low-sweep", "stone-edge"]
     },
     {
       _id: "heatran-spdef",
       pokemonId: "heatran",
-      movesetName: "Specially Defensive",
+      movesetName: "Specially Defensive Tank",
       nature: "Calm",
       ability: "flash-fire",
       item: "leftovers",
@@ -1274,17 +1216,17 @@ const DATA = {
     {
       _id: "heatran-subtoxic",
       pokemonId: "heatran",
-      movesetName: "SubToxic",
+      movesetName: "Offensive Utility",
       nature: "Timid",
       ability: "flash-fire",
       item: "leftovers",
       evs: { hp: 8, atk: 0, def: 0, spa: 156, spd: 100, spe: 244 },
-      moves: ["swords-dance", "lava-plume", "toxic", "protect"]
+      moves: ["earth-power", "lava-plume", "toxic", "protect"]
     },
     {
       _id: "keldeo-choice-specs",
       pokemonId: "keldeo",
-      movesetName: "Choice Specs",
+      movesetName: "Choice Specs Sweeper",
       nature: "Timid",
       ability: "justified",
       item: "choice-specs",
@@ -1294,12 +1236,12 @@ const DATA = {
     {
       _id: "keldeo-calm-mind",
       pokemonId: "keldeo",
-      movesetName: "Calm Mind",
+      movesetName: "Calm Mind Setup",
       nature: "Timid",
       ability: "justified",
       item: "leftovers",
       evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
-      moves: ["calm-mind", "surf", "secret-sword", "swords-dance"]
+      moves: ["calm-mind", "surf", "secret-sword", "icy-wind"]
     }
   ]
 };
