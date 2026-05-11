@@ -1099,6 +1099,20 @@ const DATA = {
       target: "target",
       effectIds: ["fx-damage-single", "fx-freeze-10"],
     },
+    {
+      _id: "blaze-kick",
+      name: "Blaze Kick",
+      type: "Fire",
+      category: "Physical",
+      power: 85,
+      accuracy: 90,
+      pp: 16,
+      priority: 0,
+      makesContact: true,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-burn-10"],
+    }
   ],
 
   pokemons: [
@@ -1172,6 +1186,20 @@ const DATA = {
       baseStats: { hp: 91, atk: 72, def: 90, spa: 129, spd: 90, spe: 108 },
       abilities: ["justified"],
     },
+    {
+      _id: "blaziken",
+      name: "Blaziken",
+      types: ["Fire", "Fighting"],
+      baseStats: { hp: 80, atk: 120, def: 70, spa: 110, spd: 70, spe: 80 },
+      abilities: ["blaze", "speed-boost"],
+    },
+    {
+      _id: "minccino",
+      name: "Minccino",
+      types: ["Normal"],
+      baseStats: { hp: 55, atk: 50, def: 40, spa: 40, spd: 40, spe: 75 },
+      abilities: ["cute-charm", "technician", "friend-guard"],
+    }
   ],
 
   movesets: [
@@ -1374,6 +1402,26 @@ const DATA = {
       item: "leftovers",
       evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
       moves: ["calm-mind", "surf", "secret-sword", "icy-wind"]
+    },
+    {
+      _id: "blaziken-speed-boost",
+      pokemonId: "blaziken",
+      movesetName: "Speed Boost",
+      nature: "Adamant",
+      ability: "speed-boost",
+      item: "life-orb",
+      evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
+      moves: ["blaze-kick", "protect", "stone-edge", "swords-dance"]
+    },
+    {
+      _id: "minccino-utility",
+      pokemonId: "minccino",
+      movesetName: "Utility",
+      nature: "Jolly",
+      ability: "technician",
+      item: "life-orb",
+      evs: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
+      moves: ["bullet-seed", "iron-head", "thunder-wave", "protect"]
     }
   ]
 };
