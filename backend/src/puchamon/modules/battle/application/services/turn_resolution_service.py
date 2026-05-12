@@ -21,8 +21,7 @@ from ...domain.runtime.context import (
 )
 
 if TYPE_CHECKING:
-    from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type, Weather
-
+    from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 
 class TurnResolutionService:
     """Core domain service for battle turn execution.

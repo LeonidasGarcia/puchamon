@@ -3,9 +3,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
-from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Weather
+from ....pokedex.domain.entities import Condition, MoveEffect, Movement
 from ....pokedex.domain.entities.conditions import ConditionEffect
-from ....pokedex.domain.entities.weathers import WeatherEffect
 from ..entities import Battle, BattleInstance, TurnAction
 from ..exceptions import BattleValidationError
 
@@ -139,17 +138,6 @@ class ConditionEffectExecutionInput:
     condition: Condition
     effect: ConditionEffect
     holder_instance_id: str
-    source_instance_id: str | None = None
-    target_instance_id: str | None = None
-    movement: Movement | None = None
-
-
-@dataclass(slots=True)
-class WeatherEffectExecutionInput:
-    """Resolved inputs required to apply a weather effect hook."""
-
-    weather: Weather
-    effect: WeatherEffect
     source_instance_id: str | None = None
     target_instance_id: str | None = None
     movement: Movement | None = None

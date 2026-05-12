@@ -81,7 +81,6 @@ def _build_battle(*, source_instance_id: str, target_instance_id: str) -> Battle
         turn=1,
         status="active",
         phase="resolving_turn",
-        weather=None,
         sides={
             "trainer-1": SideState(hazards=[], active_pokemon_instance_ids=[source_instance_id]),
             "trainer-2": SideState(hazards=[], active_pokemon_instance_ids=[target_instance_id]),

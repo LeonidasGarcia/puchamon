@@ -1,4 +1,4 @@
-from .battle import Battle, BattleResult, Player, SideState, TargetScope, TurnAction, WeatherState
+from .battle import Battle, BattleResult, Player, SideState, TargetScope, TurnAction
 from .battle_instance import BattleInstance, BattleStats, MoveState, StatStages
 
 __all__: list[str] = [
@@ -12,5 +12,4 @@ __all__: list[str] = [
     "StatStages",
     "TargetScope",
     "TurnAction",
-    "WeatherState",
 ]

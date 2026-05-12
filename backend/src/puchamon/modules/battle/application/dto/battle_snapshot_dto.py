@@ -7,12 +7,6 @@ from pydantic import Field
 from .....core.domain.entities import BaseEmbeddedModel
 
 
-class WeatherSnapshotDTO(BaseEmbeddedModel):
-    weather_id: str
-    remaining_turns: int
-    source_move_id: str | None = None
-
-
 class PlayerSnapshotDTO(BaseEmbeddedModel):
     trainer_id: str
     name: str
@@ -67,7 +61,6 @@ class BattleSnapshotDTO(BaseEmbeddedModel):
     turn: int
     status: Literal["active", "finished", "paused"]
     phase: Literal["setup", "awaiting_actions", "resolving_turn", "awaiting_replacements"] | None = None
-    weather: WeatherSnapshotDTO | None = None
     players: list[PlayerSnapshotDTO]
     sides: dict[str, SideSnapshotDTO]
     pokemon_instances: list[PokemonInstanceSnapshotDTO]

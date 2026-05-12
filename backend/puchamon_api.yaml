@@ -278,7 +278,7 @@ components:
           type: integer
         kind:
           type: string
-          description: 'Event type: move, damage, pokemon_fainted, switch, battle_finished, weather_ended, etc.'
+          description: 'Event type: move, damage, pokemon_fainted, switch, battle_finished, etc.'
         source_instance_id:
           type: string
           nullable: true
@@ -295,9 +295,6 @@ components:
           type: string
           nullable: true
         hazard_id:
-          type: string
-          nullable: true
-        weather_id:
           type: string
           nullable: true
         message:
@@ -353,9 +350,6 @@ components:
         phase:
           type: string
           nullable: true
-        weather:
-          $ref: '#/components/schemas/WeatherState'
-          nullable: true
         players:
           type: array
           items:
@@ -381,20 +375,6 @@ components:
           sides,
           pokemon_instances,
         ]
-
-    WeatherState:
-      type: object
-      additionalProperties: false
-      properties:
-        weather_id:
-          type: string
-        remaining_turns:
-          type: integer
-        source_move_id:
-          type: string
-          nullable: true
-      required: [weather_id, remaining_turns]
-
     Player:
       type: object
       additionalProperties: false

@@ -50,7 +50,7 @@ Los datos se cargaran en la base `pokemon_battle_db`.
 10. Ejecutar cada movimiento validando primero si el usuario sigue con PS mayores a `0`.
 11. Si el usuario sigue vivo, resolver impedimentos como `freeze`, `sleep`, `flinch`, `paralysis` y `confusion`; si puede actuar, entonces resolver `accuracy`, dano, criticos, `STAB`, efectividad de tipos y efectos secundarios inmediatos.
 12. Aplicar la residual de fin de turno en este orden: clima, `Leech Seed`, `burn`, `poison` y `toxic`.
-13. Actualizar el estado persistido de la batalla: `currentHp`, `status`, `volatileStatus`, `stages`, `pp`, `revealedMoves`, `fainted`, `weather`, `sides[*].hazards` y `activePokemonInstanceIds`.
+13. Actualizar el estado persistido de la batalla: `currentHp`, `status`, `volatileStatus`, `stages`, `pp`, `revealedMoves`, `fainted`, `sides[*].hazards` y `activePokemonInstanceIds`.
 14. Verificar pokemones debilitados. Si un pokemon cae y el entrenador aun tiene reserva, debe elegir uno nuevo; si la muerte ocurre en medio del turno, la cola de acciones restante continua, y si entra al final del turno sus hazards se resuelven antes de aceptar nuevas acciones.
 15. Generar un nuevo snapshot de batalla y la lista de acciones efectivamente ejecutadas para el siguiente ciclo.
 

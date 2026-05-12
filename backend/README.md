@@ -114,7 +114,6 @@ Durante la ejecucion se deben persistir las modificaciones sobre:
 - `BattleInstance.revealedMoves`
 - `BattleInstance.fainted`
 - `BattleInstance.isRevealed` cuando corresponda
-- `Battle.weather`
 - `Battle.sides[*].hazards`
 - `Battle.sides[*].activePokemonInstanceIds`
 
