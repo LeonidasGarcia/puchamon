@@ -14,7 +14,6 @@ class PlayerSnapshotDTO(BaseEmbeddedModel):
 
 
 class SideSnapshotDTO(BaseEmbeddedModel):
-    hazards: list[str]
     active_pokemon_instance_ids: list[str | None]
 
 

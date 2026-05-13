@@ -35,7 +35,6 @@ def to_player_snapshot_dto(player: Player) -> PlayerSnapshotDTO:
 def to_side_snapshot_dto(side: SideState) -> SideSnapshotDTO:
     """Map a side state into a snapshot DTO."""
     return SideSnapshotDTO(
-        hazards=side.hazards,
         active_pokemon_instance_ids=side.active_pokemon_instance_ids,
     )
 

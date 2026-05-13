@@ -8,6 +8,7 @@ from loguru import logger
 from ....agentia.application.services import IAService
 from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 from ...domain.entities import Battle, BattleInstance, Player, TurnAction
+from ...domain.exceptions import BattleValidationError
 from ...domain.registries import (
     build_default_action_strategy_registry,
     build_default_condition_effect_strategy_registry,
@@ -156,6 +157,12 @@ class BattleService:
         instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
 
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if needs_replacement:
+                if action.type != "switch":
+                    raise BattleValidationError("Only switch actions are allowed during awaiting_replacements phase")
+
         actions = list(battle.current_turn_actions)
         actions.append(action)
 
@@ -185,6 +192,13 @@ class BattleService:
         )
 
         battle.current_turn_actions = []
+
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if not needs_replacement:
+                battle.turn += 1
+                battle.phase = "awaiting_actions"
+
         await battle.save()
         for instance in instances.values():
             await instance.save()
@@ -227,16 +241,28 @@ class BattleService:
 
         data = await self._load_pokedex_data()
 
+        needs_replacement = battle.phase == "awaiting_replacements" and any(
+            slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids
+        )
+
         for player in battle.players:
             if player.controller_type == "ai":
-                ai_action = await self._ia_service.generate_action(
-                    player=player,
-                    battle=battle,
-                    instances=instances,
-                    ai_level=player.ai_level or 1,
-                    movements=data["movements"],
-                )
-                actions.append(ai_action)
+                if needs_replacement:
+                    ai_action = await self._ia_service.generate_switch_action(
+                        player=player,
+                        battle=battle,
+                        instances=instances,
+                    )
+                else:
+                    ai_action = await self._ia_service.generate_action(
+                        player=player,
+                        battle=battle,
+                        instances=instances,
+                        ai_level=player.ai_level or 1,
+                        movements=data["movements"],
+                    )
+                if ai_action:
+                    actions.append(ai_action)
 
         processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
@@ -250,6 +276,13 @@ class BattleService:
         )
 
         battle.current_turn_actions = []
+
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if not needs_replacement:
+                battle.turn += 1
+                battle.phase = "awaiting_actions"
+
         await battle.save()
         for instance in instances.values():
             await instance.save()

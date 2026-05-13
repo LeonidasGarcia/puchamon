@@ -7,7 +7,6 @@ from loguru import logger
 
 from ...domain.entities import Battle, BattleInstance, TurnAction
 from ...domain.entities.battle import BattleResult
-from ...domain.mechanics import apply_entry_hazards
 from ...domain.mechanics.stats import calculate_effective_stat
 from ...domain.registries import (
     ActionStrategyRegistry,
@@ -22,6 +21,7 @@ from ...domain.runtime.context import (
 
 if TYPE_CHECKING:
     from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
+
 
 class TurnResolutionService:
     """Core domain service for battle turn execution.
@@ -56,8 +56,8 @@ class TurnResolutionService:
         context.transient["type_chart"] = type_chart
 
         logger.debug(f"Resolving turn {battle.turn} with {len(actions)} actions")
-        # 1. Phase: Pre-Action (Switches and Hazards)
-        self._resolve_switches(context, actions, type_chart)
+        # 1. Phase: Pre-Action (Switches)
+        self._resolve_switches(context, actions)
 
         # 2. Phase: Determine Order
         ordered_actions = self._sort_actions(context, actions, movements, conditions)
@@ -75,20 +75,14 @@ class TurnResolutionService:
 
         return context
 
-    def _resolve_switches(self, context: BattleStrategyContext, actions: list[TurnAction], type_chart: dict[str, "Type"]) -> None:
-        """Executes 'switch' actions, triggering Pursuit if applicable and applying Entry Hazards."""
+    def _resolve_switches(self, context: BattleStrategyContext, actions: list[TurnAction]) -> None:
+        """Executes 'switch' actions."""
         switch_actions = [a for a in actions if a.type == "switch"]
-
-        # TODO: Handle Pursuit interception here before switching
 
         for action in switch_actions:
             strategy = self._action_registry.get("switch")
             execution = ActionExecutionInput(action=action, replacement_instance_id=action.replacement_instance_id)
             strategy.execute(context, execution)
-
-            # Apply Entry Hazards to the new pokemon coming into the field
-            if action.replacement_instance_id:
-                apply_entry_hazards(context, action.replacement_instance_id, type_chart)
 
     def _sort_actions(
         self,
@@ -216,10 +210,18 @@ class TurnResolutionService:
 
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
         """Increment the turn counter, update durations, and check for victory."""
-        # 1. Increment Turn
-        context.battle.turn += 1
+        # 1. Check if replacements are needed first
+        needs_replacement = False
+        for side in context.battle.sides.values():
+            if any(slot is None for slot in side.active_pokemon_instance_ids):
+                needs_replacement = True
+                break
 
-        # 2. Check for Win Conditions
+        # 2. Only increment turn if no replacements are pending
+        if not needs_replacement:
+            context.battle.turn += 1
+
+        # 3. Check for Win Conditions
         # A trainer loses if all their pokemon are fainted (not just active ones).
         # However, for the scope of this resolution step, we check if anyone has NO pokemon left.
         # The logic for "replacements" will be handled by the phase transition.

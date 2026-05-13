@@ -60,7 +60,6 @@ def to_battle_turn_event_dto(event: BattleStrategyEvent, order: int) -> BattleTu
         move_id=event.payload.get("move_id"),
         value=event.payload.get("value"),
         status_id=event.payload.get("status_id"),
-        hazard_id=event.payload.get("hazard_id"),
         message=event.message,
     )
 

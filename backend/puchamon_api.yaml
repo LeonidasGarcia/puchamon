@@ -294,9 +294,6 @@ components:
         status_id:
           type: string
           nullable: true
-        hazard_id:
-          type: string
-          nullable: true
         message:
           type: string
       required: [order, kind, message]
@@ -398,11 +395,6 @@ components:
       additionalProperties: false
       description: State of one side of the battlefield. Always contains exactly one active Pokemon.
       properties:
-        hazards:
-          type: array
-          items:
-            type: string
-          description: Entry hazards affecting this side (spikes, stealth_rock, toxic_spikes)
         active_pokemon_instance_ids:
           type: array
           description: |
@@ -413,7 +405,7 @@ components:
             nullable: true
           minItems: 1
           maxItems: 1
-      required: [hazards, active_pokemon_instance_ids]
+      required: [active_pokemon_instance_ids]
 
     PokemonInstanceSnapshot:
       type: object

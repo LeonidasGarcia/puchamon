@@ -6,7 +6,6 @@ from .....core.domain.entities import BaseEmbeddedModel, BaseEntity
 
 
 class SideState(BaseEmbeddedModel):
-    hazards: list[str]
     active_pokemon_instance_ids: list[str | None]
 
 

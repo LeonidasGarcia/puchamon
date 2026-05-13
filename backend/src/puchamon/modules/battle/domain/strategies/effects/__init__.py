@@ -6,8 +6,6 @@ from .base import MoveEffectStrategy
 from .damage_effect_strategy import DamageEffectStrategy
 from .modify_stat_effect_strategy import ModifyStatEffectStrategy
 from .protect_effect_strategy import ProtectEffectStrategy
-from .remove_hazard_effect_strategy import RemoveHazardEffectStrategy
-from .set_hazard_effect_strategy import SetHazardEffectStrategy
 
 __all__: list[str] = [
     "ApplyMajorStatusEffectStrategy",
@@ -16,6 +14,4 @@ __all__: list[str] = [
     "ModifyStatEffectStrategy",
     "MoveEffectStrategy",
     "ProtectEffectStrategy",
-    "RemoveHazardEffectStrategy",
-    "SetHazardEffectStrategy",
 ]

@@ -72,11 +72,6 @@ class CannotMoveEffect(BaseEmbeddedModel):
     payload: EmptyPayload
 
 
-class SkipActionEffect(BaseEmbeddedModel):
-    kind: Literal["skip_action"]
-    payload: EmptyPayload
-
-
 class BlockProtectableMovesEffect(BaseEmbeddedModel):
     kind: Literal["block_protectable_moves"]
     payload: EmptyPayload
@@ -87,21 +82,6 @@ class BlockStatusMovesEffect(BaseEmbeddedModel):
     payload: EmptyPayload
 
 
-class FaintOnExpireEffect(BaseEmbeddedModel):
-    kind: Literal["faint_on_expire"]
-    payload: EmptyPayload
-
-
-class ProxyHpEffect(BaseEmbeddedModel):
-    kind: Literal["proxy_hp"]
-    payload: RatioPayload
-
-
-class EndTurnDrainEffect(BaseEmbeddedModel):
-    kind: Literal["end_turn_drain"]
-    payload: RatioPayload
-
-
 ConditionEffect = Annotated[
     EndTurnDamageEffect
     | BadPoisonEffect
@@ -110,12 +90,8 @@ ConditionEffect = Annotated[
     | FullParalysisChanceEffect
     | SelfHitChanceEffect
     | CannotMoveEffect
-    | SkipActionEffect
     | BlockProtectableMovesEffect
-    | BlockStatusMovesEffect
-    | FaintOnExpireEffect
-    | ProxyHpEffect
-    | EndTurnDrainEffect,
+    | BlockStatusMovesEffect,
     Field(discriminator="kind"),
 ]
 

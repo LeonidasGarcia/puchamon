@@ -388,32 +388,6 @@ const DATA = {
       payload: { changes: [{ stat: "spa", stages: -2 }] },
     },
     {
-      _id: "fx-set-stealth-rock",
-      kind: "set_hazard",
-      target: "foe_side",
-      chance: 100,
-      order: 1,
-      payload: { hazardId: "stealth-rock", layers: 1, maxLayers: 1 },
-    },
-    {
-      _id: "fx-set-spikes",
-      kind: "set_hazard",
-      target: "foe_side",
-      chance: 100,
-      order: 1,
-      payload: { hazardId: "spikes", layers: 1, maxLayers: 3 },
-    },
-    {
-      _id: "fx-rapid-spin-cleanup",
-      kind: "remove_hazard",
-      target: "ally_side",
-      chance: 100,
-      order: 2,
-      payload: {
-        hazardIds: ["spikes", "toxic-spikes", "stealth-rock"],
-      },
-    },
-    {
       _id: "fx-protect",
       kind: "protect",
       target: "self",
@@ -486,14 +460,6 @@ const DATA = {
       payload: { conditionId: "sleep" }
     },
     {
-      _id: "fx-stat-spe-down1-target",
-      kind: "modify_stat",
-      target: "target",
-      chance: 100,
-      order: 2,
-      payload: { changes: [{ stat: "spe", stages: -1 }] },
-    },
-    {
       _id: "fx-stat-atk-up1-user",
       kind: "modify_stat",
       target: "self",
@@ -508,6 +474,36 @@ const DATA = {
       chance: 100,
       order: 1,
       payload: { changes: [{ stat: "spe", stages: 1 }] }
+    },
+    {
+      _id: "fx-stat-def-up1-user",
+      kind: "modify_stat",
+      target: "self",
+      chance: 100,
+      order: 1,
+      payload: { changes: [{ stat: "def", stages: 1 }] }
+    },
+    {
+      _id: "fx-stat-spe-down1-user",
+      kind: "modify_stat",
+      target: "self",
+      chance: 100,
+      order: 1,
+      payload: { changes: [{ stat: "spe", stages: -1 }] }
+    },
+    {
+      _id: "flash-cannon",
+      name: "Flash Cannon",
+      type: "Steel",
+      category: "Special",
+      power: 80,
+      accuracy: 100,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-stat-spd-down1-target-chance10"],
     }
   ],
   moves: [
@@ -554,20 +550,6 @@ const DATA = {
       effectIds: ["fx-damage-single"],
     },
     {
-      _id: "stealth-rock",
-      name: "Stealth Rock",
-      type: "Rock",
-      category: "Status",
-      power: null,
-      accuracy: null,
-      pp: 20,
-      priority: 0,
-      makesContact: false,
-      protectable: false,
-      target: "foe_side",
-      effectIds: ["fx-set-stealth-rock"],
-    },
-    {
       _id: "ice-beam",
       name: "Ice Beam",
       type: "Ice",
@@ -603,20 +585,6 @@ const DATA = {
       power: null,
       accuracy: 90,
       pp: 10,
-      priority: 0,
-      makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-toxic-100"],
-    },
-    {
-      _id: "toxic",
-      name: "Toxic",
-      type: "Poison",
-      category: "Status",
-      power: null,
-      accuracy: 85,
-      pp: 15,
       priority: 0,
       makesContact: false,
       protectable: true,
@@ -664,20 +632,6 @@ const DATA = {
       protectable: true,
       target: "target",
       effectIds: ["fx-damage-single"],
-    },
-    {
-      _id: "spikes",
-      name: "Spikes",
-      type: "Ground",
-      category: "Status",
-      power: null,
-      accuracy: null,
-      pp: 20,
-      priority: 0,
-      makesContact: false,
-      protectable: false,
-      target: "foe_side",
-      effectIds: ["fx-set-spikes"],
     },
     {
       _id: "power-whip",
@@ -806,20 +760,6 @@ const DATA = {
       effectIds: ["fx-recover-50"],
     },
     {
-      _id: "iron-head",
-      name: "Iron Head",
-      type: "Steel",
-      category: "Physical",
-      power: 80,
-      accuracy: 100,
-      pp: 15,
-      priority: 0,
-      makesContact: true,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-damage-single", "fx-flinch-30"],
-    },
-    {
       _id: "x-scissor",
       name: "X-Scissor",
       type: "Bug",
@@ -862,20 +802,6 @@ const DATA = {
       effectIds: ["fx-burn-100"],
     },
     {
-      _id: "swords-dance",
-      name: "Swords Dance",
-      type: "Normal",
-      category: "Status",
-      power: null,
-      accuracy: null,
-      pp: 20,
-      priority: 0,
-      makesContact: false,
-      protectable: false,
-      target: "self",
-      effectIds: ["fx-stat-atk-up2-user"],
-    },
-    {
       _id: "mach-punch",
       name: "Mach Punch",
       type: "Fighting",
@@ -916,20 +842,6 @@ const DATA = {
       protectable: false,
       target: "self",
       effectIds: ["fx-stat-atk-up2-user"],
-    },
-    {
-      _id: "thunder-wave",
-      name: "Thunder Wave",
-      type: "Electric",
-      category: "Status",
-      power: null,
-      accuracy: 100,
-      pp: 20,
-      priority: 0,
-      makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-para-100"],
     },
     {
       _id: "low-sweep",
@@ -1112,6 +1024,20 @@ const DATA = {
       protectable: true,
       target: "target",
       effectIds: ["fx-damage-single", "fx-burn-10"],
+    },
+    {
+      _id: "curse",
+      name: "Curse",
+      type: "Ghost",
+      category: "Status",
+      power: null,
+      accuracy: null,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: false,
+      target: "self",
+      effectIds: ["fx-stat-atk-up1-user", "fx-stat-def-up1-user", "fx-stat-spe-down1-user"],
     }
   ],
 
@@ -1244,24 +1170,24 @@ const DATA = {
       moves: ["hydro-pump", "scald", "ice-beam", "focus-blast"]
     },
     {
-      _id: "ferrothorn-spikes",
+      _id: "ferrothorn-utility",
       pokemonId: "ferrothorn",
-      movesetName: "Spikes Support",
+      movesetName: "Status Utility Tank",
       nature: "Relaxed",
       ability: "iron-barbs",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 88, spa: 0, spd: 168, spe: 0 },
-      moves: ["spikes", "stealth-rock", "power-whip", "iron-head"]
+      moves: ["power-whip", "iron-head", "thunder-wave", "protect"]
     },
     {
-      _id: "ferrothorn-stealth-rock",
+      _id: "ferrothorn-curse",
       pokemonId: "ferrothorn",
-      movesetName: "Stealth Rock Utility",
-      nature: "Relaxed",
+      movesetName: "Curse Setup Tank",
+      nature: "Sassy",
       ability: "iron-barbs",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 48, spa: 0, spd: 208, spe: 0 },
-      moves: ["stealth-rock", "power-whip", "thunder-wave", "protect"]
+      moves: ["curse", "power-whip", "iron-head", "toxic"]
     },
     {
       _id: "latios-choice-specs",
@@ -1314,14 +1240,14 @@ const DATA = {
       moves: ["iron-head", "x-scissor", "fire-punch", "thunderbolt"]
     },
     {
-      _id: "jirachi-spdef-rocks",
+      _id: "jirachi-spdef-tank",
       pokemonId: "jirachi",
-      movesetName: "Specially Defensive Stealth Rock",
+      movesetName: "Specially Defensive Tank",
       nature: "Careful",
       ability: "serene-grace",
       item: "leftovers",
       evs: { hp: 252, atk: 0, def: 0, spa: 0, spd: 224, spe: 32 },
-      moves: ["iron-head", "toxic", "stealth-rock", "x-scissor"]
+      moves: ["iron-head", "toxic", "protect", "x-scissor"]
     },
     {
       _id: "rotom-wash-choice-scarf",
@@ -1364,14 +1290,14 @@ const DATA = {
       moves: ["mach-punch", "low-sweep", "seed-bomb", "spore"]
     },
     {
-      _id: "heatran-spdef",
+      _id: "heatran-offensive",
       pokemonId: "heatran",
-      movesetName: "Specially Defensive",
-      nature: "Calm",
+      movesetName: "Offensive Wallbreaker",
+      nature: "Timid",
       ability: "flash-fire",
-      item: "leftovers",
-      evs: { hp: 248, atk: 0, def: 0, spa: 8, spd: 252, spe: 0 },
-      moves: ["lava-plume", "toxic", "stealth-rock", "protect"]
+      item: "choice-specs",
+      evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
+      moves: ["lava-plume", "earth-power", "flash-cannon", "hidden-power-ice"]
     },
     {
       _id: "heatran-subtoxic",

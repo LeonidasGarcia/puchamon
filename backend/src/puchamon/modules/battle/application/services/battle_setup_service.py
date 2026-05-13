@@ -68,8 +68,7 @@ class BattleSetupService:
                 stats = build_battle_stats(pokemon=pokemon, moveset=moveset, level=DEFAULT_BATTLE_LEVEL)
 
                 move_state: list[MoveState] = [
-                    MoveState(move_id=move_id, current_pp=movements.get(move_id).pp if movements.get(move_id) else 15)
-                    for move_id in valid_moves
+                    MoveState(move_id=move_id, current_pp=movements.get(move_id).pp if movements.get(move_id) else 15) for move_id in valid_moves
                 ]
 
                 instance = BattleInstance(
@@ -103,7 +102,7 @@ class BattleSetupService:
 
             active_ids: list[str | None] = [str(trainer_instances[0].id)]
 
-            sides[player.trainer_id] = SideState(hazards=[], active_pokemon_instance_ids=active_ids)
+            sides[player.trainer_id] = SideState(active_pokemon_instance_ids=active_ids)
 
             for active_id in active_ids:
                 if active_id:
@@ -168,7 +167,4 @@ class BattleSetupService:
         Returns:
             List of move IDs that have all their effects implemented.
         """
-        return [
-            move_id for move_id in move_ids
-            if cls._is_move_implemented(move_id, movements, move_effects)
-        ]
+        return [move_id for move_id in move_ids if cls._is_move_implemented(move_id, movements, move_effects)]
