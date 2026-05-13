@@ -51,6 +51,7 @@ class EmptyPayload(BaseEmbeddedModel):
     pass
 
 
+
 class MoveEffect(BaseEntity):
     kind: Literal[
         "damage",
@@ -64,7 +65,7 @@ class MoveEffect(BaseEntity):
         "pain_split",
     ]
 
-    target: Literal["target", "self", "opponent_side", "user_side", "field", "all_sides"]
+    target: Literal["target", "self", "foe_side", "ally_side", "field", "all_sides"]
     chance: int
     order: int
 

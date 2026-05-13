@@ -81,6 +81,10 @@ class BlockStatusMovesEffect(BaseEmbeddedModel):
     kind: Literal["block_status_moves"]
     payload: EmptyPayload
 
+class SkipActionEffect(BaseEmbeddedModel):
+    kind: Literal["skip_action"]
+    payload: EmptyPayload
+
 
 ConditionEffect = Annotated[
     EndTurnDamageEffect
@@ -91,7 +95,8 @@ ConditionEffect = Annotated[
     | SelfHitChanceEffect
     | CannotMoveEffect
     | BlockProtectableMovesEffect
-    | BlockStatusMovesEffect,
+    | BlockStatusMovesEffect
+    | SkipActionEffect,
     Field(discriminator="kind"),
 ]
 

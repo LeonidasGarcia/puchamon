@@ -18,8 +18,8 @@ class Movement(BaseEntity):
     target: Literal[
         "target",
         "self",
-        "opponent_side",
-        "user_side",
+        "foe_side",
+        "ally_side",
         "field",
         "all",
         "all_foes",
