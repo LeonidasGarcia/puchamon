@@ -4,24 +4,16 @@ import TurnMessages from '../../components/cards/TurnMessages';
 
 interface TurnLogProps {
   turns: BattleTurnDTO[];
-  isAnimating?: boolean;
-  currentEventIndex?: number;
 }
 
-export default function TurnLog({
-  turns,
-  isAnimating,
-  currentEventIndex,
-}: TurnLogProps) {
+export default function TurnLog({ turns }: TurnLogProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [turns, currentEventIndex]);
-
-  const lastTurn = turns[turns.length - 1];
+  }, [turns]);
 
   if (turns.length === 0) {
     return (
@@ -41,8 +33,6 @@ export default function TurnLog({
           key={turn.turn}
           turnNumber={turn.turn}
           events={turn.events}
-          isAnimating={isAnimating && turn === lastTurn}
-          currentEventIndex={currentEventIndex}
         />
       ))}
     </div>
