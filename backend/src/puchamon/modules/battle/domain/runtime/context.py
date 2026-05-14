@@ -110,13 +110,20 @@ class ActionExecutionInput:
     condition_effect_strategy_registry: "Any | None" = None
     conditions: "dict[str, Condition] | None" = None
 
-    def build_move_effect_execution(self, *, effect: MoveEffect, target_instance_ids: list[str]) -> "MoveEffectExecutionInput":
+    def build_move_effect_execution(
+        self,
+        *,
+        effect: MoveEffect,
+        target_instance_ids: list[str],
+        metadata: dict[str, "Any"] | None = None,
+    ) -> "MoveEffectExecutionInput":
         """Build the effect execution input derived from the current action resolution."""
         return MoveEffectExecutionInput(
             effect=effect,
             source_instance_id=self.action.user_instance_id,
             target_instance_ids=target_instance_ids,
             movement=self.movement,
+            metadata=metadata if metadata is not None else {},
         )
 
 

@@ -51,7 +51,6 @@ class EmptyPayload(BaseEmbeddedModel):
     pass
 
 
-
 class MoveEffect(BaseEntity):
     kind: Literal[
         "damage",
