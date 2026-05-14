@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
-import { useBattleStore } from '../stores/battleStore';
+import { useBattleNetworkStore } from '../stores/battleNetworkStore';
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export default function Lobby() {
     setDifficulty,
     setBattleType,
   } = useConnectionStore();
-  const connect = useBattleStore((state) => state.connect);
+  const connect = useBattleNetworkStore((state) => state.connect);
 
   const handleStartBattle = () => {
     connect({

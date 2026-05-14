@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import BattleScenario from '../components/battle/BattleScenario';
 import LoadingScreen from '../components/LoadingScreen';
 import TurnLog from '../components/battle/TurnLog';
-import { useBattleStore } from '../stores/battleStore';
+import { useBattleNetworkStore } from '../stores/battleNetworkStore';
+import { useGameStore } from '../stores/gameStore';
 import { useConnectionStore } from '../stores/connectionStore';
 import usePokemonSpritesQuery from '../hooks/usePokemonSpritesQuery';
 import PokemonSwitch from '../components/cards/PokemonSwitch';
@@ -17,28 +18,23 @@ import type { HazardColorsKeys } from '../types/colors/HazardColors';
 import type { TypeColorsKeys } from '../types/colors/TypeColors';
 
 export default function App() {
+  const { isConnected, lastError, connect, disconnect, sendAction } =
+    useBattleNetworkStore();
+
   const {
-    isConnected,
-    isMyTurn,
-    lastError,
     weather,
     sides,
-    players,
     myPokemon,
     opponentPokemon,
     turnHistory,
     trainerId,
     status,
     winnerTrainerId,
-    connect,
-    disconnect,
-    submitAction,
-  } = useBattleStore();
+    playerPhase,
+  } = useGameStore();
 
-  const myName =
-    players.find((p) => p.controller_type === 'human')?.name ?? 'Mi equipo';
-  const opponentName =
-    players.find((p) => p.controller_type === 'ai')?.name ?? 'Equipo rival';
+  const myName = 'Mi equipo';
+  const opponentName = 'Equipo rival';
 
   const myActiveInstanceId =
     sides[trainerId ?? '']?.active_pokemon_instance_ids?.[0];
@@ -56,15 +52,18 @@ export default function App() {
     activeOpponentPokemon?.instance_id !== activeOpponentInstanceId;
 
   const isPlayerFainted =
-    activePokemon?.fainted &&
-    activePokemon?.instance_id !== myActiveInstanceId;
+    activePokemon?.fainted && activePokemon?.instance_id !== myActiveInstanceId;
 
   const isVictory = winnerTrainerId === trainerId;
+
+  const canAct = playerPhase === 'can_act' || playerPhase === 'awaiting_switch';
+  const isAnimating = playerPhase === 'animating';
 
   const navigate = useNavigate();
 
   const handlePlayAgain = () => {
-    const { name, controllerType, difficulty, battleType } = useConnectionStore.getState();
+    const { name, controllerType, difficulty, battleType } =
+      useConnectionStore.getState();
     disconnect();
     connect({
       name,
@@ -84,7 +83,8 @@ export default function App() {
   );
 
   useEffect(() => {
-    const { name, controllerType, difficulty, battleType } = useConnectionStore.getState();
+    const { name, controllerType, difficulty, battleType } =
+      useConnectionStore.getState();
     connect({
       name,
       controller_type: controllerType,
@@ -116,9 +116,9 @@ export default function App() {
   const activeMoves = activePokemon?.move_state ?? [];
 
   const handleMoveSelect = (moveId: string) => {
-    if (!activePokemon || !isMyTurn) return;
+    if (!activePokemon || !canAct) return;
 
-    submitAction({
+    sendAction({
       type: 'move',
       user_instance_id: activePokemon.instance_id,
       move_id: moveId,
@@ -134,7 +134,7 @@ export default function App() {
   const handleSwitchSelect = (replacementInstanceId: string) => {
     if (!activePokemon) return;
 
-    submitAction({
+    sendAction({
       type: 'switch',
       user_instance_id: activePokemon.instance_id,
       move_id: null,
@@ -201,7 +201,8 @@ export default function App() {
               const moveData = POKE_DATA.moves.find(
                 (m) => m._id === move.move_id,
               );
-              const isDisabled = move.current_pp === 0;
+              const isDisabled =
+                move.current_pp === 0 || !canAct || isAnimating;
               return (
                 <PokemonMovement
                   key={move.move_id}
@@ -230,7 +231,9 @@ export default function App() {
                   onClick={() => handleSwitchSelect(pokemon.instance_id)}
                   disabled={
                     pokemon.fainted ||
-                    pokemon.instance_id === myActiveInstanceId
+                    pokemon.instance_id === myActiveInstanceId ||
+                    !canAct ||
+                    isAnimating
                   }
                 />
               ))}
@@ -266,7 +269,7 @@ export default function App() {
         >
           <TurnLog turns={turnHistory} />
         </Section>
-        {status === 'finished' && (
+        {status === 'finished' && playerPhase === 'finished' && (
           <Modal isOpen>
             <h2 className="text-2xl font-bold text-white mb-4 text-center">
               {isVictory ? '¡Victoria!' : 'Derrota'}
