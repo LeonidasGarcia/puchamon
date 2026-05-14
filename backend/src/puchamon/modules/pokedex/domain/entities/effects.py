@@ -60,9 +60,6 @@ class MoveEffect(BaseEntity):
         "modify_stat",
         "protect",
         "heal_hp",
-        "self_switch",
-        "swap_item",
-        "pain_split",
     ]
 
     target: Literal["target", "self", "foe_side", "ally_side", "field", "all_sides"]

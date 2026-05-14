@@ -12,7 +12,6 @@ from ...domain import build_battle_stats
 from ...domain.entities import Battle, BattleInstance, MoveState, Player, SideState, StatStages
 from ...domain.rules import DEFAULT_BATTLE_LEVEL
 
-UNIMPLEMENTED_EFFECT_KINDS = {"heal_hp", "swap_item", "pain_split"}
 MAX_RETRIES_PER_POKEMON = 3
 MAX_TOTAL_ATTEMPTS = 30
 
@@ -32,7 +31,6 @@ class BattleSetupService:
         """Creates the initial state of a Battle and its BattleInstances.
 
         Selects random Pokemon and Movesets, calculates stats, and sets up active slots.
-        Moves with unimplemented effects (heal_hp, swap_item, pain_split) are filtered out.
         If a pokemon has no valid moves after filtering, a different pokemon is selected.
         """
         battle_id = str(ObjectId())
@@ -142,11 +140,6 @@ class BattleSetupService:
         movement = movements.get(move_id)
         if not movement or not movement.effect_ids:
             return True
-
-        for effect_id in movement.effect_ids:
-            effect = move_effects.get(effect_id)
-            if effect and effect.kind in UNIMPLEMENTED_EFFECT_KINDS:
-                return False
 
         return True
 

@@ -491,20 +491,6 @@ const DATA = {
       order: 1,
       payload: { changes: [{ stat: "spe", stages: -1 }] }
     },
-    {
-      _id: "flash-cannon",
-      name: "Flash Cannon",
-      type: "Steel",
-      category: "Special",
-      power: 80,
-      accuracy: 100,
-      pp: 10,
-      priority: 0,
-      makesContact: false,
-      protectable: true,
-      target: "target",
-      effectIds: ["fx-damage-single", "fx-stat-spd-down1-target-chance10"],
-    }
   ],
   moves: [
     {
@@ -548,6 +534,20 @@ const DATA = {
       protectable: true,
       target: "target",
       effectIds: ["fx-damage-single"],
+    },
+    {
+      _id: "flash-cannon",
+      name: "Flash Cannon",
+      type: "Steel",
+      category: "Special",
+      power: 80,
+      accuracy: 100,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-stat-spd-down1-target-chance10"],
     },
     {
       _id: "ice-beam",
