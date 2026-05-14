@@ -40,6 +40,9 @@ def setup() -> None:
         "sqlalchemy.engine",
         "httpx",
         "httpcore",
+        "pymongo",
+        "pymongo.logger",
+        "websockets",
     )
     for logger_name in loggers_to_intercept:
         mod_logger = logging.getLogger(logger_name)
@@ -49,6 +52,8 @@ def setup() -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("pymongo").setLevel(logging.WARNING)
+    logging.getLogger("websockets").setLevel(logging.WARNING)
 
     handlers = [
         {

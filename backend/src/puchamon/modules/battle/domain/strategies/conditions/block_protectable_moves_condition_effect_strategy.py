@@ -18,6 +18,9 @@ class BlockProtectableMovesConditionEffectStrategy(ConditionEffectStrategy):
 
         if execution.movement and execution.movement.protectable:
             target_instance = context.get_instance(execution.holder_instance_id)
+            if "protect" not in target_instance.volatile_status:
+                return
+
             blocked_targets = context.transient.setdefault("blocked_targets", set())
 
             if execution.holder_instance_id not in blocked_targets:
