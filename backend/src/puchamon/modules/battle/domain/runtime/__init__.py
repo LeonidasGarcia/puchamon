@@ -7,7 +7,6 @@ from .context import (
     ConditionEffectExecutionInput,
     MoveEffectExecutionInput,
     StrategyHook,
-    WeatherEffectExecutionInput,
 )
 
 __all__: list[str] = [
@@ -17,5 +16,4 @@ __all__: list[str] = [
     "ConditionEffectExecutionInput",
     "MoveEffectExecutionInput",
     "StrategyHook",
-    "WeatherEffectExecutionInput",
 ]

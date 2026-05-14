@@ -20,6 +20,28 @@ class SwitchActionStrategy(ActionStrategy):
         if execution.replacement_instance_id is None:
             raise BattleValidationError("Switch actions require a replacement instance id")
 
+        # Handle empty user_instance_id (replacement action, no source to switch out)
+        if execution.action.user_instance_id == "":
+            replacement_instance = context.get_instance(execution.replacement_instance_id)
+            side = get_side_for_trainer(context.battle, replacement_instance.trainer_id)
+
+            try:
+                empty_slot = side.active_pokemon_instance_ids.index(None)
+            except ValueError as exc:
+                raise BattleConflictError("There is no empty slot available for the replacement") from exc
+
+            set_active_instance_for_slot(side, empty_slot, execution.replacement_instance_id)
+            replacement_instance.is_revealed = True
+
+            context.add_event(
+                kind="replacement",
+                message=f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield",
+                source_instance_id=None,
+                target_instance_id=execution.replacement_instance_id,
+                active_slot=empty_slot,
+            )
+            return
+
         source_instance = context.get_instance(execution.action.user_instance_id)
         replacement_instance = context.get_instance(execution.replacement_instance_id)
 

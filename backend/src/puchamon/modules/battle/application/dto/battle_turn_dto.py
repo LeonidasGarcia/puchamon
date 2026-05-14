@@ -40,8 +40,6 @@ class BattleTurnEventDTO(BaseEmbeddedModel):
     move_id: str | None = None
     value: int | None = None
     status_id: str | None = None
-    hazard_id: str | None = None
-    weather_id: str | None = None
     message: str
 
 

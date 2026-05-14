@@ -7,23 +7,20 @@ from loguru import logger
 
 from ...domain.entities import Battle, BattleInstance, TurnAction
 from ...domain.entities.battle import BattleResult
-from ...domain.mechanics import apply_entry_hazards, switch_in_instance
 from ...domain.mechanics.stats import calculate_effective_stat
 from ...domain.registries import (
     ActionStrategyRegistry,
     ConditionEffectStrategyRegistry,
     MoveEffectStrategyRegistry,
-    WeatherEffectStrategyRegistry,
 )
 from ...domain.runtime.context import (
     ActionExecutionInput,
     BattleStrategyContext,
     ConditionEffectExecutionInput,
-    WeatherEffectExecutionInput,
 )
 
 if TYPE_CHECKING:
-    from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type, Weather
+    from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 
 
 class TurnResolutionService:
@@ -39,12 +36,10 @@ class TurnResolutionService:
         action_registry: ActionStrategyRegistry,
         move_effect_registry: MoveEffectStrategyRegistry,
         condition_effect_registry: ConditionEffectStrategyRegistry,
-        weather_effect_registry: WeatherEffectStrategyRegistry,
     ):
         self._action_registry = action_registry
         self._move_effect_registry = move_effect_registry
         self._condition_effect_registry = condition_effect_registry
-        self._weather_effect_registry = weather_effect_registry
 
     def resolve_turn(
         self,
@@ -53,7 +48,6 @@ class TurnResolutionService:
         actions: list[TurnAction],
         movements: dict[str, "Movement"],
         conditions: dict[str, "Condition"],
-        weathers: dict[str, "Weather"],
         move_effects: dict[str, "MoveEffect"],
         type_chart: dict[str, "Type"],
     ) -> BattleStrategyContext:
@@ -62,39 +56,33 @@ class TurnResolutionService:
         context.transient["type_chart"] = type_chart
 
         logger.debug(f"Resolving turn {battle.turn} with {len(actions)} actions")
-        # 1. Phase: Pre-Action (Switches and Hazards)
-        self._resolve_switches(context, actions, type_chart)
+        # 1. Phase: Pre-Action (Switches)
+        self._resolve_switches(context, actions)
 
         # 2. Phase: Determine Order
         ordered_actions = self._sort_actions(context, actions, movements, conditions)
         logger.debug(f"Ordered actions: {len(ordered_actions)}")
 
         # 3. Phase: Execution (Moves)
-        self._execute_actions(context, ordered_actions, movements, move_effects, type_chart)
+        self._execute_actions(context, ordered_actions, movements, move_effects)
         logger.debug(f"Events after execution: {len(context.events)}")
 
-        # 4. Phase: End of Turn (Residuals: Weather, Status conditions like Burn/Poison)
-        self._resolve_residuals(context, conditions, weathers)
+        # 4. Phase: End of Turn (Residuals: Status conditions like Burn/Poison)
+        self._resolve_residuals(context, conditions)
 
         # 5. Phase: Faint Resolution & Turn Cleanup
         self._resolve_faints_and_cleanup(context)
 
         return context
 
-    def _resolve_switches(self, context: BattleStrategyContext, actions: list[TurnAction], type_chart: dict[str, "Type"]) -> None:
-        """Executes 'switch' actions, triggering Pursuit if applicable and applying Entry Hazards."""
+    def _resolve_switches(self, context: BattleStrategyContext, actions: list[TurnAction]) -> None:
+        """Executes 'switch' actions."""
         switch_actions = [a for a in actions if a.type == "switch"]
-
-        # TODO: Handle Pursuit interception here before switching
 
         for action in switch_actions:
             strategy = self._action_registry.get("switch")
             execution = ActionExecutionInput(action=action, replacement_instance_id=action.replacement_instance_id)
             strategy.execute(context, execution)
-
-            # Apply Entry Hazards to the new pokemon coming into the field
-            if action.replacement_instance_id:
-                apply_entry_hazards(context, action.replacement_instance_id, type_chart)
 
     def _sort_actions(
         self,
@@ -156,7 +144,6 @@ class TurnResolutionService:
         actions: list[TurnAction],
         movements: dict[str, "Movement"],
         move_effects: dict[str, "MoveEffect"],
-        type_chart: dict[str, "Type"],
     ) -> None:
         """Iterate over ordered actions and execute them.
 
@@ -196,69 +183,15 @@ class TurnResolutionService:
             strategy.execute(context, execution)
 
             # --- Mid-turn Replacement Check ---
-            # After each action, we check if any side has an empty active slot that needs filling.
-            # In a real scenario, this would pause the turn, but for simulation/AI, we automate it.
-            self._handle_mid_turn_replacements(context, type_chart)
+            # We no longer auto-replace mid-turn.
+            # In Gen 5+, replacements are chosen simultaneously after all turn actions are completed
+            # unless it's a specific pivot move. Since we want manual replacements at the end of the turn,
+            # we just leave the slot empty and let _resolve_faints_and_cleanup handle the phase change.
+            pass
 
-    def _handle_mid_turn_replacements(self, context: BattleStrategyContext, type_chart: dict[str, "Type"]) -> None:
-        """Checks for empty active slots and attempts to fill them if replacements are available."""
-        for trainer_id, side in context.battle.sides.items():
-            for slot_index, instance_id in enumerate(side.active_pokemon_instance_ids):
-                if instance_id is None:
-                    # Slot is empty! Find a replacement
-                    replacement = self._find_best_replacement(context, trainer_id)
-                    if replacement:
-                        switch_in_instance(context, replacement.id, trainer_id, slot_index, type_chart)
-
-    def _find_best_replacement(self, context: BattleStrategyContext, trainer_id: str) -> "BattleInstance | None":
-        """Simple AI to find the first non-fainted pokemon in the party that is not currently active."""
-        # Get all pokemon belonging to this trainer
-        trainer_pokemon = [inst for inst in context.battle_instances.values() if inst.trainer_id == trainer_id]
-
-        # Get currently active IDs for this trainer
-        active_ids = set(context.battle.sides[trainer_id].active_pokemon_instance_ids)
-
-        # Find first available
-        for pokemon in trainer_pokemon:
-            if not pokemon.fainted and pokemon.current_hp > 0 and pokemon.id not in active_ids:
-                return pokemon
-
-        return None
-
-
-    def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"], weathers: dict[str, "Weather"]) -> None:
-        """Applies end-of-turn effects like Sandstorm damage, Burn, Poison, Leech Seed."""
-        # 1. Weather
-        if context.battle.weather:
-            weather = weathers.get(context.battle.weather.weather_id)
-            if weather:
-                strategies = self._weather_effect_registry.for_hook("end_turn")
-                for strategy in strategies:
-                    effect = next((e for e in weather.effects if e.kind == strategy.kind), None)
-                    if effect:
-                        execution = WeatherEffectExecutionInput(weather=weather, effect=effect)
-                        strategy.apply(context, execution)
-
-        # 2. Leech Seed (Volatiles)
-        # Gen 5 order: Leech Seed is resolved after Weather
-        leech_seed_id = "seeded"  # ID in MongoDB is 'seeded'
-        leech_seed_condition = conditions.get(leech_seed_id)
-        if leech_seed_condition:
-            strategies = self._condition_effect_registry.for_hook("end_turn")
-            for instance in context.battle_instances.values():
-                if instance.fainted or instance.current_hp <= 0:
-                    continue
-                if leech_seed_id in instance.volatile_status:
-                    # Find end_turn_drain strategy
-                    strategy = next((s for s in strategies if s.kind == "end_turn_drain"), None)
-                    effect = next((e for e in leech_seed_condition.effects if e.kind == "end_turn_drain"), None)
-                    if strategy and effect:
-                        execution = ConditionEffectExecutionInput(
-                            condition=leech_seed_condition, effect=effect, holder_instance_id=instance.id
-                        )
-                        strategy.apply(context, execution)
-
-        # 3. Major Status (Burn, Poison, Toxic)
+    def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"]) -> None:
+        """Applies end-of-turn effects like Burn, Poison."""
+        # Major Status (Burn, Poison, Toxic)
         for instance in context.battle_instances.values():
             if instance.fainted or instance.current_hp <= 0 or not instance.status:
                 continue
@@ -272,26 +205,21 @@ class TurnResolutionService:
                 # Find matching effect in condition
                 effect = next((e for e in status_condition.effects if e.kind == strategy.kind), None)
                 if effect:
-                    execution = ConditionEffectExecutionInput(
-                        condition=status_condition, effect=effect, holder_instance_id=instance.id
-                    )
+                    execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=instance.id)
                     strategy.apply(context, execution)
 
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
         """Increment the turn counter, update durations, and check for victory."""
-        # 1. Increment Turn
-        context.battle.turn += 1
+        # 1. Check if replacements are needed first
+        needs_replacement = False
+        for side in context.battle.sides.values():
+            if any(slot is None for slot in side.active_pokemon_instance_ids):
+                needs_replacement = True
+                break
 
-        # 2. Update Weather Duration
-        if context.battle.weather:
-            context.battle.weather.remaining_turns -= 1
-            if context.battle.weather.remaining_turns <= 0:
-                context.add_event(
-                    kind="weather_ended",
-                    message=f"The {context.battle.weather.weather_id.replace('_', ' ')} subsided.",
-                    weather_id=context.battle.weather.weather_id,
-                )
-                context.battle.weather = None
+        # 2. Only increment turn if no replacements are pending
+        if not needs_replacement:
+            context.battle.turn += 1
 
         # 3. Check for Win Conditions
         # A trainer loses if all their pokemon are fainted (not just active ones).
@@ -304,9 +232,7 @@ class TurnResolutionService:
             # This requires checking the party, but for now we look at the active instances
             # and assume if they all fainted and no replacements, they lose.
             # TODO: Integrate with a PartyService to check total fainted count.
-            has_alive_pokemon = any(
-                not inst.fainted for inst in context.battle_instances.values() if inst.trainer_id == trainer_id
-            )
+            has_alive_pokemon = any(not inst.fainted for inst in context.battle_instances.values() if inst.trainer_id == trainer_id)
             if has_alive_pokemon:
                 active_trainers.append(trainer_id)
 

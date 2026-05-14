@@ -54,21 +54,15 @@ class IAService:
             raise ValueError(f"Active instance {active_instance_ids[0]} not found")
 
         if active_instance.fainted:
-            switch_action = await self.generate_switch_action(
-                player, battle, instances
-            )
+            switch_action = await self.generate_switch_action(player, battle, instances, ai_level)
             if switch_action:
                 return switch_action
 
-        move_action = await self.generate_move_action(
-            player, active_instance, ai_level, battle, instances, movements
-        )
+        move_action = await self.generate_move_action(player, active_instance, ai_level, battle, instances, movements)
         if move_action:
             return move_action
 
-        switch_action = await self.generate_switch_action(
-            player, battle, instances
-        )
+        switch_action = await self.generate_switch_action(player, battle, instances, ai_level)
         if switch_action:
             return switch_action
 
@@ -96,16 +90,12 @@ class IAService:
         Returns:
             A TurnAction with type="move" or None if no moves available.
         """
-        available_moves = [
-            ms for ms in active_instance.move_state if ms.current_pp > 0
-        ]
+        available_moves = [ms for ms in active_instance.move_state if ms.current_pp > 0]
 
         if not available_moves:
             return None
 
-        move_id = self._select_move_by_level(
-            available_moves, ai_level, battle, instances, movements
-        )
+        move_id = self._select_move_by_level(available_moves, ai_level, battle, instances, movements)
 
         if move_id is None:
             return None
@@ -127,6 +117,7 @@ class IAService:
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
+        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
     ) -> TurnAction | None:
         """Generate a switch action for the AI.
 
@@ -134,6 +125,7 @@ class IAService:
             player: The AI player entity.
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
+            ai_level: AI difficulty level (1=easy, 2=medium).
 
         Returns:
             A TurnAction with type="switch" or None if no replacements available.
@@ -142,22 +134,23 @@ class IAService:
         if not side:
             return None
 
-        active_ids = set(
-            uid for uid in side.active_pokemon_instance_ids if uid is not None
-        )
+        active_ids = set(uid for uid in side.active_pokemon_instance_ids if uid is not None)
 
         available_replacements = [
-            inst
-            for inst in instances.values()
-            if inst.trainer_id == player.trainer_id
-            and not inst.fainted
-            and inst.id not in active_ids
+            inst for inst in instances.values() if inst.trainer_id == player.trainer_id and not inst.fainted and inst.id not in active_ids
         ]
 
         if not available_replacements:
             return None
 
-        replacement = available_replacements[0]
+        if ai_level == AI_LEVEL_EASY:
+            replacement = random.choice(available_replacements)
+        else:
+            # Level 2 (Medium) and Level 3 (Hard) - Choose the pokemon with the highest HP% as the best replacement
+            def get_hp_percent(inst: BattleInstance) -> float:
+                return inst.current_hp / inst.max_hp if inst.max_hp > 0 else 0.0
+
+            replacement = max(available_replacements, key=get_hp_percent)
 
         return TurnAction(
             player=player.trainer_id,
@@ -192,9 +185,7 @@ class IAService:
         if ai_level == AI_LEVEL_EASY:
             return self._select_random_move(available_moves)
         else:
-            return self._greedy_hp(
-                available_moves, battle, instances, movements
-            )
+            return self._select_best_first_by_hp(available_moves, battle, instances, movements)
 
     def _select_random_move(self, available_moves: list) -> str:
         """Select a random move (Level 1 - Easy).

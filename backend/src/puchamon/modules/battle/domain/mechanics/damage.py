@@ -137,7 +137,8 @@ def calculate_damage(
         _require_battle_stat(target_instance, defense_stat_key),
         _require_stage(target_instance, defense_stat_key),
     )
-
+    if movement.power is None:
+        raise BattleValidationError(f"Cannot calculate damage for movement '{movement.name}' with null power")
     level_factor = floor((2 * source_instance.level) / 5) + 2
     base_damage = floor((((level_factor * max(1, movement.power) * attack) / defense) / 50) + 2)
 

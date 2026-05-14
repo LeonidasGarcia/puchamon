@@ -6,7 +6,6 @@ from .battle_snapshot_dto import (
     PokemonInstanceSnapshotDTO,
     SideSnapshotDTO,
     StatStagesSnapshotDTO,
-    WeatherSnapshotDTO,
 )
 from .battle_turn_dto import (
     BattleTurnDTO,
@@ -31,5 +30,4 @@ __all__: list[str] = [
     "SideSnapshotDTO",
     "StatStagesSnapshotDTO",
     "TurnActionTargetDTO",
-    "WeatherSnapshotDTO",
 ]

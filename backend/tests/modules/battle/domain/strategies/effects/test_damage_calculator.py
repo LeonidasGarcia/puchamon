@@ -81,7 +81,6 @@ def _build_battle(*, source_instance_id: str, target_instance_id: str) -> Battle
         turn=1,
         status="active",
         phase="resolving_turn",
-        weather=None,
         sides={
             "trainer-1": SideState(hazards=[], active_pokemon_instance_ids=[source_instance_id]),
             "trainer-2": SideState(hazards=[], active_pokemon_instance_ids=[target_instance_id]),
@@ -178,6 +177,7 @@ def test_calculate_damage_applies_stab_and_deterministic_multi_hit() -> None:
         source_instance=source_instance,
         target_instance=target_instance,
         damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+        type_chart={},
     )
     min_damage = calculate_damage(
         movement=movement,
@@ -185,6 +185,7 @@ def test_calculate_damage_applies_stab_and_deterministic_multi_hit() -> None:
         source_instance=source_instance,
         target_instance=target_instance,
         damage_roll_percent=MIN_DAMAGE_ROLL_PERCENT,
+        type_chart={},
     )
 
     assert max_damage == 260
@@ -256,6 +257,7 @@ def test_calculate_damage_respects_target_defense_override() -> None:
         source_instance=source_instance,
         target_instance=target_instance,
         damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+        type_chart={},
     )
     override_damage = calculate_damage(
         movement=movement,
@@ -263,6 +265,7 @@ def test_calculate_damage_respects_target_defense_override() -> None:
         source_instance=source_instance,
         target_instance=target_instance,
         damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+        type_chart={},
     )
 
     assert regular_damage > override_damage
@@ -325,6 +328,7 @@ def test_damage_effect_strategy_uses_calculated_damage_from_instance_stats() -> 
         source_instance=source_instance,
         target_instance=target_instance,
         damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+        type_chart={},
     )
     context = BattleStrategyContext(
         battle=_build_battle(source_instance_id="source-instance", target_instance_id="target-instance"),

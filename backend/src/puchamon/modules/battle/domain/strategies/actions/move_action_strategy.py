@@ -8,7 +8,7 @@ from ...battlefield import get_side_for_trainer, resolve_effect_target_instance_
 from ...entities import BattleInstance
 from ...exceptions import BattleValidationError
 from ...mechanics import calculate_accuracy
-from ...runtime import ActionExecutionInput, BattleStrategyContext
+from ...runtime import ActionExecutionInput, BattleStrategyContext, ConditionEffectExecutionInput
 from ...utils import format_pokemon_name
 from .base import ActionStrategy
 
@@ -24,7 +24,9 @@ def _apply_move_effects(
     source_instance: BattleInstance,
 ) -> None:
     """Apply the resolved move effects in execution order."""
+    blocked_targets = context.transient.get("blocked_targets", set())
     ordered_effects = sorted(execution.move_effects, key=lambda effect: effect.order)
+
     for effect in ordered_effects:
         target_instance_ids = resolve_effect_target_instance_ids(
             battle=context.battle,
@@ -33,13 +35,19 @@ def _apply_move_effects(
             effect=effect,
         )
 
+        # Exclude targets that blocked the move
+        target_instance_ids = [tid for tid in target_instance_ids if tid not in blocked_targets]
+
         if effect.target == "target" and not target_instance_ids:
-            context.add_event(
-                kind="move_failed_no_target",
-                message=f"{movement.name} failed because there was no valid target",
-                source_instance_id=execution.action.user_instance_id,
-                move_id=execution.action.move_id,
-            )
+            # We don't want to emit "no valid target" if it failed specifically because it was blocked
+            # since a "blocked" event was already emitted during validation.
+            if not blocked_targets:
+                context.add_event(
+                    kind="move_failed_no_target",
+                    message=f"{movement.name} failed because there was no valid target",
+                    source_instance_id=execution.action.user_instance_id,
+                    move_id=execution.action.move_id,
+                )
             continue
 
         # Chance Check: Roll for secondary effects (e.g. flinch, burn chance)
@@ -121,10 +129,13 @@ class MoveActionStrategy(ActionStrategy):
             move_id=execution.action.move_id,
         )
 
-        # Accuracy Check (only for moves that target specific pokemons)
+        # Validation Phase: Evaluate validate_move hooks for all targets
+        context.transient["blocked_targets"] = set()
+
+        target_instance_ids = []
         if movement.target in {"target", "all_foes", "all_adjacent"}:
-            # For simplicity, we check against the first resolved target
-            # TODO: Handle multi-target accuracy checks for each target separately
+            # For simplicity, we check against the first resolved target's accuracy later,
+            # but we need to resolve all targets for validation blocks (like Protect).
             target_instance_ids = resolve_effect_target_instance_ids(
                 battle=context.battle,
                 source_instance=source_instance,
@@ -132,8 +143,36 @@ class MoveActionStrategy(ActionStrategy):
                 effect=execution.move_effects[0] if execution.move_effects else None,
             )
 
-            if target_instance_ids:
-                target = context.get_instance(target_instance_ids[0])
+            if execution.conditions and execution.condition_effect_strategy_registry:
+                strategies = execution.condition_effect_strategy_registry.for_hook("validate_move")
+                for target_id in target_instance_ids:
+                    target = context.get_instance(target_id)
+                    active_conditions = target.volatile_status + ([target.status] if target.status else [])
+                    for status_id in active_conditions:
+                        condition = execution.conditions.get(status_id)
+                        if condition:
+                            for effect in condition.effects:
+                                for strategy in strategies:
+                                    if strategy.kind == effect.kind:
+                                        hook_input = ConditionEffectExecutionInput(
+                                            condition=condition,
+                                            effect=effect,
+                                            holder_instance_id=target_id,
+                                            source_instance_id=source_instance.id,
+                                            movement=movement,
+                                        )
+                                        strategy.apply(context, hook_input)
+
+            # Filter out targets that successfully blocked the move
+            valid_target_ids = [tid for tid in target_instance_ids if tid not in context.transient["blocked_targets"]]
+
+            # If targets were found but ALL of them blocked the move, the action ends here
+            if target_instance_ids and not valid_target_ids:
+                return
+
+            if valid_target_ids:
+                # Accuracy Check (only for moves that target specific pokemons)
+                target = context.get_instance(valid_target_ids[0])
                 if not calculate_accuracy(context, movement, source_instance, target):
                     context.add_event(
                         kind="move_missed",

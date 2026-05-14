@@ -39,17 +39,6 @@ class ModifyStatPayload(BaseEmbeddedModel):
     changes: list[StatChange]
 
 
-class SetHazardPayload(BaseEmbeddedModel):
-    hazard_id: str
-    layers: int
-    max_layers: int
-
-
-class RemoveHazardPayload(BaseEmbeddedModel):
-    hazard_ids: list[str]
-    clear_conditions: list[str]
-
-
 class HealPayload(BaseEmbeddedModel):
     ratio: float
 
@@ -62,14 +51,13 @@ class EmptyPayload(BaseEmbeddedModel):
     pass
 
 
+
 class MoveEffect(BaseEntity):
     kind: Literal[
         "damage",
         "apply_major_status",
         "apply_volatile_status",
         "modify_stat",
-        "set_hazard",
-        "remove_hazard",
         "protect",
         "heal_hp",
         "self_switch",
@@ -77,11 +65,11 @@ class MoveEffect(BaseEntity):
         "pain_split",
     ]
 
-    target: Literal["target", "self", "user", "foe_side", "opponent_side", "user_side", "ally_side", "field", "all_sides"]
+    target: Literal["target", "self", "foe_side", "ally_side", "field", "all_sides"]
     chance: int
     order: int
 
-    payload: DamagePayload | StatusPayload | ModifyStatPayload | SetHazardPayload | RemoveHazardPayload | HealPayload | ProtectPayload | EmptyPayload
+    payload: DamagePayload | StatusPayload | ModifyStatPayload | HealPayload | ProtectPayload | EmptyPayload
 
     class Settings:
         """Beanie settings for the Move Effect entity."""

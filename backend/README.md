@@ -7,7 +7,7 @@ Backend del proyecto Puchamon construido con FastAPI. Este servicio expone la ba
 - El backend debe soportar batallas `1v1`, `2v2` y `3v3`.
 - Los modos iniciales son `jugador vs IA` e `IA vs IA`.
 - No hay alcance de juego online ni LAN en esta etapa.
-- El servidor es autoritativo: decide orden, dano, cambios de estado, clima, hazards, debilitamientos y estado final de la batalla.
+- El servidor es autoritativo: decide orden, dano, cambios de estado, debilitamientos y estado final de la batalla.
 - `ability`, `item` y la accion `item` aparecen en el modelo actual, pero no tienen comportamiento funcional en este sprint.
 
 ## Stack
@@ -67,19 +67,13 @@ uv run pytest
 3. Un `switch` consume la accion de ese pokemon en el turno y se resuelve antes que los movimientos.
 4. El motor espera a tener todas las acciones necesarias antes de ejecutar el turno.
 
-### 3. Cambio de pokemon y hazards
+### 3. Cambio de pokemon
 
 1. Si existe una orden de `switch`, entra en una fase de pre-accion con prioridad absoluta.
 2. El pokemon activo se marca para retirarse. En Quinta Generacion, este es el instante exacto en el que el contador de turnos de `sleep` se reinicia a cero.
 3. Antes de completar la salida, el motor debe verificar si el rival eligio `Pursuit`.
-4. Si `Pursuit` intercepta la retirada, se ejecuta inmediatamente antes del cambio con potencia base doblada a `80`.
-5. Si el objetivo cae por la intercepcion de `Pursuit`, el `switch` original se cancela y el reemplazo pasa a ser un ingreso por debilitacion.
-6. Si el cambio continua, en `Battle` se actualiza `activePokemonInstanceIds` para reemplazar el pokemon activo en su mismo slot.
-7. En `BattleInstance`, si el pokemon entrante no ha sido revelado, se cambia `isRevealed` a `true`.
-8. Luego se aplican hazards al entrar en este orden fijo: `Stealth Rock`, `Spikes`, `Toxic Spikes`.
-9. `Stealth Rock` usa `1/8` de los PS maximos multiplicado por la efectividad de tipo roca sobre el objetivo.
-10. `Spikes` solo afecta a objetivos que tocan el suelo y resta `1/8`, `1/6` o `1/4` de los PS maximos segun el numero de capas.
-11. `Toxic Spikes` solo afecta a objetivos que tocan el suelo; con `1` capa aplica `poison`, con `2` capas aplica `toxic`, y un pokemon de tipo veneno elimina las capas al entrar.
+4. Si el cambio continua, en `Battle` se actualiza `activePokemonInstanceIds` para reemplazar el pokemon activo en su mismo slot.
+5. En `BattleInstance`, si el pokemon entrante no ha sido revelado, se cambia `isRevealed` a `true`.
 
 ### 4. Determinacion del orden de accion
 
@@ -114,8 +108,6 @@ Durante la ejecucion se deben persistir las modificaciones sobre:
 - `BattleInstance.revealedMoves`
 - `BattleInstance.fainted`
 - `BattleInstance.isRevealed` cuando corresponda
-- `Battle.weather`
-- `Battle.sides[*].hazards`
 - `Battle.sides[*].activePokemonInstanceIds`
 
 ### 6. Resolucion residual de fin de turno
@@ -124,7 +116,6 @@ Durante la ejecucion se deben persistir las modificaciones sobre:
 2. Luego resuelve `Leech Seed`, drenando `1/8` de los PS maximos del afectado y transfiriendo ese mismo valor al ocupante rival correspondiente.
 3. Despues aplica los ticks de `burn`, `poison` y `toxic` en ese orden logico de residual, respetando la progresion acumulativa de `toxic`.
 4. Una vez cerrada la residual, el motor hace una validacion final de debilitamientos antes de terminar el turno.
-5. Si un reemplazo entra por un debilitamiento de final de turno, sus hazards se resuelven inmediatamente antes de aceptar nuevas acciones del siguiente ciclo.
 
 ### 7. Pokemones debilitados
 

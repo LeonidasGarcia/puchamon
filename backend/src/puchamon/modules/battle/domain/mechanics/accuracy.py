@@ -21,7 +21,7 @@ def calculate_accuracy(
         return True
 
     # 2. Base calculation (Gen 5)
-    # TODO: Add support for accuracy/evasion stages and weather/ability modifiers
+    # TODO: Add support for accuracy/evasion stages
     # For now, we use a simple probability check based on the movement's base accuracy.
 
     # Random roll between 1 and 100

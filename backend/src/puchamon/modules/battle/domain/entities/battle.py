@@ -5,14 +5,7 @@ from typing import Literal
 from .....core.domain.entities import BaseEmbeddedModel, BaseEntity
 
 
-class WeatherState(BaseEmbeddedModel):
-    weather_id: str
-    remaining_turns: int
-    source_move_id: str | None = None
-
-
 class SideState(BaseEmbeddedModel):
-    hazards: list[str]
     active_pokemon_instance_ids: list[str | None]
 
 
@@ -48,7 +41,6 @@ class Battle(BaseEntity):
     turn: int
     status: Literal["active", "finished", "paused"]
     phase: Literal["setup", "awaiting_actions", "resolving_turn", "awaiting_replacements"] | None = None
-    weather: WeatherState | None = None
     sides: dict[str, SideState]
     players: list[Player]
     current_turn_actions: list[TurnAction]

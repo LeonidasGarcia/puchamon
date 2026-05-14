@@ -6,13 +6,13 @@ from bson import ObjectId
 from loguru import logger
 
 from ....agentia.application.services import IAService
-from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type, Weather
+from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 from ...domain.entities import Battle, BattleInstance, Player, TurnAction
+from ...domain.exceptions import BattleValidationError
 from ...domain.registries import (
     build_default_action_strategy_registry,
     build_default_condition_effect_strategy_registry,
     build_default_move_effect_strategy_registry,
-    build_default_weather_effect_strategy_registry,
 )
 from ...domain.runtime.context import BattleStrategyContext
 from ..mappers.battle_snapshot_mapper import to_battle_snapshot_dto
@@ -35,7 +35,6 @@ class BattleService:
             action_registry=build_default_action_strategy_registry(),
             move_effect_registry=build_default_move_effect_strategy_registry(),
             condition_effect_registry=build_default_condition_effect_strategy_registry(),
-            weather_effect_registry=build_default_weather_effect_strategy_registry(),
         )
         self._data_cache: dict[str, Any] = {}
 
@@ -46,13 +45,11 @@ class BattleService:
             conditions = {c.id: c for c in await Condition.find_all().to_list()}
             types = {t.id: t for t in await Type.find_all().to_list()}
             move_effects = {e.id: e for e in await MoveEffect.find_all().to_list()}
-            weathers = {w.id: w for w in await Weather.find_all().to_list()}
             self._data_cache = {
                 "movements": movements,
                 "conditions": conditions,
                 "types": types,
                 "move_effects": move_effects,
-                "weathers": weathers,
             }
         return self._data_cache
 
@@ -160,6 +157,12 @@ class BattleService:
         instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
 
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if needs_replacement:
+                if action.type != "switch":
+                    raise BattleValidationError("Only switch actions are allowed during awaiting_replacements phase")
+
         actions = list(battle.current_turn_actions)
         actions.append(action)
 
@@ -184,12 +187,18 @@ class BattleService:
             actions=actions,
             movements=data["movements"],
             conditions=data["conditions"],
-            weathers=data["weathers"],
             move_effects=data["move_effects"],
             type_chart=data["types"],
         )
 
         battle.current_turn_actions = []
+
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if not needs_replacement:
+                battle.turn += 1
+                battle.phase = "awaiting_actions"
+
         await battle.save()
         for instance in instances.values():
             await instance.save()
@@ -232,16 +241,29 @@ class BattleService:
 
         data = await self._load_pokedex_data()
 
+        needs_replacement = battle.phase == "awaiting_replacements" and any(
+            slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids
+        )
+
         for player in battle.players:
             if player.controller_type == "ai":
-                ai_action = await self._ia_service.generate_action(
-                    player=player,
-                    battle=battle,
-                    instances=instances,
-                    ai_level=player.ai_level or 1,
-                    movements=data["movements"],
-                )
-                actions.append(ai_action)
+                if needs_replacement:
+                    ai_action = await self._ia_service.generate_switch_action(
+                        player=player,
+                        battle=battle,
+                        instances=instances,
+                        ai_level=player.ai_level or 1,
+                    )
+                else:
+                    ai_action = await self._ia_service.generate_action(
+                        player=player,
+                        battle=battle,
+                        instances=instances,
+                        ai_level=player.ai_level or 1,
+                        movements=data["movements"],
+                    )
+                if ai_action:
+                    actions.append(ai_action)
 
         processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
@@ -250,12 +272,18 @@ class BattleService:
             actions=actions,
             movements=data["movements"],
             conditions=data["conditions"],
-            weathers=data["weathers"],
             move_effects=data["move_effects"],
             type_chart=data["types"],
         )
 
         battle.current_turn_actions = []
+
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if not needs_replacement:
+                battle.turn += 1
+                battle.phase = "awaiting_actions"
+
         await battle.save()
         for instance in instances.values():
             await instance.save()
@@ -309,9 +337,7 @@ class BattleService:
             "phase": battle.phase,
             "players": [p.model_dump() for p in battle.players],
             "sides": {k: v.model_dump() for k, v in battle.sides.items()},
-            "pokemon_instances": [
-                to_battle_snapshot_dto(battle, instances_list).model_dump()
-            ],
+            "pokemon_instances": [to_battle_snapshot_dto(battle, instances_list).model_dump()],
             "result": battle.result.model_dump() if battle.result else None,
         }
 

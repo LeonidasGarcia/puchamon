@@ -3,7 +3,7 @@
 from beanie import PydanticObjectId
 
 from ...domain.entities import Battle, BattleInstance
-from ...domain.entities.battle import BattleResult, Player, SideState, WeatherState
+from ...domain.entities.battle import BattleResult, Player, SideState
 from ...domain.entities.battle_instance import MoveState, StatStages
 from ..dto import (
     BattleResultDTO,
@@ -13,7 +13,6 @@ from ..dto import (
     PokemonInstanceSnapshotDTO,
     SideSnapshotDTO,
     StatStagesSnapshotDTO,
-    WeatherSnapshotDTO,
 )
 
 
@@ -22,15 +21,6 @@ def _require_id(entity_id: str | PydanticObjectId | None, entity_name: str) -> s
     if entity_id is None:
         raise ValueError(f"{entity_name} must have an id before mapping to a DTO")
     return str(object=entity_id)
-
-
-def to_weather_snapshot_dto(weather: WeatherState) -> WeatherSnapshotDTO:
-    """Map a battle weather state into a snapshot DTO."""
-    return WeatherSnapshotDTO(
-        weather_id=weather.weather_id,
-        remaining_turns=weather.remaining_turns,
-        source_move_id=weather.source_move_id,
-    )
 
 
 def to_player_snapshot_dto(player: Player) -> PlayerSnapshotDTO:
@@ -45,7 +35,6 @@ def to_player_snapshot_dto(player: Player) -> PlayerSnapshotDTO:
 def to_side_snapshot_dto(side: SideState) -> SideSnapshotDTO:
     """Map a side state into a snapshot DTO."""
     return SideSnapshotDTO(
-        hazards=side.hazards,
         active_pokemon_instance_ids=side.active_pokemon_instance_ids,
     )
 
@@ -107,7 +96,6 @@ def to_battle_snapshot_dto(battle: Battle, battle_instances: list[BattleInstance
         turn=battle.turn,
         status=battle.status,
         phase=battle.phase,
-        weather=to_weather_snapshot_dto(battle.weather) if battle.weather else None,
         players=[to_player_snapshot_dto(player) for player in battle.players],
         sides={trainer_id: to_side_snapshot_dto(side) for trainer_id, side in battle.sides.items()},
         pokemon_instances=[to_pokemon_instance_snapshot_dto(instance) for instance in battle_instances],

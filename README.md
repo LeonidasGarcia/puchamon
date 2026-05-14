@@ -50,8 +50,8 @@ Los datos se cargaran en la base `pokemon_battle_db`.
 10. Ejecutar cada movimiento validando primero si el usuario sigue con PS mayores a `0`.
 11. Si el usuario sigue vivo, resolver impedimentos como `freeze`, `sleep`, `flinch`, `paralysis` y `confusion`; si puede actuar, entonces resolver `accuracy`, dano, criticos, `STAB`, efectividad de tipos y efectos secundarios inmediatos.
 12. Aplicar la residual de fin de turno en este orden: clima, `Leech Seed`, `burn`, `poison` y `toxic`.
-13. Actualizar el estado persistido de la batalla: `currentHp`, `status`, `volatileStatus`, `stages`, `pp`, `revealedMoves`, `fainted`, `weather`, `sides[*].hazards` y `activePokemonInstanceIds`.
-14. Verificar pokemones debilitados. Si un pokemon cae y el entrenador aun tiene reserva, debe elegir uno nuevo; si la muerte ocurre en medio del turno, la cola de acciones restante continua, y si entra al final del turno sus hazards se resuelven antes de aceptar nuevas acciones.
+13. Actualizar el estado persistido de la batalla: `currentHp`, `status`, `volatileStatus`, `stages`, `pp`, `revealedMoves`, `fainted` y `activePokemonInstanceIds`.
+14. Verificar pokemones debilitados. Si un pokemon cae y el entrenador aun tiene reserva, debe elegir uno nuevo; si la muerte ocurre en medio del turno, la cola de acciones restante continua.
 15. Generar un nuevo snapshot de batalla y la lista de acciones efectivamente ejecutadas para el siguiente ciclo.
 
 ### Desglose analitico del turno
@@ -62,17 +62,10 @@ Los datos se cargaran en la base `pokemon_battle_db`.
 2. En este sprint, las acciones validas son `move` y `switch`.
 3. La resolucion del turno solo empieza cuando ya existen todas las decisiones requeridas para los pokemones activos.
 
-#### 2. Fase de cambio y resolucion de hazards
+#### 2. Fase de cambio
 
 1. Si existe una orden de `switch`, esta fase toma prioridad absoluta sobre los movimientos del turno.
 2. Primero se declara la retirada del pokemon activo. En Quinta Generacion, este es el punto en el que el contador de turnos de `sleep` se reinicia a cero.
-3. Antes de completar la salida, el motor verifica si el rival eligio `Pursuit`.
-4. Si `Pursuit` intercepta un cambio, se ejecuta inmediatamente antes de la retirada y usa potencia base doblada a `80`.
-5. Si el pokemon objetivo cae por esa intercepcion, el cambio declarado se cancela y el reemplazo pasa a ser un ingreso por debilitacion.
-6. Si el cambio sigue en pie, el nuevo pokemon entra al campo, se marca `isRevealed = true` cuando corresponda y se actualiza `activePokemonInstanceIds`.
-7. `Stealth Rock` se calcula al entrar usando `1/8` de los PS maximos multiplicado por la efectividad de tipo roca sobre el objetivo.
-8. `Spikes` solo afecta a pokemones que tocan el suelo y resta `1/8`, `1/6` o `1/4` de los PS maximos segun haya `1`, `2` o `3` capas.
-9. `Toxic Spikes` solo afecta a pokemones que tocan el suelo: con `1` capa aplica `poison`, con `2` capas aplica `toxic`, y un pokemon de tipo veneno elimina las capas al entrar.
 
 #### 3. Determinacion del orden de accion
 
@@ -96,7 +89,6 @@ Los datos se cargaran en la base `pokemon_battle_db`.
 2. Luego resuelve `Leech Seed`, drenando `1/8` de los PS maximos y transfiriendo ese mismo valor al ocupante rival correspondiente.
 3. Despues aplica el dano residual de `burn`, `poison` y `toxic`, respetando la progresion de `toxic` turno a turno.
 4. Al final de toda la residual, el motor verifica debilitamientos finales y exige reemplazos si todavia queda banca disponible.
-5. Si un reemplazo entra por un debilitamiento de final de turno, sus hazards se resuelven inmediatamente antes de permitir la siguiente fase de seleccion.
 
 ## Arquitectura de comunicacion
 
