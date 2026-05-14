@@ -252,6 +252,7 @@ class BattleService:
                         player=player,
                         battle=battle,
                         instances=instances,
+                        ai_level=player.ai_level or 1,
                     )
                 else:
                     ai_action = await self._ia_service.generate_action(

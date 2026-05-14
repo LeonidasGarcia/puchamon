@@ -34,7 +34,7 @@ class BadPoisonConditionEffectStrategy(ConditionEffectStrategy):
         context.add_event(
             kind="condition_damage",
             message=f"{format_pokemon_name(instance.pokemon_id)} was hurt by toxic poison!",
-            target_instance_id=instance.id,
+            target_instance_id=str(instance.id),
             condition_id=execution.condition.id,
             value=applied_damage,
         )
