@@ -26,7 +26,6 @@ export default function App() {
     sides,
     myPokemon,
     opponentPokemon,
-    turnHistory,
     trainerId,
     status,
     winnerTrainerId,
@@ -267,7 +266,7 @@ export default function App() {
           className="flex flex-col items-start justify-start overflow-scroll"
           label="Turnos"
         >
-          <TurnLog turns={turnHistory} />
+          <TurnLog />
         </Section>
         {status === 'finished' && playerPhase === 'finished' && (
           <Modal isOpen>

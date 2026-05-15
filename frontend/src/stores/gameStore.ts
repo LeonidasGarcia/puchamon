@@ -109,16 +109,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   enqueueTurn: (turn: BattleTurnDTO) => {
-    const { animationQueue } = get();
+    const { animationQueue, trainerId } = get();
     const newQueue = [...animationQueue, turn];
 
     if (animationQueue.length === 0) {
+      const snapshot = turn.post_turn_snapshot;
+      const newMyPokemon = snapshot.pokemon_instances.filter(
+        (p: PokemonInstanceSnapshot) => p.trainer_id === trainerId,
+      );
+      const newOpponentPokemon = snapshot.pokemon_instances.filter(
+        (p: PokemonInstanceSnapshot) => p.trainer_id !== trainerId,
+      );
+
       set({
-        animationQueue: newQueue,
-        currentTurn: turn,
+        animationQueue: [],
+        currentTurn: null,
         currentEventIndex: 0,
-        playerPhase: 'animating',
+        myPokemon: newMyPokemon,
+        opponentPokemon: newOpponentPokemon,
+        weather: snapshot.weather,
+        sides: snapshot.sides,
+        turnHistory: [...get().turnHistory, turn],
+        status: snapshot.status,
+        winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
       });
+
+      get().calculateNextPhase();
     } else {
       set({ animationQueue: newQueue });
     }
@@ -129,11 +145,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const events = currentTurn?.events ?? [];
     const nextEventIndex = currentEventIndex + 1;
 
+    console.log('[gameStore] onEventComplete called', {
+      currentEventIndex,
+      nextEventIndex,
+      eventsLength: events.length,
+      animationQueueLength: animationQueue.length,
+    });
+
     if (nextEventIndex >= events.length) {
       const remainingQueue = animationQueue.slice(1);
 
+      console.log('[gameStore] Last event of turn', {
+        remainingQueueLength: remainingQueue.length,
+      });
+
       if (remainingQueue.length > 0) {
         const nextTurn = remainingQueue[0];
+        console.log(
+          '[gameStore] Processing next turn from queue:',
+          nextTurn.turn,
+        );
         set({
           animationQueue: remainingQueue,
           currentTurn: nextTurn,
@@ -141,8 +172,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
       } else {
         const committedTurn = currentTurn;
-        if (!committedTurn) return;
+        if (!committedTurn) {
+          console.log('[gameStore] committedTurn is null, returning early');
+          return;
+        }
 
+        console.log(
+          '[gameStore] All events complete, committing turn',
+          committedTurn.turn,
+        );
         const snapshot = committedTurn.post_turn_snapshot;
         const newMyPokemon = snapshot.pokemon_instances.filter(
           (p: PokemonInstanceSnapshot) => p.trainer_id === trainerId,
@@ -150,6 +188,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const newOpponentPokemon = snapshot.pokemon_instances.filter(
           (p: PokemonInstanceSnapshot) => p.trainer_id !== trainerId,
         );
+
+        console.log('[gameStore] Updating turnHistory');
 
         set({
           animationQueue: [],
@@ -164,9 +204,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
         });
 
+        console.log(
+          '[gameStore] turnHistory updated, new length:',
+          get().turnHistory.length,
+        );
+
         get().calculateNextPhase();
       }
     } else {
+      console.log('[gameStore] Advancing to next event:', nextEventIndex);
       set({ currentEventIndex: nextEventIndex });
     }
   },
