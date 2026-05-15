@@ -1,0 +1,6 @@
+"""Battle-wide domain rules and defaults."""
+
+DEFAULT_BATTLE_LEVEL = 100
+DEFAULT_BATTLE_IV = 31
+MIN_DAMAGE_ROLL_PERCENT = 85
+MAX_DAMAGE_ROLL_PERCENT = 100

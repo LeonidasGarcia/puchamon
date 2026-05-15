@@ -1,0 +1,344 @@
+import { create } from 'zustand';
+import {
+  BattleWebSocket,
+  type ConnectionCallbacks,
+} from '../api/battleWebSocket';
+import type {
+  ConnectionRequest,
+  ConnectionResponse,
+  BattleTurnDTO,
+  BattleSnapshot,
+  PokemonInstanceSnapshot,
+  Player,
+  TurnAction,
+  ErrorPayload,
+  BattleTurnEvent,
+} from '../types/schemas/Battle';
+
+interface BattleState {
+  isConnected: boolean;
+  trainerId: string | null;
+  battleId: string | null;
+  battleType: '1v1' | '2v2' | '3v3' | null;
+  currentTurn: number;
+  status: 'active' | 'finished' | 'paused' | null;
+  phase: string | null;
+  players: Player[];
+  weather: BattleSnapshot['weather'];
+  sides: BattleSnapshot['sides'];
+  myPokemon: PokemonInstanceSnapshot[];
+  opponentPokemon: PokemonInstanceSnapshot[];
+  turnHistory: BattleTurnDTO[];
+  isMyTurn: boolean;
+  awaitingSwitch: boolean;
+  availableSwitches: string[];
+  lastError: ErrorPayload | null;
+  _ws: BattleWebSocket | null;
+  isAnimating: boolean;
+  currentEventIndex: number;
+  currentEvents: BattleTurnEvent[];
+  pendingMyPokemon: PokemonInstanceSnapshot[] | null;
+  pendingOpponentPokemon: PokemonInstanceSnapshot[] | null;
+  pendingTurnResults: BattleTurnDTO[];
+  winnerTrainerId: string | null;
+  connect: (request: ConnectionRequest) => void;
+  disconnect: () => void;
+  submitAction: (action: TurnAction) => void;
+  _handleConnectionResponse: (response: ConnectionResponse) => void;
+  _handleTurnResult: (turn: BattleTurnDTO) => void;
+  _handleError: (error: ErrorPayload) => void;
+  _advanceAnimation: () => void;
+}
+
+const _callbacks: ConnectionCallbacks = {
+  onConnectionResponse: () => {},
+  onTurnResult: () => {},
+  onError: () => {},
+};
+
+export const useBattleStore = create<BattleState>((set, get) => ({
+  isConnected: false,
+  trainerId: null,
+  battleId: null,
+  battleType: null,
+  currentTurn: 0,
+  status: null,
+  phase: null,
+  players: [],
+  weather: null,
+  sides: {},
+  myPokemon: [],
+  opponentPokemon: [],
+  turnHistory: [],
+  isMyTurn: false,
+  awaitingSwitch: false,
+  availableSwitches: [],
+  lastError: null,
+  _ws: null,
+  isAnimating: false,
+  currentEventIndex: 0,
+  currentEvents: [],
+  pendingMyPokemon: null,
+  pendingOpponentPokemon: null,
+  pendingTurnResults: [],
+  winnerTrainerId: null,
+
+  connect: (request: ConnectionRequest) => {
+    const ws = new BattleWebSocket();
+
+    _callbacks.onConnectionResponse = (r) => get()._handleConnectionResponse(r);
+    _callbacks.onTurnResult = (t) => get()._handleTurnResult(t);
+    _callbacks.onError = (e) => get()._handleError(e);
+
+    ws.connect(request, _callbacks);
+    set({ _ws: ws });
+  },
+
+  disconnect: () => {
+    get()._ws?.disconnect();
+    set({
+      isConnected: false,
+      trainerId: null,
+      battleId: null,
+      battleType: null,
+      currentTurn: 0,
+      status: null,
+      phase: null,
+      players: [],
+      weather: null,
+      sides: {},
+      myPokemon: [],
+      opponentPokemon: [],
+      turnHistory: [],
+      isMyTurn: false,
+      awaitingSwitch: false,
+      availableSwitches: [],
+      _ws: null,
+      isAnimating: false,
+      currentEventIndex: 0,
+      currentEvents: [],
+      pendingMyPokemon: null,
+      pendingOpponentPokemon: null,
+      pendingTurnResults: [],
+    });
+  },
+
+  submitAction: (action: TurnAction) => {
+    const { trainerId, _ws } = get();
+    if (trainerId && _ws?.isConnected()) {
+      _ws.sendTurnSubmit(trainerId, action);
+      set({ isMyTurn: false });
+    }
+  },
+
+  _handleConnectionResponse: (response: ConnectionResponse) => {
+    const { initial_state } = response;
+    const snapshot = initial_state.post_turn_snapshot;
+    const trainerId = response.trainer_id;
+
+    const myPokemon: PokemonInstanceSnapshot[] = [];
+    const opponentPokemon: PokemonInstanceSnapshot[] = [];
+
+    snapshot.pokemon_instances.forEach((pokemon) => {
+      if (pokemon.trainer_id === trainerId) {
+        myPokemon.push(pokemon);
+      } else {
+        opponentPokemon.push(pokemon);
+      }
+    });
+
+    set({
+      isConnected: true,
+      trainerId: response.trainer_id,
+      battleId: response.battle_id,
+      battleType: response.battle_type,
+      currentTurn: 0,
+      status: snapshot.status,
+      phase: snapshot.phase ?? null,
+      players: snapshot.players,
+      weather: snapshot.weather,
+      sides: snapshot.sides,
+      myPokemon,
+      opponentPokemon,
+      turnHistory: [],
+      isMyTurn: true,
+      awaitingSwitch: false,
+      availableSwitches: [],
+      lastError: null,
+      isAnimating: false,
+      currentEventIndex: 0,
+      currentEvents: [],
+      pendingMyPokemon: null,
+      pendingOpponentPokemon: null,
+      pendingTurnResults: [],
+      winnerTrainerId: null,
+    });
+  },
+
+  _handleTurnResult: (turn: BattleTurnDTO) => {
+    const { trainerId, isAnimating, pendingTurnResults } = get();
+    
+    // Si ya estamos animando, encolar este turno para procesarlo después
+    if (isAnimating) {
+      set({ pendingTurnResults: [...pendingTurnResults, turn] });
+      return;
+    }
+    const snapshot = turn.post_turn_snapshot;
+
+    const newMyPokemon: PokemonInstanceSnapshot[] = [];
+    const newOpponentPokemon: PokemonInstanceSnapshot[] = [];
+
+    snapshot.pokemon_instances.forEach((pokemon) => {
+      if (pokemon.trainer_id === trainerId) {
+        newMyPokemon.push(pokemon);
+      } else {
+        newOpponentPokemon.push(pokemon);
+      }
+    });
+
+    const awaitingSwitch = turn.required_replacements.length > 0;
+    const availableSwitches = awaitingSwitch
+      ? (turn.required_replacements.find((r) => r.trainer_id === trainerId)
+          ?.available_instance_ids ?? [])
+      : [];
+
+    if (turn.events.length === 0) {
+      set({
+        currentTurn: snapshot.turn,
+        status: snapshot.status,
+        phase: snapshot.phase ?? null,
+        weather: snapshot.weather,
+        sides: snapshot.sides,
+        myPokemon: newMyPokemon,
+        opponentPokemon: newOpponentPokemon,
+        turnHistory: [...get().turnHistory, turn],
+        isMyTurn: snapshot.status !== 'finished',
+        awaitingSwitch,
+        availableSwitches,
+        isAnimating: false,
+        currentEventIndex: 0,
+        currentEvents: [],
+        pendingMyPokemon: null,
+        pendingOpponentPokemon: null,
+        winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
+      });
+    } else {
+      set({
+        currentTurn: snapshot.turn,
+        status: snapshot.status,
+        phase: snapshot.phase ?? null,
+        weather: snapshot.weather,
+        sides: snapshot.sides,
+        turnHistory: [...get().turnHistory, turn],
+        isMyTurn: false,
+        awaitingSwitch,
+        availableSwitches,
+        isAnimating: true,
+        currentEventIndex: 0,
+        currentEvents: turn.events,
+        pendingMyPokemon: newMyPokemon,
+        pendingOpponentPokemon: newOpponentPokemon,
+        winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
+      });
+    }
+  },
+
+  _advanceAnimation: () => {
+    const {
+      currentEventIndex,
+      currentEvents,
+      pendingMyPokemon,
+      pendingOpponentPokemon,
+      pendingTurnResults,
+      trainerId,
+    } = get();
+    const nextIndex = currentEventIndex + 1;
+
+    if (nextIndex >= currentEvents.length) {
+      // Hay turnos en cola → procesar siguiente turno
+      if (pendingTurnResults.length > 0) {
+        const nextTurn = pendingTurnResults[0];
+        const newQueue = pendingTurnResults.slice(1);
+        const snapshot = nextTurn.post_turn_snapshot;
+
+        const newMyPokemon: PokemonInstanceSnapshot[] = [];
+        const newOpponentPokemon: PokemonInstanceSnapshot[] = [];
+
+        snapshot.pokemon_instances.forEach((pokemon) => {
+          if (pokemon.trainer_id === trainerId) {
+            newMyPokemon.push(pokemon);
+          } else {
+            newOpponentPokemon.push(pokemon);
+          }
+        });
+
+        const awaitingSwitch = nextTurn.required_replacements.length > 0;
+        const availableSwitches = awaitingSwitch
+          ? (nextTurn.required_replacements.find((r) => r.trainer_id === trainerId)
+              ?.available_instance_ids ?? [])
+          : [];
+
+        if (nextTurn.events.length === 0) {
+          set({
+            currentTurn: snapshot.turn,
+            status: snapshot.status,
+            phase: snapshot.phase ?? null,
+            weather: snapshot.weather,
+            sides: snapshot.sides,
+            myPokemon: newMyPokemon,
+            opponentPokemon: newOpponentPokemon,
+            turnHistory: [...get().turnHistory, nextTurn],
+            isMyTurn: false,
+            awaitingSwitch,
+            availableSwitches,
+            isAnimating: false,
+            currentEventIndex: 0,
+            currentEvents: [],
+            pendingMyPokemon: null,
+            pendingOpponentPokemon: null,
+            pendingTurnResults: newQueue,
+            winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
+          });
+        } else {
+          set({
+            currentTurn: snapshot.turn,
+            status: snapshot.status,
+            phase: snapshot.phase ?? null,
+            weather: snapshot.weather,
+            sides: snapshot.sides,
+            turnHistory: [...get().turnHistory, nextTurn],
+            isMyTurn: false,
+            awaitingSwitch,
+            availableSwitches,
+            isAnimating: true,
+            currentEventIndex: 0,
+            currentEvents: nextTurn.events,
+            pendingMyPokemon: newMyPokemon,
+            pendingOpponentPokemon: newOpponentPokemon,
+            pendingTurnResults: newQueue,
+            winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
+          });
+        }
+        return;
+      }
+
+      // No hay turnos en cola → comportamiento normal
+      set({
+        isAnimating: false,
+        currentEventIndex: 0,
+        currentEvents: [],
+        myPokemon: pendingMyPokemon ?? [],
+        opponentPokemon: pendingOpponentPokemon ?? [],
+        pendingMyPokemon: null,
+        pendingOpponentPokemon: null,
+        isMyTurn: true,
+      });
+    } else {
+      set({ currentEventIndex: nextIndex });
+    }
+  },
+
+  _handleError: (error: ErrorPayload) => {
+    set({ lastError: error });
+  },
+}));

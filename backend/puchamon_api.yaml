@@ -1,0 +1,590 @@
+asyncapi: 3.1.0
+
+info:
+  title: Puchamon Battle API
+  version: 1.0.0s
+  description: |
+    Real-time Pokemon battle API via WebSocket.
+    Single WebSocket connection per client.
+    Supports Player vs AI and AI vs AI modes.
+    Battles are always 1v1 (single active Pokemon per trainer).
+    The battle_type (1v1, 2v2, 3v3) indicates the team size (number of Pokemon in reserve), not active Pokemon count.
+
+    Connection Flow:
+    1. Client connects to /ws
+    2. Client sends connection:request
+    3. Server creates battle, responds with connection:response (including initial state)
+    4. For Human vs AI: client sends turn:submit, server responds with turn:result
+    5. For AI vs AI: server sends all turn:results in burst (no client input needed)
+    6. Battle ends when post_turn_snapshot.status == "finished"
+
+    The server handles all AI logic. Client only sends turn:submit in Human vs AI mode.
+    In AI vs AI mode, the client is a spectator receiving pre-computed turn results.
+
+    WebSocket Close Codes (sent when connection is terminated):
+    - 4001 BATTLE_LIMIT_REACHED: Only one client allowed per server instance
+    - 4002 INVALID_CONNECTION_REQUEST: Missing or invalid fields in connection:request
+    - 4003 BATTLE_CREATION_FAILED: Server error while creating battle
+    - 4004 TRAINER_NOT_FOUND: Trainer ID not found in battle
+    - 4005 INVALID_ACTION: Malformed turn:submit payload
+    - 4006 NOT_YOUR_TURN: Action submitted when not player's turn
+    - 4007 NO_POKEMON_AVAILABLE: No available Pokemon for switch
+
+defaultContentType: application/json
+
+servers:
+  production:
+    host: localhost:8000
+    protocol: ws
+    pathname: /ws
+
+channels:
+  connectionRequest:
+    address: connection:request
+    messages:
+      connectionRequest:
+        $ref: '#/components/messages/connectionRequest'
+
+  connectionResponse:
+    address: connection:response
+    messages:
+      connectionResponse:
+        $ref: '#/components/messages/connectionResponse'
+
+  turnSubmit:
+    address: turn:submit
+    messages:
+      turnSubmit:
+        $ref: '#/components/messages/turnSubmit'
+
+  turnResult:
+    address: turn:result
+    messages:
+      turnResult:
+        $ref: '#/components/messages/turnResult'
+
+  error:
+    address: error
+    messages:
+      error:
+        $ref: '#/components/messages/error'
+
+operations:
+  clientConnectionRequest:
+    action: send
+    channel:
+      $ref: '#/channels/connectionRequest'
+    summary: Client requests connection and battle initialization
+    description: |
+      Sent immediately after WebSocket connection is established.
+      Triggers battle creation with random Pokemon teams.
+    messages:
+      - $ref: '#/channels/connectionRequest/messages/connectionRequest'
+
+  serverConnectionResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/connectionResponse'
+    summary: Server responds with battle initialization data
+    description: |
+      Contains trainer_id, battle_id, and the initial BattleTurnDTO (turn=1).
+      The battle is already started when this message is sent.
+      An AI opponent is automatically created by the server.
+      In AI vs AI mode, subsequent turn:results will follow immediately in burst.
+    messages:
+      - $ref: '#/channels/connectionResponse/messages/connectionResponse'
+
+  clientTurnSubmit:
+    action: send
+    channel:
+      $ref: '#/channels/turnSubmit'
+    summary: Client submits a turn action
+    description: |
+      Action can be a move or a forced switch (after a Pokemon fainted).
+      This operation is ONLY used in Human vs AI mode. In AI vs AI mode, the server
+      computes all turns automatically and sends them via serverTurnResult - no client
+      action is required or accepted.
+      The client must wait for turn:result before sending another turn:submit.
+    messages:
+      - $ref: '#/channels/turnSubmit/messages/turnSubmit'
+
+  serverTurnResult:
+    action: receive
+    channel:
+      $ref: '#/channels/turnResult'
+    summary: Server sends turn result
+    description: |
+      Contains the complete BattleTurnDTO with declared actions, executed actions,
+      events, and the post-turn snapshot. If battle is finished, status will be "finished".
+
+      In Human vs AI: sent after each turn.
+      In AI vs AI: sent in rapid burst for all turns until battle ends.
+      The client is responsible for timing/animation playback.
+    messages:
+      - $ref: '#/channels/turnResult/messages/turnResult'
+
+  serverError:
+    action: receive
+    channel:
+      $ref: '#/channels/error'
+    summary: Error notification from server
+    messages:
+      - $ref: '#/channels/error/messages/error'
+
+components:
+  schemas:
+    ConnectionRequest:
+      type: object
+      additionalProperties: false
+      description: Initial message from client to establish connection and start battle
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Trainer name
+        controller_type:
+          type: string
+          enum: [human, ai]
+          description: 'human: player controls the battle, ai: spectator mode (AI vs AI)'
+        battle_type:
+          type: string
+          enum: ['1v1', '2v2', '3v3']
+          description: Number of Pokemon per player
+        difficulty:
+          type: integer
+          enum: [1, 2, 3]
+          description: AI difficulty level (1=easy, 2=medium, 3=hard). Only used when controller_type is human.
+          default: 1
+      required: [name, controller_type, battle_type]
+
+    ConnectionResponse:
+      type: object
+      additionalProperties: false
+      description: Server response after battle initialization
+      properties:
+        trainer_id:
+          type: string
+          description: Unique identifier for this trainer (UUID)
+        battle_id:
+          type: string
+          description: Unique identifier for the battle (UUID)
+        battle_type:
+          type: string
+          enum: ['1v1', '2v2', '3v3']
+          description: Team composition. '2v2' means each trainer has 2 Pokemon total (1 active + 1 reserve), '3v3' means 3 Pokemon total (1 active + 2 reserve).
+        team_size:
+          type: integer
+          description: Number of Pokemon per team (same as battle_type first digit). 1v1=1, 2v2=2, 3v3=3.
+        initial_state:
+          $ref: '#/components/schemas/BattleTurnDTO'
+      required: [trainer_id, battle_id, battle_type, team_size, initial_state]
+
+    BattleTurnDTO:
+      type: object
+      additionalProperties: false
+      description: Complete state of a battle turn
+      properties:
+        battle_id:
+          type: string
+        turn:
+          type: integer
+        declared_actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeclaredTurnAction'
+        executed_actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutedTurnAction'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/BattleTurnEvent'
+        fainted_instance_ids:
+          type: array
+          items:
+            type: string
+        required_replacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForcedReplacement'
+        post_turn_snapshot:
+          $ref: '#/components/schemas/BattleSnapshot'
+      required:
+        [
+          battle_id,
+          turn,
+          declared_actions,
+          executed_actions,
+          events,
+          fainted_instance_ids,
+          required_replacements,
+          post_turn_snapshot,
+        ]
+
+    DeclaredTurnAction:
+      type: object
+      additionalProperties: false
+      properties:
+        trainer_id:
+          type: string
+        action_type:
+          type: string
+          enum: [move, switch]
+        user_instance_id:
+          type: string
+        move_id:
+          type: string
+          nullable: true
+        target:
+          $ref: '#/components/schemas/TurnActionTarget'
+      required: [trainer_id, action_type, user_instance_id]
+
+    ExecutedTurnAction:
+      type: object
+      additionalProperties: false
+      properties:
+        order:
+          type: integer
+        trainer_id:
+          type: string
+        action_type:
+          type: string
+          enum: [move, switch]
+        user_instance_id:
+          type: string
+        move_id:
+          type: string
+          nullable: true
+        target:
+          $ref: '#/components/schemas/TurnActionTarget'
+          nullable: true
+        hit:
+          type: boolean
+          nullable: true
+        skipped_reason:
+          type: string
+          nullable: true
+        revealed_move:
+          type: boolean
+      required: [order, trainer_id, action_type, user_instance_id]
+
+    BattleTurnEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        order:
+          type: integer
+        kind:
+          type: string
+          description: 'Event type: move, damage, pokemon_fainted, switch, battle_finished, etc.'
+        source_instance_id:
+          type: string
+          nullable: true
+        target_instance_id:
+          type: string
+          nullable: true
+        move_id:
+          type: string
+          nullable: true
+        value:
+          type: integer
+          nullable: true
+        status_id:
+          type: string
+          nullable: true
+        message:
+          type: string
+      required: [order, kind, message]
+
+    TurnActionTarget:
+      type: object
+      additionalProperties: false
+      properties:
+        scope:
+          type: string
+          enum: [target, self, all, field, ally_party]
+        target_side:
+          type: string
+          enum: [ally_side, foe_side]
+          nullable: true
+        target_active_slot:
+          type: integer
+          nullable: true
+
+    ForcedReplacement:
+      type: object
+      additionalProperties: false
+      properties:
+        trainer_id:
+          type: string
+        active_slot:
+          type: integer
+        fainted_instance_id:
+          type: string
+        available_instance_ids:
+          type: array
+          items:
+            type: string
+      required:
+        [trainer_id, active_slot, fainted_instance_id, available_instance_ids]
+
+    BattleSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        battle_id:
+          type: string
+        battle_type:
+          type: string
+          enum: ['1v1', '2v2', '3v3']
+        turn:
+          type: integer
+        status:
+          type: string
+          enum: [active, finished, paused]
+        phase:
+          type: string
+          nullable: true
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        sides:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SideState'
+        pokemon_instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/PokemonInstanceSnapshot'
+        result:
+          $ref: '#/components/schemas/BattleResult'
+          nullable: true
+      required:
+        [
+          battle_id,
+          battle_type,
+          turn,
+          status,
+          players,
+          sides,
+          pokemon_instances,
+        ]
+    Player:
+      type: object
+      additionalProperties: false
+      properties:
+        trainer_id:
+          type: string
+        name:
+          type: string
+        controller_type:
+          type: string
+          enum: [human, ai]
+        ai_level:
+          type: integer
+          enum: [1, 2, 3]
+          nullable: true
+          description: AI difficulty level. Only applies when controller_type is "ai", null otherwise.
+      required: [trainer_id, name, controller_type]
+
+    SideState:
+      type: object
+      additionalProperties: false
+      description: State of one side of the battlefield. Always contains exactly one active Pokemon.
+      properties:
+        active_pokemon_instance_ids:
+          type: array
+          description: |
+            List of active Pokemon instance IDs. Always exactly 1 element (1v1 battle format).
+            The string value is the instance_id of the active Pokemon, or null if no Pokemon is active in that slot.
+          items:
+            type: string
+            nullable: true
+          minItems: 1
+          maxItems: 1
+      required: [active_pokemon_instance_ids]
+
+    PokemonInstanceSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        instance_id:
+          type: string
+        trainer_id:
+          type: string
+        team_slot:
+          type: integer
+        pokemon_id:
+          type: string
+        level:
+          type: integer
+        current_hp:
+          type: integer
+        max_hp:
+          type: integer
+        status:
+          type: string
+          nullable: true
+        volatile_status:
+          type: array
+          items:
+            type: string
+        stages:
+          $ref: '#/components/schemas/StatStages'
+        move_state:
+          type: array
+          items:
+            $ref: '#/components/schemas/MoveStateSnapshot'
+        fainted:
+          type: boolean
+        is_revealed:
+          type: boolean
+        revealed_moves:
+          type: array
+          items:
+            type: string
+      required:
+        [
+          instance_id,
+          trainer_id,
+          team_slot,
+          pokemon_id,
+          level,
+          current_hp,
+          max_hp,
+          stages,
+          move_state,
+          fainted,
+          is_revealed,
+        ]
+
+    StatStages:
+      type: object
+      additionalProperties: false
+      properties:
+        atk:
+          type: integer
+        def:
+          type: integer
+        spa:
+          type: integer
+        spd:
+          type: integer
+        spe:
+          type: integer
+        acc:
+          type: integer
+        eva:
+          type: integer
+
+    MoveStateSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        move_id:
+          type: string
+        current_pp:
+          type: integer
+      required: [move_id, current_pp]
+
+    BattleResult:
+      type: object
+      additionalProperties: false
+      properties:
+        winner_trainer_id:
+          type: string
+        reason:
+          type: string
+          enum: [knockout, forfeit, time]
+      required: [winner_trainer_id, reason]
+
+    TurnSubmit:
+      type: object
+      additionalProperties: false
+      description: Client submits a turn action
+      properties:
+        trainer_id:
+          type: string
+          description: ID of the trainer submitting the action
+        action:
+          $ref: '#/components/schemas/TurnAction'
+      required: [trainer_id, action]
+
+    TurnAction:
+      type: object
+      additionalProperties: false
+      description: Represents a player's chosen action for the turn
+      properties:
+        type:
+          type: string
+          enum: [move, switch]
+        user_instance_id:
+          type: string
+          description: The Pokemon instance performing the action
+        move_id:
+          type: string
+          nullable: true
+          description: Required for move actions
+        target:
+          $ref: '#/components/schemas/TurnActionTarget'
+          nullable: true
+        replacement_instance_id:
+          type: string
+          nullable: true
+          description: Required for switch actions (the Pokemon to switch in)
+      required: [type, user_instance_id]
+
+    ErrorPayload:
+      type: object
+      additionalProperties: false
+      description: Error notification sent via WebSocket or in error channel
+      properties:
+        code:
+          type: string
+          enum:
+            - BATTLE_LIMIT_REACHED
+            - INVALID_CONNECTION_REQUEST
+            - BATTLE_CREATION_FAILED
+            - TRAINER_NOT_FOUND
+            - INVALID_ACTION
+            - NOT_YOUR_TURN
+            - NO_POKEMON_AVAILABLE
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error description
+      required: [code, message]
+
+  messages:
+    connectionRequest:
+      name: connectionRequest
+      title: Connection Request
+      payload:
+        $ref: '#/components/schemas/ConnectionRequest'
+
+    connectionResponse:
+      name: connectionResponse
+      title: Connection Response
+      payload:
+        $ref: '#/components/schemas/ConnectionResponse'
+
+    turnSubmit:
+      name: turnSubmit
+      title: Turn Submit
+      payload:
+        $ref: '#/components/schemas/TurnSubmit'
+
+    turnResult:
+      name: turnResult
+      title: Turn Result
+      payload:
+        $ref: '#/components/schemas/BattleTurnDTO'
+
+    error:
+      name: error
+      title: Error
+      payload:
+        $ref: '#/components/schemas/ErrorPayload'

@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "tamasfe.even-better-toml",
+    "usernamehw.errorlens",
+    "astral-sh.ty",
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    
+  ],
+  "unwantedRecommendations": [
+    "ms-pyright.pyright",
+    "ms-python.flake8",
+    "ms-python.black-formatter",
+    "meta.pyrefly",
+  ]
+}
