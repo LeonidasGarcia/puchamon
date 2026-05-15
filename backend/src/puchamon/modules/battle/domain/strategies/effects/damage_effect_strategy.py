@@ -1,5 +1,6 @@
 """Strategy for `damage` move effects."""
 
+from loguru import logger
 from .....pokedex.domain.entities.effects import DamagePayload
 from ...exceptions import BattleValidationError
 from ...mechanics import calculate_damage, faint_instance, resolve_damage_hit_count, resolve_damage_roll_percent
@@ -76,6 +77,10 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
 
             applied_damage = min(target_instance.current_hp, total_damage)
             target_instance.current_hp -= applied_damage
+
+            logger.debug(
+                f"[DAMAGE] {target_instance.pokemon_id} recibió {applied_damage} daño (HP: {target_instance.current_hp + applied_damage} -> {target_instance.current_hp}, roll: {damage_roll_percent})"
+            )
 
             context.add_event(
                 kind="damage",
