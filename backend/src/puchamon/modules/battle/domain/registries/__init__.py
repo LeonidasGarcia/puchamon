@@ -20,6 +20,7 @@ from ..strategies.effects import (
     ApplyMajorStatusEffectStrategy,
     ApplyVolatileStatusEffectStrategy,
     DamageEffectStrategy,
+    HealHpEffectStrategy,
     ModifyStatEffectStrategy,
     MoveEffectStrategy,
     ProtectEffectStrategy,
@@ -84,6 +85,7 @@ def build_default_move_effect_strategy_registry() -> MoveEffectStrategyRegistry:
             DamageEffectStrategy(),
             ApplyMajorStatusEffectStrategy(),
             ApplyVolatileStatusEffectStrategy(),
+            HealHpEffectStrategy(),
             ModifyStatEffectStrategy(),
             ProtectEffectStrategy(),
         ]
