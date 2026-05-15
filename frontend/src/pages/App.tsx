@@ -199,8 +199,7 @@ export default function App() {
               const moveData = POKE_DATA.moves.find(
                 (m) => m._id === move.move_id,
               );
-              const isDisabled =
-                move.current_pp === 0 || !canAct;
+              const isDisabled = move.current_pp === 0 || !canAct;
               return (
                 <PokemonMovement
                   key={move.move_id}

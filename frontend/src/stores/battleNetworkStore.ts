@@ -56,6 +56,9 @@ export const useBattleNetworkStore = create<BattleNetworkState>((set, get) => ({
   lastError: null,
 
   connect: (request: ConnectionRequest) => {
+    if (get()._ws) return;
+
+    console.log('Conectadose a la batalla con:', request);
     const ws = new BattleWebSocket();
 
     _callbacks.onConnectionResponse = (r) => get()._handleConnectionResponse(r);
@@ -76,6 +79,7 @@ export const useBattleNetworkStore = create<BattleNetworkState>((set, get) => ({
       lastError: null,
     });
     useGameStore.getState().reset();
+    console.log('Disconnected from battle');
   },
 
   sendAction: (action: TurnAction) => {

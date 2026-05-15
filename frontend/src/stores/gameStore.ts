@@ -72,62 +72,13 @@ interface GameState {
  * All state changes flow through these explicit actions.
  */
 interface GameActions {
-  /**
-   * Initializes the game state from a `connection:response` message.
-   * Called once when the WebSocket connection is established and the battle is created.
-   *
-   * @param data - Initial battle state from the server.
-   */
   initialize: (data: InitializeData) => void;
-
-  /**
-   * Resets all game state to empty defaults.
-   * Called on WebSocket disconnect or when leaving a battle.
-   */
   reset: () => void;
 
-  /**
-   * Processes a new turn result from the server (`turn:result`).
-   *
-   * In sequence mode (turnQueue empty + playerPhase is can_act/awaiting_switch):
-   *   - Adds the turn directly to turnHistory (turn is being animated)
-   *   - turnQueue remains empty
-   *
-   * In burst mode (turnQueue has elements or playerPhase is animating):
-   *   - Adds the turn to turnQueue (waiting in line)
-   *   - turnHistory not modified until finalizeTurnAnimation processes the queue
-   *
-   * Always sets playerPhase to 'animating' to block user input.
-   *
-   * @param turn - The BattleTurnDTO received from the server.
-   */
   addTurn: (turn: BattleTurnDTO) => void;
 
-  /**
-   * Applies the effect of a single event to the game state by consulting
-   * the last turn in turnHistory (the one currently being animated).
-   * The post_turn_snapshot from that turn contains the final state after this event.
-   *
-   * After applying the event-specific changes, always synchronizes move_state (PP)
-   * and revealed_moves from the snapshot for all pokemon.
-   *
-   * @param event - The BattleTurnEvent whose kind determines which fields to update.
-   */
   applyEventKind: (event: BattleTurnEvent) => void;
 
-  /**
-   * Finalizes the current turn animation.
-   *
-   * If turnQueue has more turns after removing the front one:
-   *   - Adds the next turn to turnHistory
-   *   - Keeps playerPhase as 'animating'
-   *
-   * If turnQueue becomes empty after removing the front one:
-   *   - Adds the next turn to turnHistory
-   *   - Sets playerPhase to 'can_act' or 'awaiting_switch' based on replacements
-   *
-   * Does nothing if status is 'finished'.
-   */
   finalizeTurnAnimation: () => void;
 }
 

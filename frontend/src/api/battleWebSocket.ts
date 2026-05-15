@@ -33,6 +33,8 @@ export class BattleWebSocket {
     this.ws.onmessage = (event) => {
       const message: WSMessage = JSON.parse(event.data);
 
+      console.log(`[WS] Received: ${message.address}`, message.payload);
+
       switch (message.address) {
         case 'connection:response':
           this.callbacks?.onConnectionResponse(message.payload);
@@ -72,7 +74,13 @@ export class BattleWebSocket {
   }
 
   disconnect(): void {
-    this.ws?.close();
+    if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onerror = null;
+      this.ws.onclose = null;
+      this.ws.close();
+    }
     this.ws = null;
     this.callbacks = null;
   }
