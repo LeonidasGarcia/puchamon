@@ -61,10 +61,12 @@ class TurnResolutionService:
 
         # 2. Phase: Determine Order
         ordered_actions = self._sort_actions(context, actions, movements, conditions)
-        logger.debug(f"Ordered actions: {len(ordered_actions)}")
+        logger.debug(
+            f"[SORT] Ordered actions: {[(a.user_instance_id, movements.get(a.move_id).name if movements.get(a.move_id) else a.move_id) for a in ordered_actions]}"
+        )
 
         # 3. Phase: Execution (Moves)
-        self._execute_actions(context, ordered_actions, movements, move_effects)
+        self._execute_actions(context, ordered_actions, movements, move_effects, conditions)
         logger.debug(f"Events after execution: {len(context.events)}")
 
         # 4. Phase: End of Turn (Residuals: Status conditions like Burn/Poison)
@@ -106,6 +108,9 @@ class TurnResolutionService:
 
             instance = context.get_instance(action.user_instance_id)
             if not instance.stats:
+                logger.debug(
+                    f"[SORT] {instance.pokemon_id} used {movement.name if movement else action.move_id}: priority={priority}, speed=0 (no stats)"
+                )
                 return (priority, 0, random.random())
 
             base_speed = instance.stats.spe
@@ -134,6 +139,9 @@ class TurnResolutionService:
                     except Exception:
                         pass  # Ignore if not registered or pending
 
+            logger.debug(
+                f"[SORT] {instance.pokemon_id} used {movement.name if movement else action.move_id}: priority={priority}, speed={effective_speed}"
+            )
             return (priority, effective_speed, random.random())
 
         return sorted(move_actions, key=get_action_priority_and_speed, reverse=True)
@@ -144,6 +152,7 @@ class TurnResolutionService:
         actions: list[TurnAction],
         movements: dict[str, "Movement"],
         move_effects: dict[str, "MoveEffect"],
+        conditions: dict[str, "Condition"],
     ) -> None:
         """Iterate over ordered actions and execute them.
 
@@ -172,11 +181,17 @@ class TurnResolutionService:
                 continue
 
             resolved_effects = [move_effects[eid] for eid in movement.effect_ids if eid in move_effects]
-            logger.debug(f"Executing {movement.name} with {len(resolved_effects)} effects")
+            logger.debug(f"[MOVE] {instance.pokemon_id} usado {movement.name} (power={movement.power}, accuracy={movement.accuracy})")
+            logger.debug(f"[MOVE] {movement.name} tiene {len(resolved_effects)} efectos: {[e.kind for e in resolved_effects]}")
 
             strategy = self._action_registry.get("move")
             execution = ActionExecutionInput(
-                action=action, movement=movement, move_effects=resolved_effects, move_effect_strategy_registry=self._move_effect_registry
+                action=action,
+                movement=movement,
+                move_effects=resolved_effects,
+                move_effect_strategy_registry=self._move_effect_registry,
+                condition_effect_strategy_registry=self._condition_effect_registry,
+                conditions=conditions,
             )
 
             # This triggers all validations (PP, target accuracy, damage calculation, etc.)
@@ -208,6 +223,23 @@ class TurnResolutionService:
                     execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=instance.id)
                     strategy.apply(context, execution)
 
+    def _cleanup_volatile_statuses(self, context: BattleStrategyContext) -> None:
+        """Remove volatile statuses that expire at end of turn (e.g. protect)."""
+        volatile_statuses_to_expire = {"protect"}
+        for instance in context.battle_instances.values():
+            if instance.fainted or instance.current_hp <= 0:
+                continue
+            expired = [vs for vs in instance.volatile_status if vs in volatile_statuses_to_expire]
+            if expired:
+                for status in expired:
+                    instance.volatile_status.remove(status)
+                context.add_event(
+                    kind="volatile_status_expired",
+                    message=f"{instance.pokemon_id}'s {', '.join(expired)} wore off!",
+                    target_instance_id=instance.id,
+                    volatile_status=expired,
+                )
+
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
         """Increment the turn counter, update durations, and check for victory."""
         # 1. Check if replacements are needed first
@@ -217,11 +249,14 @@ class TurnResolutionService:
                 needs_replacement = True
                 break
 
-        # 2. Only increment turn if no replacements are pending
+        # 2. Cleanup volatile statuses that expire at end of turn
+        self._cleanup_volatile_statuses(context)
+
+        # 3. Only increment turn if no replacements are pending
         if not needs_replacement:
             context.battle.turn += 1
 
-        # 3. Check for Win Conditions
+        # 4. Check for Win Conditions
         # A trainer loses if all their pokemon are fainted (not just active ones).
         # However, for the scope of this resolution step, we check if anyone has NO pokemon left.
         # The logic for "replacements" will be handled by the phase transition.
