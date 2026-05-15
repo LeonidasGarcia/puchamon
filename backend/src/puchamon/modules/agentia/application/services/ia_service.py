@@ -185,7 +185,7 @@ class IAService:
         if ai_level == AI_LEVEL_EASY:
             return self._select_random_move(available_moves)
         else:
-            return self._select_best_first_by_hp(available_moves, battle, instances, movements)
+            return self._greedy_hp(available_moves, battle, instances, movements)
 
     def _select_random_move(self, available_moves: list) -> str:
         """Select a random move (Level 1 - Easy).
