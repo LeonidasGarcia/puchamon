@@ -208,6 +208,23 @@ class TurnResolutionService:
                     execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=instance.id)
                     strategy.apply(context, execution)
 
+    def _cleanup_volatile_statuses(self, context: BattleStrategyContext) -> None:
+        """Remove volatile statuses that expire at end of turn (e.g. protect)."""
+        volatile_statuses_to_expire = {"protect"}
+        for instance in context.battle_instances.values():
+            if instance.fainted or instance.current_hp <= 0:
+                continue
+            expired = [vs for vs in instance.volatile_status if vs in volatile_statuses_to_expire]
+            if expired:
+                for status in expired:
+                    instance.volatile_status.remove(status)
+                context.add_event(
+                    kind="volatile_status_expired",
+                    message=f"{instance.pokemon_id}'s {', '.join(expired)} wore off!",
+                    target_instance_id=instance.id,
+                    volatile_status=expired,
+                )
+
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
         """Increment the turn counter, update durations, and check for victory."""
         # 1. Check if replacements are needed first
@@ -217,11 +234,14 @@ class TurnResolutionService:
                 needs_replacement = True
                 break
 
-        # 2. Only increment turn if no replacements are pending
+        # 2. Cleanup volatile statuses that expire at end of turn
+        self._cleanup_volatile_statuses(context)
+
+        # 3. Only increment turn if no replacements are pending
         if not needs_replacement:
             context.battle.turn += 1
 
-        # 3. Check for Win Conditions
+        # 4. Check for Win Conditions
         # A trainer loses if all their pokemon are fainted (not just active ones).
         # However, for the scope of this resolution step, we check if anyone has NO pokemon left.
         # The logic for "replacements" will be handled by the phase transition.

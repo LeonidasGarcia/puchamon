@@ -1,13 +1,13 @@
 """Strategy for executing move actions."""
 
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .....pokedex.domain.entities import Movement
 from ...battlefield import get_side_for_trainer, resolve_effect_target_instance_ids
 from ...entities import BattleInstance
 from ...exceptions import BattleValidationError
-from ...mechanics import calculate_accuracy
+from ...mechanics import calculate_accuracy, resolve_damage_roll_percent
 from ...runtime import ActionExecutionInput, BattleStrategyContext, ConditionEffectExecutionInput
 from ...utils import format_pokemon_name
 from .base import ActionStrategy
@@ -22,10 +22,15 @@ def _apply_move_effects(
     move_effect_strategy_registry: "MoveEffectStrategyRegistry",
     movement: Movement,
     source_instance: BattleInstance,
+    damage_roll_percent: int | None = None,
 ) -> None:
     """Apply the resolved move effects in execution order."""
     blocked_targets = context.transient.get("blocked_targets", set())
     ordered_effects = sorted(execution.move_effects, key=lambda effect: effect.order)
+
+    effect_metadata: dict[str, Any] = {}
+    if damage_roll_percent is not None:
+        effect_metadata["damage_roll_percent"] = damage_roll_percent
 
     for effect in ordered_effects:
         target_instance_ids = resolve_effect_target_instance_ids(
@@ -59,7 +64,7 @@ def _apply_move_effects(
         effect_strategy = move_effect_strategy_registry.get(effect.kind)
         effect_strategy.apply(
             context,
-            execution.build_move_effect_execution(effect=effect, target_instance_ids=target_instance_ids),
+            execution.build_move_effect_execution(effect=effect, target_instance_ids=target_instance_ids, metadata=effect_metadata),
         )
 
 
@@ -182,4 +187,11 @@ class MoveActionStrategy(ActionStrategy):
                     )
                     return
 
-        _apply_move_effects(context, execution, move_effect_strategy_registry, movement, source_instance)
+        _apply_move_effects(
+            context,
+            execution,
+            move_effect_strategy_registry,
+            movement,
+            source_instance,
+            damage_roll_percent=resolve_damage_roll_percent(),
+        )
