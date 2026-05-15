@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './api/queryClient';
 import Lobby from './pages/Lobby';
 import App from './pages/App';
+import Playground from './pages/Playground';
 
 function Layout() {
   return (
@@ -11,6 +12,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<Lobby />} />
           <Route path="/battle" element={<App />} />
+          <Route path="/playground" element={<Playground />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

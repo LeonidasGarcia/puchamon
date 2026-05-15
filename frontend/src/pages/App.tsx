@@ -56,7 +56,6 @@ export default function App() {
   const isVictory = winnerTrainerId === trainerId;
 
   const canAct = playerPhase === 'can_act' || playerPhase === 'awaiting_switch';
-  const isAnimating = playerPhase === 'animating';
 
   const navigate = useNavigate();
 
@@ -201,7 +200,7 @@ export default function App() {
                 (m) => m._id === move.move_id,
               );
               const isDisabled =
-                move.current_pp === 0 || !canAct || isAnimating;
+                move.current_pp === 0 || !canAct;
               return (
                 <PokemonMovement
                   key={move.move_id}
@@ -231,8 +230,7 @@ export default function App() {
                   disabled={
                     pokemon.fainted ||
                     pokemon.instance_id === myActiveInstanceId ||
-                    !canAct ||
-                    isAnimating
+                    !canAct
                   }
                 />
               ))}

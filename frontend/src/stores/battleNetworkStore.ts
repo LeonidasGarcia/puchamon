@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { BattleWebSocket, type ConnectionCallbacks } from '../api/battleWebSocket';
+import {
+  BattleWebSocket,
+  type ConnectionCallbacks,
+} from '../api/battleWebSocket';
 import { useGameStore } from './gameStore';
 import type {
   ConnectionRequest,
@@ -87,15 +90,18 @@ export const useBattleNetworkStore = create<BattleNetworkState>((set, get) => ({
     const snapshot = initial_state.post_turn_snapshot;
     const trainerId = response.trainer_id;
 
-    const controllerType = snapshot.players.find(
-      (p: Player) => p.trainer_id === trainerId,
-    )?.controller_type ?? 'ai';
+    const controllerType =
+      snapshot.players.find((p: Player) => p.trainer_id === trainerId)
+        ?.controller_type ?? 'ai';
 
     useGameStore.getState().initialize({
       controllerType,
       trainerId,
       myPokemon: extractMyPokemon(snapshot.pokemon_instances, trainerId),
-      opponentPokemon: extractOpponentPokemon(snapshot.pokemon_instances, trainerId),
+      opponentPokemon: extractOpponentPokemon(
+        snapshot.pokemon_instances,
+        trainerId,
+      ),
       weather: snapshot.weather,
       sides: snapshot.sides,
       status: snapshot.status,
@@ -110,7 +116,7 @@ export const useBattleNetworkStore = create<BattleNetworkState>((set, get) => ({
   },
 
   _handleTurnResult: (turn: BattleTurnDTO) => {
-    useGameStore.getState().enqueueTurn(turn);
+    useGameStore.getState().addTurn(turn);
   },
 
   _handleError: (error: ErrorPayload) => {

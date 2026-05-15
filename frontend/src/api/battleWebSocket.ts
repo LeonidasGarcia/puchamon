@@ -37,9 +37,11 @@ export class BattleWebSocket {
         case 'connection:response':
           this.callbacks?.onConnectionResponse(message.payload);
           break;
-        case 'turn:result':
+        case 'turn:result': {
           this.callbacks?.onTurnResult(message.payload);
           break;
+        }
+
         case 'error':
           this.callbacks?.onError(message.payload);
           break;
