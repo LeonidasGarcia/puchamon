@@ -5,7 +5,6 @@ from typing import Any, Literal
 from bson import ObjectId
 from loguru import logger
 
-from ....agentia.application.services.ia_service import IAService
 from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 from ...domain.entities import Battle, BattleInstance, Player, TurnAction
 from ...domain.exceptions import BattleValidationError
@@ -31,7 +30,6 @@ class BattleService:
     """
 
     def __init__(self) -> None:
-        self._ia_service = IAService()
         self._turn_service = TurnResolutionService(
             action_registry=build_default_action_strategy_registry(),
             move_effect_registry=build_default_move_effect_strategy_registry(),
@@ -39,7 +37,7 @@ class BattleService:
         )
         self._data_cache: dict[str, Any] = {}
 
-    async def _load_pokedex_data(self) -> dict[str, Any]:
+    async def get_pokedex_data(self) -> dict[str, Any]:
         """Load and cache Pokédex data needed for turn resolution."""
         if not self._data_cache:
             movements = {m.id: m for m in await Movement.find_all().to_list()}
@@ -106,7 +104,7 @@ class BattleService:
 
         team_size = int(battle_type[0])
 
-        data = await self._load_pokedex_data()
+        data = await self.get_pokedex_data()
 
         battle, instances = await BattleSetupService.create_battle(
             battle_type=battle_type,
@@ -123,21 +121,16 @@ class BattleService:
         logger.info(f"Battle {battle.id} created with {len(instances)} instances")
         return battle, instances
 
-    async def submit_action(
+    async def execute_turn(
         self,
         battle_id: str,
-        trainer_id: str,
-        action: TurnAction,
+        actions: list[TurnAction],
     ) -> dict[str, Any] | None:
-        """Process a single turn when a player submits an action.
-
-        If the player is AI, generates their action automatically.
-        Resolves the turn and returns a BattleTurnDTO with all events.
+        """Process a full turn with the provided actions.
 
         Args:
             battle_id: ID of the battle.
-            trainer_id: ID of the trainer submitting the action.
-            action: The TurnAction submitted by the player.
+            actions: List of TurnActions for this turn.
 
         Returns:
             A dict containing battle_id, turn, and the BattleTurnDTO.
@@ -151,78 +144,81 @@ class BattleService:
         if battle.status == "finished":
             return await self.get_battle_snapshot(battle_id)
 
-        trainer_ids = [p.trainer_id for p in battle.players]
-        if trainer_id not in trainer_ids:
-            raise ValueError(f"Trainer {trainer_id} not in battle")
+        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
+        instances = {str(inst.id): inst for inst in instances_list}
+
+        processed_turn = battle.turn
+
+        # Ensure pokedex data is cached
+        await self.get_pokedex_data()
+
+        context = self._resolve_turn(battle, instances, actions)
+        self._clear_turn_actions(battle)
+
+        logger.info(f"[EXECUTE_TURN] phase={battle.phase}, turn={battle.turn}")
+
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if not needs_replacement:
+                battle.turn += 1
+                battle.phase = "awaiting_actions"
+                logger.info(f"[EXECUTE_TURN] All replacements done, advancing to phase={battle.phase}, turn={battle.turn}")
+        elif battle.status == "active":
+            battle.turn += 1
+            logger.info(f"[EXECUTE_TURN] Normal turn, advancing to turn={battle.turn}")
+
+        await battle.save()
+        for instance in instances.values():
+            await instance.save()
+
+        return self._build_turn_result(battle_id, processed_turn, actions, context)
+
+    async def execute_replacements(
+        self,
+        battle_id: str,
+        actions: list[TurnAction],
+    ) -> dict[str, Any] | None:
+        """Process replacement actions mid-turn or end-turn.
+
+        Args:
+            battle_id: ID of the battle.
+            actions: List of switch TurnActions.
+
+        Returns:
+            A dict containing battle_id, turn, and the BattleTurnDTO.
+        """
+        battle = await Battle.get(battle_id)
+        if not battle:
+            return None
+
+        if battle.status == "finished":
+            return await self.get_battle_snapshot(battle_id)
 
         instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
 
-        self._validate_action_for_phase(battle, action)
-        actions = await self._collect_actions(battle, trainer_id, action, instances)
-        processed_turn = battle.turn
-        context = self._resolve_turn(battle, instances, actions)
-        self._clear_turn_actions(battle)
-
-        await self._handle_post_turn_logic(battle, instances, actions, context)
-
-        return self._build_turn_result(battle_id, processed_turn, actions, context)
-
-    def _validate_action_for_phase(self, battle: Battle, action: TurnAction) -> None:
-        """Validate that the action type is allowed in the current phase."""
-        if battle.phase == "awaiting_replacements":
-            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
-            if needs_replacement and action.type != "switch":
+        for action in actions:
+            if action.type != "switch":
                 raise BattleValidationError("Only switch actions are allowed during awaiting_replacements phase")
 
-    async def _collect_actions(
-        self,
-        battle: Battle,
-        trainer_id: str,
-        action: TurnAction,
-        instances: dict[str, BattleInstance],
-    ) -> list[TurnAction]:
-        """Collect all actions for this turn, including AI-generated actions."""
-        actions = list(battle.current_turn_actions)
-        actions.append(action)
+        context = BattleStrategyContext(battle=battle, battle_instances=instances)
 
-        data = await self._load_pokedex_data()
+        for action in actions:
+            switch_strategy = self._turn_service._action_registry.get("switch")
+            execution = ActionExecutionInput(action=action, replacement_instance_id=action.replacement_instance_id)
+            switch_strategy.execute(context, execution)
 
-        for player in battle.players:
-            if player.trainer_id == trainer_id:
-                continue
-            if player.controller_type == "ai":
-                if ai_action := await self._generate_ai_action(
-                    player, battle, instances, data
-                ):
-                    actions.append(ai_action)
+        needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+        if not needs_replacement:
+            battle.turn += 1
+            battle.phase = "awaiting_actions"
+            logger.info(f"[EXECUTE_REPLACEMENTS] All replacements done, advancing to phase={battle.phase}, turn={battle.turn}")
 
-        return actions
+        await battle.save()
+        for instance in instances.values():
+            await instance.save()
 
-    async def _generate_ai_action(
-        self,
-        player: Player,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-        data: dict[str, Any],
-    ) -> TurnAction | None:
-        """Generate an action for an AI player."""
-        logger.info(f"[SUBMIT_ACTION] AI player '{player.trainer_id}', phase={battle.phase}")
-        if battle.phase == "awaiting_replacements":
-            logger.info(f"[SUBMIT_ACTION] Forcing switch for AI player '{player.trainer_id}'")
-            return await self._ia_service.generate_switch_action(
-                player=player,
-                battle=battle,
-                instances=instances,
-                ai_level=player.ai_level or 1,
-            )
-        return await self._ia_service.generate_action(
-            player=player,
-            battle=battle,
-            instances=instances,
-            ai_level=player.ai_level or 1,
-            movements=data["movements"],
-        )
+        return self._build_turn_result(battle_id, battle.turn, actions, context)
 
     def _resolve_turn(
         self,
@@ -246,71 +242,6 @@ class BattleService:
         """Clear the current turn actions buffer."""
         battle.current_turn_actions = []
 
-    async def _handle_post_turn_logic(
-        self,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-        actions: list[TurnAction],
-        context: BattleStrategyContext,
-    ) -> None:
-        """Handle post-turn logic: AI replacements and turn advancement."""
-        logger.info(f"[SUBMIT_ACTION] phase={battle.phase}, turn={battle.turn}")
-        logger.info("[SUBMIT_ACTION] Sides state: {k: v.active_pokemon_instance_ids for k, v in battle.sides.items()}")
-
-        if battle.phase == "awaiting_replacements":
-            await self._process_ai_replacements(battle, instances, actions, context)
-            self._try_advance_phase(battle)
-        elif battle.status == "active":
-            battle.turn += 1
-            logger.info(f"[SUBMIT_ACTION] Normal turn, advancing to turn={battle.turn}")
-
-        await battle.save()
-        for instance in instances.values():
-            await instance.save()
-
-    async def _process_ai_replacements(
-        self,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-        actions: list[TurnAction],
-        context: BattleStrategyContext,
-    ) -> None:
-        """Process AI Pokemon replacements during awaiting_replacements phase."""
-        for player in battle.players:
-            if player.controller_type != "ai":
-                continue
-            ai_side = battle.sides.get(player.trainer_id)
-            if not ai_side or all(
-                slot is not None for slot in ai_side.active_pokemon_instance_ids
-            ):
-                continue
-
-            logger.info(f"[SUBMIT_ACTION] Generating AI switch for {player.trainer_id}")
-            ai_switch = await self._ia_service.generate_switch_action(
-                player=player,
-                battle=battle,
-                instances=instances,
-                ai_level=player.ai_level or 1,
-            )
-            if ai_switch:
-                actions.append(ai_switch)
-                logger.info(f"[SUBMIT_ACTION] AI switch generated: replacement={ai_switch.replacement_instance_id}")
-                self._execute_ai_switch(context, ai_switch)
-
-    def _execute_ai_switch(self, context: BattleStrategyContext, ai_switch: TurnAction) -> None:
-        """Execute a single AI switch action."""
-        switch_strategy = self._turn_service._action_registry.get("switch")
-        execution = ActionExecutionInput(action=ai_switch, replacement_instance_id=ai_switch.replacement_instance_id)
-        switch_strategy.execute(context, execution)
-
-    def _try_advance_phase(self, battle: Battle) -> None:
-        """If no more replacements needed, advance phase and turn."""
-        needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
-        if not needs_replacement:
-            battle.turn += 1
-            battle.phase = "awaiting_actions"
-            logger.info(f"[SUBMIT_ACTION] All replacements done, advancing to phase={battle.phase}, turn={battle.turn}")
-
     def _build_turn_result(
         self,
         battle_id: str,
@@ -332,68 +263,6 @@ class BattleService:
             "turn": processed_turn,
             "turn_data": turn_dto,
         }
-
-    async def process_ai_turn(self, battle_id: str) -> dict[str, Any]:
-        """Process a turn where all players are AI.
-
-        Generates actions for all players and resolves the turn.
-
-        Args:
-            battle_id: ID of the battle.
-
-        Returns:
-            A dict containing battle_id, turn, and the BattleTurnDTO.
-        """
-        battle = await Battle.get(battle_id)
-        if not battle:
-            raise ValueError(f"Battle {battle_id} not found")
-
-        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
-        instances = {str(inst.id): inst for inst in instances_list}
-
-        actions = await self._collect_ai_actions(battle, instances)
-        processed_turn = battle.turn
-        context = self._resolve_turn(battle, instances, actions)
-        self._clear_turn_actions(battle)
-
-        await self._handle_post_ai_turn_logic(battle, instances, actions, context)
-
-        return self._build_turn_result(battle_id, processed_turn, actions, context)
-
-    async def _collect_ai_actions(
-        self,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-    ) -> list[TurnAction]:
-        """Collect all AI actions for a full AI turn."""
-        actions = list(battle.current_turn_actions)
-        data = await self._load_pokedex_data()
-
-        for player in battle.players:
-            if player.controller_type == "ai":
-                ai_action = await self._generate_ai_action(player, battle, instances, data)
-                if ai_action:
-                    actions.append(ai_action)
-
-        return actions
-
-    async def _handle_post_ai_turn_logic(
-        self,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-        actions: list[TurnAction],
-        context: BattleStrategyContext,
-    ) -> None:
-        """Handle post-turn logic for AI-only battles."""
-        if battle.phase == "awaiting_replacements":
-            await self._process_ai_replacements(battle, instances, actions, context)
-            self._try_advance_phase(battle)
-        elif battle.status == "active":
-            battle.turn += 1
-
-        await battle.save()
-        for instance in instances.values():
-            await instance.save()
 
     def _sort_actions_for_dto(
         self,
@@ -435,3 +304,4 @@ class BattleService:
             "pokemon_instances": [to_battle_snapshot_dto(battle, instances_list).model_dump()],
             "result": battle.result.model_dump() if battle.result else None,
         }
+

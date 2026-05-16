@@ -8,7 +8,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from ..domain.entities.battle import TargetScope
 from ..domain.entities.battle import TurnAction as DomainTurnAction
-from .dependencies import get_battle_execution_service, get_battle_service
+from .dependencies import get_battle_coordinator_service, get_battle_service
 from .schemas import ConnectionRequest, TurnSubmit
 
 router = APIRouter(tags=["Battle"])
@@ -63,8 +63,8 @@ async def _run_ai_vs_ai_loop(ws: WebSocket, state: ConnectionState) -> None:
     if not state.battle_id:
         return
 
-    execution_service = get_battle_execution_service()
-    results = await execution_service.run_ai_vs_ai_loop(state.battle_id)
+    coordinator = get_battle_coordinator_service()
+    results = await coordinator.run_ai_vs_ai_loop(state.battle_id)
 
     for result in results:
         await _send_json(
@@ -80,7 +80,7 @@ async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit, state: Connect
     if state.controller_type != "human" or not state.battle_id:
         return
 
-    service = get_battle_service()
+    coordinator = get_battle_coordinator_service()
 
     target = TargetScope(**payload.action.target.model_dump()) if payload.action.target else None
 
@@ -93,31 +93,29 @@ async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit, state: Connect
         replacement_instance_id=payload.action.replacement_instance_id,
     )
 
-    result = await service.submit_action(
+    results = await coordinator.submit_human_action(
         battle_id=state.battle_id,
         trainer_id=payload.trainer_id,
         action=domain_action,
     )
 
-    if result is None:
-        return
-
-    if turn_data := result.get("turn_data"):
-        await _send_json(
-            ws,
-            {
-                "address": "turn:result",
-                "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
-            },
-        )
-    else:
-        await _send_json(
-            ws,
-            {
-                "address": "turn:result",
-                "payload": result,
-            },
-        )
+    for result in results:
+        if turn_data := result.get("turn_data"):
+            await _send_json(
+                ws,
+                {
+                    "address": "turn:result",
+                    "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
+                },
+            )
+        else:
+            await _send_json(
+                ws,
+                {
+                    "address": "turn:result",
+                    "payload": result,
+                },
+            )
 
 
 @router.websocket("/ws")
