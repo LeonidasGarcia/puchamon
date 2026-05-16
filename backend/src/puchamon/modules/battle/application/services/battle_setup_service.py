@@ -11,6 +11,8 @@ from ....pokedex.domain.entities import Movement, Moveset, Pokemon
 from ...domain import build_battle_stats
 from ...domain.entities import Battle, BattleInstance, MoveState, Player, SideState, StatStages
 from ...domain.rules import DEFAULT_BATTLE_LEVEL
+from ..dto.battle_turn_dto import BattleTurnDTO
+from ..mappers.battle_snapshot_mapper import to_battle_snapshot_dto
 
 MAX_RETRIES_PER_POKEMON = 3
 MAX_TOTAL_ATTEMPTS = 30
@@ -142,6 +144,21 @@ class BattleSetupService:
             return True
 
         return True
+
+    @classmethod
+    async def get_initial_state_dto(cls, battle: Battle, instances: list[BattleInstance]) -> "BattleTurnDTO":
+        """Create the initial state DTO for a newly created battle."""
+        snapshot = to_battle_snapshot_dto(battle, instances)
+        return BattleTurnDTO(
+            battle_id=str(battle.id),
+            turn=battle.turn,
+            declared_actions=[],
+            executed_actions=[],
+            events=[],
+            fainted_instance_ids=[],
+            required_replacements=[],
+            post_turn_snapshot=snapshot,
+        )
 
     @classmethod
     def _filter_valid_moves(

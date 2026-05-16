@@ -1,6 +1,7 @@
 """Dependency injection for battle API."""
 
 from ...agentia.application.services.ia_service import IAService
+from ...agentia.application.services.battle_execution_service import BattleExecutionService
 from ..application.services.battle_service import BattleService
 
 
@@ -24,3 +25,14 @@ def get_ia_service() -> IAService:
         IAService: A new instance of the IA service.
     """
     return IAService()
+
+
+def get_battle_execution_service() -> BattleExecutionService:
+    """Provide a BattleExecutionService instance for AI battles.
+
+    Wires up the required BattleService and IAService.
+    """
+    return BattleExecutionService(
+        battle_service=get_battle_service(),
+        ia_service=get_ia_service(),
+    )

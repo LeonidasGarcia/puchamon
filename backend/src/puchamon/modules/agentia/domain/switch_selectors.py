@@ -3,6 +3,8 @@
 import random
 from abc import ABC, abstractmethod
 
+from loguru import logger
+
 from ...battle.domain.entities import Battle, BattleInstance
 
 
@@ -50,18 +52,23 @@ class RandomSwitchSelector(SwitchSelector):
         """
         side = battle.sides.get(trainer_id)
         if not side:
+            logger.warning(f"[RandomSwitchSelector] No side found for trainer {trainer_id}")
             return None
 
         active_ids: set[str] = {uid for uid in side.active_pokemon_instance_ids if uid is not None}
+        logger.info(f"[RandomSwitchSelector] Active IDs: {active_ids}")
 
         available_replacements: list[BattleInstance] = [
             inst for inst in instances.values() if inst.trainer_id == trainer_id and not inst.fainted and inst.id not in active_ids
         ]
+        logger.info(f"[RandomSwitchSelector] Found {len(available_replacements)} available replacements for trainer {trainer_id}")
 
         if not available_replacements:
+            logger.warning(f"[RandomSwitchSelector] No available replacements for trainer {trainer_id}")
             return None
 
         replacement: BattleInstance = random.choice(available_replacements)
+        logger.info(f"[RandomSwitchSelector] Selected replacement: {replacement.id} ({replacement.pokemon_id})")
         return str(replacement.id)
 
 

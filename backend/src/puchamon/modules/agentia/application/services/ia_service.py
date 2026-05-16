@@ -1,6 +1,9 @@
 """Service for handling IA-related logic."""
 
+from dataclasses import dataclass
 from typing import Literal
+
+from loguru import logger
 
 from ....battle.domain.entities import (
     Battle,
@@ -15,6 +18,15 @@ from ...domain.switch_selectors import BestHPSwitchSelector, RandomSwitchSelecto
 AIDifficultyLevel = Literal[1, 2]
 AI_LEVEL_EASY = 1
 AI_LEVEL_MEDIUM = 2
+
+
+@dataclass
+class AIMoveContext:
+    """Context data required for AI move selection."""
+
+    battle: Battle | None = None
+    instances: dict[str, BattleInstance] | None = None
+    movements: dict | None = None
 
 
 class IAService:
@@ -62,7 +74,7 @@ class IAService:
             if switch_action:
                 return switch_action
 
-        move_action = await self.generate_move_action(player, active_instance, ai_level, battle, instances, movements)
+        move_action = await self.generate_move_action(player, active_instance, ai_level, AIMoveContext(battle, instances, movements))
         if move_action:
             return move_action
 
@@ -76,10 +88,8 @@ class IAService:
         self,
         player: Player,
         active_instance: BattleInstance,
-        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        battle: Battle | None = None,
-        instances: dict[str, BattleInstance] | None = None,
-        movements: dict | None = None,
+        ai_level: AIDifficultyLevel,
+        context: AIMoveContext,
     ) -> TurnAction | None:
         """Generate a move action for the AI.
 
@@ -87,9 +97,7 @@ class IAService:
             player: The AI player entity.
             active_instance: The active BattleInstance.
             ai_level: AI difficulty level (1=easy, 2=medium).
-            battle: The current battle state (needed for medium AI).
-            instances: Dict of battle instances (needed for medium AI).
-            movements: Dict of Movement entities keyed by ID.
+            context: Context for move selection (battle state, instances, movements).
 
         Returns:
             A TurnAction with type="move" or None if no moves available.
@@ -100,10 +108,10 @@ class IAService:
             return None
 
         selector: MoveSelector
-        if ai_level == AI_LEVEL_EASY or not battle or not instances:
+        if ai_level == AI_LEVEL_EASY or not context.battle or not context.instances:
             selector = RandomMoveSelector()
         else:
-            selector = GreedyHPMoveSelector(battle, instances, movements)
+            selector = GreedyHPMoveSelector(context.battle, context.instances, context.movements)
         move_id = selector.select(available_moves)
 
         if move_id is None:
@@ -140,7 +148,9 @@ class IAService:
             A TurnAction with type="switch" or None if no replacements available.
         """
         side = battle.sides.get(player.trainer_id)
+        logger.info(f"[IA_SWITCH] Player '{player.trainer_id}' (AI level {ai_level}) requesting switch. Phase={battle.phase}")
         if not side:
+            logger.warning(f"[IA_SWITCH] No side found for player {player.trainer_id}")
             return None
 
         selector: SwitchSelector
@@ -150,13 +160,14 @@ class IAService:
             selector = BestHPSwitchSelector()
 
         replacement_id = selector.select(battle, instances, player.trainer_id)
+        logger.info(f"[IA_SWITCH] Selector {selector.__class__.__name__} returned: {replacement_id}")
 
         if replacement_id is None:
+            logger.warning(f"[IA_SWITCH] No replacement available for {player.trainer_id}")
             return None
 
-        active_ids = {
-            uid for uid in side.active_pokemon_instance_ids if uid is not None
-        }
+        active_ids = {uid for uid in side.active_pokemon_instance_ids if uid is not None}
+        logger.info(f"[IA_SWITCH] Active IDs: {active_ids}")
 
         return TurnAction(
             player=player.trainer_id,

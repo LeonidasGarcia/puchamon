@@ -46,7 +46,7 @@ def create() -> FastAPI:
     app.add_exception_handler(exc_class_or_status_code=AppError, handler=app_error_handler)  # ty:ignore[invalid-argument-type]
     app.add_exception_handler(exc_class_or_status_code=StarletteHTTPException, handler=http_exception_handler)  # ty:ignore[invalid-argument-type]
     app.add_exception_handler(exc_class_or_status_code=RequestValidationError, handler=validation_exception_handler)  # ty:ignore[invalid-argument-type]
-    app.add_exception_handler(exc_class_or_status_code=Exception, handler=global_exception_handler)
+    app.add_exception_handler(exc_class_or_status_code=Exception, handler=global_exception_handler)  # ty:ignore[invalid-argument-type]
 
     @app.get(path="/")
     def home():
