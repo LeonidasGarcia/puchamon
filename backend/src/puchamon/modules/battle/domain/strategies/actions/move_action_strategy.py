@@ -21,20 +21,13 @@ def _apply_move_effects(
     source_instance: BattleInstance,
     damage_roll_percent: int | None = None,
 ) -> None:
-    """Apply the resolved move effects in execution order."""
-    blocked_targets = context.transient.get("blocked_targets", set())
-    ordered_effects = sorted(execution.move_effects, key=lambda effect: effect.order)
-
     move_effect_strategy_registry = execution.move_effect_strategy_registry
-    movement = execution.movement
-    if move_effect_strategy_registry is None or movement is None:
-        return
+    if not move_effect_strategy_registry:
+        raise BattleValidationError("Cannot apply move effects without a registered strategy dispatcher")
 
-    effect_metadata: dict[str, Any] = {}
-    if damage_roll_percent is not None:
-        effect_metadata["damage_roll_percent"] = damage_roll_percent
+    effect_metadata = {"damage_roll_percent": damage_roll_percent}
 
-    for effect in ordered_effects:
+    for index, effect in enumerate(execution.move_effects):
         target_instance_ids = resolve_effect_target_instance_ids(
             battle=context.battle,
             source_instance=source_instance,
@@ -42,16 +35,14 @@ def _apply_move_effects(
             effect=effect,
         )
 
-        # Exclude targets that blocked the move
+        blocked_targets: set[str] = context.transient.get("blocked_targets", set())
         target_instance_ids = [tid for tid in target_instance_ids if tid not in blocked_targets]
 
-        if effect.target == "target" and not target_instance_ids:
-            # We don't want to emit "no valid target" if it failed specifically because it was blocked
-            # since a "blocked" event was already emitted during validation.
-            if not blocked_targets:
+        if not target_instance_ids:
+            if not blocked_targets and index == 0:
                 context.add_event(
                     kind="move_failed_no_target",
-                    message=f"{movement.name} failed because there was no valid target",
+                    message=f"{execution.movement.name} failed because there was no valid target",
                     source_instance_id=execution.action.user_instance_id,
                     move_id=execution.action.move_id,
                 )
@@ -93,15 +84,15 @@ class MoveActionStrategy(ActionStrategy):
             raise BattleValidationError("Move actions require a move_id")
 
         source_instance = context.get_instance(execution.action.user_instance_id)
+        if source_instance.fainted or source_instance.current_hp <= 0:
+            return None, None, None
+
         if execution.action.player != source_instance.trainer_id:
             raise BattleValidationError("Move actions must be declared by the trainer that owns the source instance")
 
         source_side = get_side_for_trainer(context.battle, source_instance.trainer_id)
         if execution.action.user_instance_id not in source_side.active_pokemon_instance_ids:
             raise BattleValidationError("Only active pokemon can execute move actions")
-
-        if source_instance.fainted or source_instance.current_hp <= 0:
-            raise BattleValidationError("A fainted pokemon cannot execute a move action")
 
         skip_reason = context.get_action_block_reason(execution.action.user_instance_id)
         if skip_reason is not None:

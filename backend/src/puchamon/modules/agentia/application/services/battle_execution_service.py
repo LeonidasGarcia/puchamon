@@ -1,15 +1,16 @@
 """Service for executing AI vs AI battles."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ....battle.application.services.battle_service import BattleService
+if TYPE_CHECKING:
+    from ....battle.application.services.battle_service import BattleService
 from .ia_service import IAService
 
 
 class BattleExecutionService:
     """Service for running AI vs AI battle loops."""
 
-    def __init__(self, battle_service: BattleService, ia_service: IAService):
+    def __init__(self, battle_service: "BattleService", ia_service: IAService):
         self._battle_service = battle_service
         self._ia_service = ia_service
 
@@ -34,7 +35,7 @@ class BattleExecutionService:
             results.append(result)
 
             battle = await self._battle_service.get_battle(battle_id)
-            if not battle or battle.status == "finished" or battle.phase == "awaiting_replacements":
+            if not battle or battle.status == "finished":
                 break
 
         return results
