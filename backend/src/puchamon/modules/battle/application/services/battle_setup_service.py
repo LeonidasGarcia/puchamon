@@ -45,69 +45,11 @@ class BattleSetupService:
             move_effects = {}
 
         for player in players:
-            trainer_instances: list[BattleInstance] = []
-            total_attempts = 0
-
-            while len(trainer_instances) < team_size and total_attempts < MAX_TOTAL_ATTEMPTS:
-                total_attempts += 1
-
-                raw_movesets = await Moveset.aggregate([{"$sample": {"size": 1}}]).to_list(1)
-                if not raw_movesets:
-                    continue
-
-                moveset = Moveset(**raw_movesets[0])
-                valid_moves = cls._filter_valid_moves(moveset.moves, movements, move_effects)
-
-                if not valid_moves:
-                    continue
-
-                pokemon = await Pokemon.get(moveset.pokemon_id)
-                if not pokemon:
-                    continue
-
-                stats = build_battle_stats(pokemon=pokemon, moveset=moveset, level=DEFAULT_BATTLE_LEVEL)
-
-                move_state: list[MoveState] = [
-                    MoveState(move_id=move_id, current_pp=movements.get(move_id).pp if movements.get(move_id) else 15) for move_id in valid_moves
-                ]
-
-                instance = BattleInstance(
-                    id=str(ObjectId()),
-                    battle_id=battle_id,
-                    trainer_id=player.trainer_id,
-                    slot=len(trainer_instances),
-                    pokemon_id=str(pokemon.id),
-                    moveset_id=str(moveset.id),
-                    types=pokemon.types,
-                    level=DEFAULT_BATTLE_LEVEL,
-                    stats=stats,
-                    current_hp=stats.hp,
-                    max_hp=stats.hp,
-                    ability=moveset.ability,
-                    item=moveset.item,
-                    status=None,
-                    volatile_status=[],
-                    stages=StatStages(),
-                    move_state=move_state,
-                    fainted=False,
-                    is_revealed=False,
-                    revealed_moves=[],
-                )
-                trainer_instances.append(instance)
-
-            if len(trainer_instances) < team_size:
-                raise RuntimeError(f"Could not find valid pokemon for team after {MAX_TOTAL_ATTEMPTS} attempts")
-
-            instances.extend(trainer_instances)
-
-            active_ids: list[str | None] = [str(trainer_instances[0].id)]
-
+            player_instances, active_ids = await cls._create_player_team(
+                battle_id, player, team_size, movements, move_effects
+            )
+            instances.extend(player_instances)
             sides[player.trainer_id] = SideState(active_pokemon_instance_ids=active_ids)
-
-            for active_id in active_ids:
-                if active_id:
-                    active_instance = next(i for i in trainer_instances if str(i.id) == active_id)
-                    active_instance.is_revealed = True
 
         battle = Battle(
             id=battle_id,
@@ -121,6 +63,90 @@ class BattleSetupService:
         )
 
         return battle, instances
+
+    @classmethod
+    async def _create_player_team(
+        cls,
+        battle_id: str,
+        player: Player,
+        team_size: int,
+        movements: dict[str, "Movement"],
+        move_effects: dict[str, "MoveEffect"],
+    ) -> tuple[list[BattleInstance], list[str | None]]:
+        trainer_instances: list[BattleInstance] = []
+        total_attempts = 0
+
+        while len(trainer_instances) < team_size and total_attempts < MAX_TOTAL_ATTEMPTS:
+            total_attempts += 1
+            instance = await cls._generate_random_pokemon(
+                battle_id, player.trainer_id, len(trainer_instances), movements, move_effects
+            )
+            if instance:
+                trainer_instances.append(instance)
+
+        if len(trainer_instances) < team_size:
+            raise RuntimeError(f"Could not find valid pokemon for team after {MAX_TOTAL_ATTEMPTS} attempts")
+
+        active_ids: list[str | None] = [str(trainer_instances[0].id)]
+
+        for active_id in active_ids:
+            if active_id:
+                active_instance = next(i for i in trainer_instances if str(i.id) == active_id)
+                active_instance.is_revealed = True
+
+        return trainer_instances, active_ids
+
+    @classmethod
+    async def _generate_random_pokemon(
+        cls,
+        battle_id: str,
+        trainer_id: str,
+        slot: int,
+        movements: dict[str, "Movement"],
+        move_effects: dict[str, "MoveEffect"],
+    ) -> BattleInstance | None:
+        raw_movesets = await Moveset.aggregate([{"$sample": {"size": 1}}]).to_list(1)
+        if not raw_movesets:
+            return None
+
+        moveset = Moveset(**raw_movesets[0])
+        valid_moves = cls._filter_valid_moves(moveset.moves, movements, move_effects)
+
+        if not valid_moves:
+            return None
+
+        pokemon = await Pokemon.get(moveset.pokemon_id)
+        if not pokemon:
+            return None
+
+        stats = build_battle_stats(pokemon=pokemon, moveset=moveset, level=DEFAULT_BATTLE_LEVEL)
+
+        move_state: list[MoveState] = [
+            MoveState(move_id=move_id, current_pp=movements.get(move_id).pp if movements.get(move_id) else 15) for move_id in valid_moves
+        ]
+
+        return BattleInstance(
+            id=str(ObjectId()),
+            battle_id=battle_id,
+            trainer_id=trainer_id,
+            slot=slot,
+            pokemon_id=str(pokemon.id),
+            moveset_id=str(moveset.id),
+            types=pokemon.types,
+            level=DEFAULT_BATTLE_LEVEL,
+            stats=stats,
+            current_hp=stats.hp,
+            max_hp=stats.hp,
+            ability=moveset.ability,
+            item=moveset.item,
+            status=None,
+            volatile_status=[],
+            stages=StatStages(),
+            move_state=move_state,
+            fainted=False,
+            is_revealed=False,
+            revealed_moves=[],
+        )
 
     @classmethod
     def _is_move_implemented(
