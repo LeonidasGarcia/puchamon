@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BattleScenario from '../components/battle/BattleScenario';
 import LoadingScreen from '../components/LoadingScreen';
 import TurnLog from '../components/battle/TurnLog';
-import { useBattleStore } from '../stores/battleStore';
+import { useBattleNetworkStore } from '../stores/battleNetworkStore';
+import { useGameStore } from '../stores/gameStore';
 import { useConnectionStore } from '../stores/connectionStore';
 import usePokemonSpritesQuery from '../hooks/usePokemonSpritesQuery';
 import PokemonSwitch from '../components/cards/PokemonSwitch';
@@ -17,34 +18,22 @@ import type { HazardColorsKeys } from '../types/colors/HazardColors';
 import type { TypeColorsKeys } from '../types/colors/TypeColors';
 
 export default function App() {
+  const { isConnected, lastError, connect, disconnect, sendAction } =
+    useBattleNetworkStore();
+
   const {
-    isConnected,
-    isMyTurn,
-    isAnimating,
-    currentEventIndex,
-    currentEvents,
-    lastError,
     weather,
     sides,
-    players,
     myPokemon,
     opponentPokemon,
-    pendingMyPokemon,
-    pendingOpponentPokemon,
-    turnHistory,
     trainerId,
     status,
     winnerTrainerId,
-    connect,
-    disconnect,
-    submitAction,
-    _advanceAnimation,
-  } = useBattleStore();
+    playerPhase,
+  } = useGameStore();
 
-  const myName =
-    players.find((p) => p.controller_type === 'human')?.name ?? 'Mi equipo';
-  const opponentName =
-    players.find((p) => p.controller_type === 'ai')?.name ?? 'Equipo rival';
+  const myName = 'Mi equipo';
+  const opponentName = 'Equipo rival';
 
   const myActiveInstanceId =
     sides[trainerId ?? '']?.active_pokemon_instance_ids?.[0];
@@ -57,28 +46,22 @@ export default function App() {
     (p) => p.instance_id === activeOpponentInstanceId,
   );
 
-  const displayedOpponentPokemon = isAnimating
-    ? (activeOpponentPokemon ?? pendingOpponentPokemon?.find((p) => p.fainted))
-    : (activeOpponentPokemon ?? opponentPokemon.find((p) => p.fainted));
-
-  const displayedPlayerPokemon = isAnimating
-    ? (activePokemon ?? pendingMyPokemon?.find((p) => p.fainted))
-    : (activePokemon ?? myPokemon.find((p) => p.fainted));
-
   const isOpponentFainted =
-    displayedOpponentPokemon?.fainted &&
-    displayedOpponentPokemon?.instance_id !== activeOpponentInstanceId;
+    activeOpponentPokemon?.fainted &&
+    activeOpponentPokemon?.instance_id !== activeOpponentInstanceId;
 
   const isPlayerFainted =
-    displayedPlayerPokemon?.fainted &&
-    displayedPlayerPokemon?.instance_id !== myActiveInstanceId;
+    activePokemon?.fainted && activePokemon?.instance_id !== myActiveInstanceId;
 
   const isVictory = winnerTrainerId === trainerId;
+
+  const canAct = playerPhase === 'can_act' || playerPhase === 'awaiting_switch';
 
   const navigate = useNavigate();
 
   const handlePlayAgain = () => {
-    const { name, controllerType, difficulty, battleType } = useConnectionStore.getState();
+    const { name, controllerType, difficulty, battleType } =
+      useConnectionStore.getState();
     disconnect();
     connect({
       name,
@@ -97,32 +80,9 @@ export default function App() {
     (a, b) => a.team_slot - b.team_slot,
   );
 
-  const displayedTeamPokemon = (() => {
-    if (isAnimating && pendingMyPokemon) {
-      return [...pendingMyPokemon].sort((a, b) => a.team_slot - b.team_slot);
-    }
-    return allTeamBySlot;
-  })();
-
-  const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
-    if (isAnimating && currentEvents.length > 0) {
-      animationTimerRef.current = setInterval(() => {
-        _advanceAnimation();
-      }, 1000);
-    }
-
-    return () => {
-      if (animationTimerRef.current) {
-        clearInterval(animationTimerRef.current);
-        animationTimerRef.current = null;
-      }
-    };
-  }, [isAnimating, currentEvents.length, _advanceAnimation]);
-
-  useEffect(() => {
-    const { name, controllerType, difficulty, battleType } = useConnectionStore.getState();
+    const { name, controllerType, difficulty, battleType } =
+      useConnectionStore.getState();
     connect({
       name,
       controller_type: controllerType,
@@ -131,9 +91,6 @@ export default function App() {
     });
 
     return () => {
-      if (animationTimerRef.current) {
-        clearInterval(animationTimerRef.current);
-      }
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,16 +107,16 @@ export default function App() {
   const p1Sprites = activePokemon
     ? [allSprites[activePokemon.pokemon_id]].filter(Boolean)
     : [];
-  const p2Sprites = displayedOpponentPokemon
-    ? [allSprites[displayedOpponentPokemon.pokemon_id]].filter(Boolean)
+  const p2Sprites = activeOpponentPokemon
+    ? [allSprites[activeOpponentPokemon.pokemon_id]].filter(Boolean)
     : [];
 
   const activeMoves = activePokemon?.move_state ?? [];
 
   const handleMoveSelect = (moveId: string) => {
-    if (!activePokemon || !isMyTurn || isAnimating) return;
+    if (!activePokemon || !canAct) return;
 
-    submitAction({
+    sendAction({
       type: 'move',
       user_instance_id: activePokemon.instance_id,
       move_id: moveId,
@@ -173,9 +130,9 @@ export default function App() {
   };
 
   const handleSwitchSelect = (replacementInstanceId: string) => {
-    if (!activePokemon || isAnimating) return;
+    if (!activePokemon) return;
 
-    submitAction({
+    sendAction({
       type: 'switch',
       user_instance_id: activePokemon.instance_id,
       move_id: null,
@@ -207,9 +164,6 @@ export default function App() {
           weatherId={(weather?.weather_id as WeatherColorsKeys) ?? null}
           weatherRemainingTurns={weather?.remaining_turns ?? null}
           hazards={(sides['p1']?.hazards as HazardColorsKeys[]) ?? []}
-          isAnimating={isAnimating}
-          currentEventIndex={currentEventIndex}
-          currentEvents={currentEvents}
           myPokemon={myPokemon}
           opponentPokemon={opponentPokemon}
           isOpponentFainted={isOpponentFainted}
@@ -245,7 +199,7 @@ export default function App() {
               const moveData = POKE_DATA.moves.find(
                 (m) => m._id === move.move_id,
               );
-              const isDisabled = move.current_pp === 0 || isAnimating;
+              const isDisabled = move.current_pp === 0 || !canAct;
               return (
                 <PokemonMovement
                   key={move.move_id}
@@ -261,7 +215,7 @@ export default function App() {
           </Section>
           {
             <Section label="Cambiar Pokemon">
-              {displayedTeamPokemon.map((pokemon) => (
+              {allTeamBySlot.map((pokemon) => (
                 <PokemonSwitch
                   key={pokemon.instance_id}
                   name={pokemon.pokemon_id}
@@ -275,7 +229,7 @@ export default function App() {
                   disabled={
                     pokemon.fainted ||
                     pokemon.instance_id === myActiveInstanceId ||
-                    isAnimating
+                    !canAct
                   }
                 />
               ))}
@@ -286,19 +240,19 @@ export default function App() {
       <div className="flex flex-col gap-8 flex-1 py-6 h-full">
         <div className="flex flex-col gap-6">
           <Section label={`Equipo de ${opponentName}`}>
-            {displayedOpponentPokemon && (
+            {activeOpponentPokemon && (
               <PokemonState
-                key={displayedOpponentPokemon.instance_id}
+                key={activeOpponentPokemon.instance_id}
                 name={
-                  displayedOpponentPokemon.pokemon_id.charAt(0).toUpperCase() +
-                  displayedOpponentPokemon.pokemon_id.slice(1)
+                  activeOpponentPokemon.pokemon_id.charAt(0).toUpperCase() +
+                  activeOpponentPokemon.pokemon_id.slice(1)
                 }
-                currentHp={displayedOpponentPokemon.current_hp}
-                maxHp={displayedOpponentPokemon.max_hp}
-                level={displayedOpponentPokemon.level}
+                currentHp={activeOpponentPokemon.current_hp}
+                maxHp={activeOpponentPokemon.max_hp}
+                level={activeOpponentPokemon.level}
                 hpPercentage={Math.round(
-                  (displayedOpponentPokemon.current_hp /
-                    displayedOpponentPokemon.max_hp) *
+                  (activeOpponentPokemon.current_hp /
+                    activeOpponentPokemon.max_hp) *
                     100,
                 )}
               />
@@ -309,35 +263,29 @@ export default function App() {
           className="flex flex-col items-start justify-start overflow-scroll"
           label="Turnos"
         >
-          <TurnLog
-            turns={turnHistory}
-            isAnimating={isAnimating}
-            currentEventIndex={currentEventIndex}
-          />
+          <TurnLog />
         </Section>
-        {status === 'finished' &&
-          !isAnimating &&
-          currentEvents.length === 0 && (
-            <Modal isOpen>
-              <h2 className="text-2xl font-bold text-white mb-4 text-center">
-                {isVictory ? '¡Victoria!' : 'Derrota'}
-              </h2>
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={handlePlayAgain}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Volver a Jugar
-                </button>
-                <button
-                  onClick={handleGoToLobby}
-                  className="px-4 py-2 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700"
-                >
-                  Ir al Inicio
-                </button>
-              </div>
-            </Modal>
-          )}
+        {status === 'finished' && playerPhase === 'finished' && (
+          <Modal isOpen>
+            <h2 className="text-2xl font-bold text-white mb-4 text-center">
+              {isVictory ? '¡Victoria!' : 'Derrota'}
+            </h2>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={handlePlayAgain}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Volver a Jugar
+              </button>
+              <button
+                onClick={handleGoToLobby}
+                className="px-4 py-2 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700"
+              >
+                Ir al Inicio
+              </button>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

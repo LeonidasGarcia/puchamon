@@ -1,4 +1,4 @@
-import type { BattleTurnDTO } from "../types/schemas/Battle";
+import type { BattleTurnDTO } from "../../types/schemas/Battle";
 
 function createSampleEvent(
   order: number,

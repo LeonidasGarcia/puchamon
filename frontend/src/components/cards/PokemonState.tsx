@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react';
+import { useMotionValue, animate } from 'framer-motion';
 import HpBar from '../battle/HpBar';
 
 interface PokemonStateProps {
@@ -6,6 +8,28 @@ interface PokemonStateProps {
   hpPercentage: number;
   currentHp: number;
   maxHp: number;
+}
+
+function AnimatedHpNumber({ value }: { value: number }) {
+  const motionValue = useMotionValue(value);
+  const [display, setDisplay] = useState(value);
+  const animationRef = useRef<{ stop: () => void } | null>(null);
+
+  useEffect(() => {
+    animationRef.current = animate(motionValue, value, {
+      duration: 0.5,
+      ease: 'easeOut',
+      onUpdate: (latest) => {
+        setDisplay(Math.round(latest));
+      },
+    });
+
+    return () => {
+      animationRef.current?.stop();
+    };
+  }, [value, motionValue]);
+
+  return <span>{display}</span>;
 }
 
 export default function PokemonState(props: PokemonStateProps) {
@@ -22,7 +46,7 @@ export default function PokemonState(props: PokemonStateProps) {
       <div className="flex flex-row items-center gap-3">
         <HpBar hpPercentage={props.hpPercentage} />
         <span className="text-hp-ratio text-text-secondary font-medium shrink-0 leading-none">
-          {props.currentHp}/{props.maxHp}
+          <AnimatedHpNumber value={props.currentHp} />/{props.maxHp}
         </span>
       </div>
     </div>
