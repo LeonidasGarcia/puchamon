@@ -1,38 +1,22 @@
 """WebSocket API for handling battle-related communications."""
 
+
+import contextlib
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from ...agentia.application.services import IAService
 from ..application.dto.battle_turn_dto import BattleTurnDTO
 from ..application.mappers.battle_snapshot_mapper import to_battle_snapshot_dto
-from ..application.services.battle_service import BattleService
 from ..domain.entities.battle import TargetScope
+from .dependencies import get_battle_service
 from .schemas import ConnectionRequest, TurnSubmit
 
 router = APIRouter(tags=["Battle"])
 
-_current_websocket: WebSocket | None = None
 _current_trainer_id: str | None = None
 _current_battle_id: str | None = None
 _current_controller_type: str | None = None
-_battle_service: BattleService | None = None
-_ia_service: IAService | None = None
-
-
-def _get_battle_service() -> BattleService:
-    global _battle_service
-    if _battle_service is None:
-        _battle_service = BattleService()
-    return _battle_service
-
-
-def _get_ia_service() -> IAService:
-    global _ia_service
-    if _ia_service is None:
-        _ia_service = IAService()
-    return _ia_service
 
 
 def _create_initial_turn_dto(battle, instances) -> BattleTurnDTO:
@@ -56,7 +40,7 @@ async def _send_json(ws: WebSocket, data: dict[str, Any]) -> None:
 async def _handle_connection_request(ws: WebSocket, payload: ConnectionRequest) -> None:
     global _current_trainer_id, _current_battle_id, _current_controller_type
 
-    service = _get_battle_service()
+    service = get_battle_service()
 
     battle, instances = await service.create_battle(
         trainer_name=payload.name,
@@ -88,23 +72,24 @@ async def _handle_connection_request(ws: WebSocket, payload: ConnectionRequest) 
 
 
 async def _run_ai_vs_ai_loop(ws: WebSocket) -> None:
-    global _current_battle_id
+    from ...agentia.application.services import BattleExecutionService
 
-    service = _get_battle_service()
+    battle_service = get_battle_service()
+    from ...agentia.application.services import IAService
 
-    while True:
-        battle = await service.get_battle(_current_battle_id)
-        if not battle or battle.status == "finished":
-            break
+    ia_service = IAService()
+    execution_service = BattleExecutionService(battle_service, ia_service)
 
-        result = await service.process_ai_turn(_current_battle_id)
+    results = await execution_service.run_ai_vs_ai_loop(_current_battle_id)
 
-        await _send_json(ws, {
-            "address": "turn:result",
-            "payload": result["turn_data"].model_dump(),
-        })
-
-        battle = await service.get_battle(_current_battle_id)
+    for result in results:
+        await _send_json(
+            ws,
+            {
+                "address": "turn:result",
+                "payload": result["turn_data"].model_dump(),
+            },
+        )
 
 
 async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit) -> None:
@@ -113,7 +98,7 @@ async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit) -> None:
     if _current_controller_type != "human":
         return
 
-    service = _get_battle_service()
+    service = get_battle_service()
 
     action_data = payload.action.model_dump()
     target_data = action_data.get("target")
@@ -137,17 +122,22 @@ async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit) -> None:
     if result is None:
         return
 
-    turn_data = result.get("turn_data")
-    if turn_data:
-        await _send_json(ws, {
-            "address": "turn:result",
-            "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
-        })
+    if turn_data := result.get("turn_data"):
+        await _send_json(
+            ws,
+            {
+                "address": "turn:result",
+                "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
+            },
+        )
     else:
-        await _send_json(ws, {
-            "address": "turn:result",
-            "payload": result,
-        })
+        await _send_json(
+            ws,
+            {
+                "address": "turn:result",
+                "payload": result,
+            },
+        )
 
 
 @router.websocket("/ws")
@@ -155,7 +145,7 @@ async def websocket_endpoint(ws: WebSocket):
     """Handle WebSocket connection for battle communication."""
     await ws.accept()
 
-    try:
+    with contextlib.suppress(WebSocketDisconnect):
         while True:
             data = await ws.receive_json()
             address = data.get("address")
@@ -170,12 +160,12 @@ async def websocket_endpoint(ws: WebSocket):
             elif address == "ping":
                 await ws.send_json({"address": "pong"})
             else:
-                await ws.send_json({
-                    "address": "error",
-                    "payload": {
-                        "code": "INVALID_ADDRESS",
-                        "message": f"Unknown address: {address}",
+                await ws.send_json(
+                    {
+                        "address": "error",
+                        "payload": {
+                            "code": "INVALID_ADDRESS",
+                            "message": f"Unknown address: {address}",
+                        },
                     }
-                })
-    except WebSocketDisconnect:
-        pass
+                )

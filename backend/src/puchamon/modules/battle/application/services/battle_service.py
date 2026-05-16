@@ -5,7 +5,7 @@ from typing import Any, Literal
 from bson import ObjectId
 from loguru import logger
 
-from ....agentia.application.services import IAService
+from ....agentia.application.services.ia_service import IAService
 from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 from ...domain.entities import Battle, BattleInstance, Player, TurnAction
 from ...domain.exceptions import BattleValidationError
@@ -193,7 +193,12 @@ class BattleService:
 
         battle.current_turn_actions = []
 
-        if battle.phase != "awaiting_replacements" and battle.status == "active":
+        if battle.phase == "awaiting_replacements":
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+            if not needs_replacement:
+                battle.turn += 1
+                battle.phase = "awaiting_actions"
+        elif battle.status == "active":
             battle.turn += 1
 
         await battle.save()

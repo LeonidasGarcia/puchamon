@@ -1,6 +1,5 @@
 """Service for handling IA-related logic."""
 
-import random
 from typing import Literal
 
 from ....battle.domain.entities import (
@@ -10,6 +9,8 @@ from ....battle.domain.entities import (
     TargetScope,
     TurnAction,
 )
+from ...domain.move_selectors import GreedyHPMoveSelector, MoveSelector, RandomMoveSelector
+from ...domain.switch_selectors import BestHPSwitchSelector, RandomSwitchSelector, SwitchSelector
 
 AIDifficultyLevel = Literal[1, 2]
 AI_LEVEL_EASY = 1
@@ -47,7 +48,10 @@ class IAService:
         active_instance_ids = [uid for uid in active_ids if uid is not None]
 
         if not active_instance_ids:
-            raise ValueError(f"Player {player.trainer_id} has no active pokemon")
+            switch_action = await self.generate_switch_action(player, battle, instances, ai_level)
+            if switch_action:
+                return switch_action
+            raise ValueError(f"Player {player.trainer_id} has no active pokemon and no replacements available")
 
         active_instance = instances.get(active_instance_ids[0])
         if not active_instance:
@@ -68,7 +72,7 @@ class IAService:
 
         raise ValueError("AI has no valid actions available")
 
-    async def generate_move_action(  # noqa: PLR0913
+    async def generate_move_action(
         self,
         player: Player,
         active_instance: BattleInstance,
@@ -95,7 +99,12 @@ class IAService:
         if not available_moves:
             return None
 
-        move_id = self._select_move_by_level(available_moves, ai_level, battle, instances, movements)
+        selector: MoveSelector
+        if ai_level == AI_LEVEL_EASY or not battle or not instances:
+            selector = RandomMoveSelector()
+        else:
+            selector = GreedyHPMoveSelector(battle, instances, movements)
+        move_id = selector.select(available_moves)
 
         if move_id is None:
             return None
@@ -134,160 +143,24 @@ class IAService:
         if not side:
             return None
 
-        active_ids = set(uid for uid in side.active_pokemon_instance_ids if uid is not None)
+        selector: SwitchSelector
+        if ai_level == AI_LEVEL_EASY:
+            selector = RandomSwitchSelector()
+        else:
+            selector = BestHPSwitchSelector()
 
-        available_replacements = [
-            inst for inst in instances.values() if inst.trainer_id == player.trainer_id and not inst.fainted and inst.id not in active_ids
-        ]
+        replacement_id = selector.select(battle, instances, player.trainer_id)
 
-        if not available_replacements:
+        if replacement_id is None:
             return None
 
-        if ai_level == AI_LEVEL_EASY:
-            replacement = random.choice(available_replacements)
-        else:
-            # Level 2 (Medium) and Level 3 (Hard) - Choose the pokemon with the highest HP% as the best replacement
-            def get_hp_percent(inst: BattleInstance) -> float:
-                return inst.current_hp / inst.max_hp if inst.max_hp > 0 else 0.0
-
-            replacement = max(available_replacements, key=get_hp_percent)
+        active_ids = {
+            uid for uid in side.active_pokemon_instance_ids if uid is not None
+        }
 
         return TurnAction(
             player=player.trainer_id,
             type="switch",
             user_instance_id=str(next(iter(active_ids))) if active_ids else "",
-            replacement_instance_id=str(replacement.id),
+            replacement_instance_id=replacement_id,
         )
-
-    def _select_move_by_level(
-        self,
-        available_moves: list,
-        ai_level: AIDifficultyLevel,
-        battle: Battle | None = None,
-        instances: dict[str, BattleInstance] | None = None,
-        movements: dict | None = None,
-    ) -> str | None:
-        """Select a move based on AI difficulty level.
-
-        Args:
-            available_moves: List of MoveState with PP > 0.
-            ai_level: AI difficulty level.
-            battle: The current battle state (needed for medium AI).
-            instances: Dict of battle instances (needed for medium AI).
-            movements: Dict of Movement entities keyed by ID.
-
-        Returns:
-            The move_id of the selected move or None if no moves available.
-        """
-        if not available_moves:
-            return None
-
-        if ai_level == AI_LEVEL_EASY:
-            return self._select_random_move(available_moves)
-        else:
-            return self._greedy_hp(available_moves, battle, instances, movements)
-
-    def _select_random_move(self, available_moves: list) -> str:
-        """Select a random move (Level 1 - Easy).
-
-        Args:
-            available_moves: List of MoveState with PP > 0.
-
-        Returns:
-            A random move_id.
-        """
-        return random.choice(available_moves).move_id
-
-    def _greedy_hp(
-        self,
-        available_moves: list,
-        battle: Battle | None,
-        instances: dict[str, BattleInstance] | None,
-        movements: dict | None,
-    ) -> str | None:
-        """Select a move using greedy best-first with HP-based heuristic.
-
-        =============================================================
-        HEURÍSTICA: h(move) = 1 - HP_oponente_post_percent
-        =============================================================
-
-        El objetivo es minimizar el HP del oponente después del ataque.
-        Esto se logra maximizando el daño inflicted.
-
-        Formula detallada:
-            HP_oponente_post = max(0, HP_oponente_actual - damage)
-            HP_percent_post   = HP_oponente_post / HP_max_oponente
-            h(move)           = 1 - HP_percent_post
-
-        Equivalencia (para ordenamiento relativo):
-            argmax(h(move)) = argmax(damage)
-            Ya que h es monotonic con damage
-
-        Algoritmo Best-First Greedy:
-            1. Evaluar cada move disponible
-            2. Seleccionar el move con mayor h(move)
-            3. Retornar ese move
-
-        Args:
-            available_moves: List of MoveState with PP > 0.
-            battle: The current battle state.
-            instances: Dict of battle instances keyed by ID.
-            movements: Dict of Movement entities keyed by ID.
-
-        Returns:
-            The move_id of the selected move.
-        """
-        if not available_moves:
-            return None
-
-        if not battle or not instances:
-            return available_moves[0].move_id
-
-        def get_h_score(ms) -> float:
-            """Calcular score heurístico para un movimiento.
-
-            Formula:
-                h(move) = 1 - HP_oponente_post_percent
-
-            Returns:
-                Score heurístico (mayor = mejor movimiento)
-            """
-            move = movements.get(ms.move_id) if movements else None
-
-            if not move or not move.power:
-                return 0.0
-
-            opponent_hp = self._get_opponent_hp_values(battle, instances)
-            if not opponent_hp:
-                return 0.0
-
-            opponent_current, opponent_max = opponent_hp
-            damage = move.power
-
-            hp_post = opponent_current - damage
-            hp_percent_post = max(0, hp_post) / opponent_max
-
-            return 1.0 - hp_percent_post
-
-        best_move_state = max(available_moves, key=get_h_score)
-        return best_move_state.move_id
-
-    def _get_opponent_hp_values(
-        self,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-    ) -> tuple[int, int] | None:
-        """Get the opponent's current and max HP.
-
-        Busca el primer pokemon activo del rival (no el del jugador actual).
-
-        Returns:
-            Tuple of (current_hp, max_hp) or None if no opponent found.
-        """
-        for _trainer_id, side in battle.sides.items():
-            active_id = side.active_pokemon_instance_ids[0]
-            if active_id:
-                opponent = instances.get(active_id)
-                if opponent and not opponent.fainted:
-                    return (opponent.current_hp, opponent.max_hp)
-        return None
