@@ -58,7 +58,7 @@ class SwitchActionStrategy(ActionStrategy):
         if source_instance.fainted or source_instance.current_hp <= 0:
             try:
                 empty_slot = side.active_pokemon_instance_ids.index(None)
-            except ValueError as exc:
+            except ValueError:
                 empty_slot = 0
             set_active_instance_for_slot(side, empty_slot, execution.replacement_instance_id)
             replacement_instance.is_revealed = True

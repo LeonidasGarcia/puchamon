@@ -1,62 +1,34 @@
 """WebSocket API for handling battle-related communications."""
 
+import contextlib
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from ...agentia.application.services import IAService
-from ..application.dto.battle_turn_dto import BattleTurnDTO
-from ..application.mappers.battle_snapshot_mapper import to_battle_snapshot_dto
-from ..application.services.battle_service import BattleService
 from ..domain.entities.battle import TargetScope
+from ..domain.entities.battle import TurnAction as DomainTurnAction
+from .dependencies import get_battle_coordinator_service, get_battle_service
 from .schemas import ConnectionRequest, TurnSubmit
 
 router = APIRouter(tags=["Battle"])
 
-_current_websocket: WebSocket | None = None
-_current_trainer_id: str | None = None
-_current_battle_id: str | None = None
-_current_controller_type: str | None = None
-_battle_service: BattleService | None = None
-_ia_service: IAService | None = None
 
+@dataclass
+class ConnectionState:
+    """Holds state for a single WebSocket connection."""
 
-def _get_battle_service() -> BattleService:
-    global _battle_service
-    if _battle_service is None:
-        _battle_service = BattleService()
-    return _battle_service
-
-
-def _get_ia_service() -> IAService:
-    global _ia_service
-    if _ia_service is None:
-        _ia_service = IAService()
-    return _ia_service
-
-
-def _create_initial_turn_dto(battle, instances) -> BattleTurnDTO:
-    snapshot = to_battle_snapshot_dto(battle, instances)
-    return BattleTurnDTO(
-        battle_id=str(battle.id),
-        turn=battle.turn,
-        declared_actions=[],
-        executed_actions=[],
-        events=[],
-        fainted_instance_ids=[],
-        required_replacements=[],
-        post_turn_snapshot=snapshot,
-    )
+    trainer_id: str | None = None
+    battle_id: str | None = None
+    controller_type: str | None = None
 
 
 async def _send_json(ws: WebSocket, data: dict[str, Any]) -> None:
     await ws.send_json(data)
 
 
-async def _handle_connection_request(ws: WebSocket, payload: ConnectionRequest) -> None:
-    global _current_trainer_id, _current_battle_id, _current_controller_type
-
-    service = _get_battle_service()
+async def _handle_connection_request(ws: WebSocket, payload: ConnectionRequest, state: ConnectionState) -> None:
+    service = get_battle_service()
 
     battle, instances = await service.create_battle(
         trainer_name=payload.name,
@@ -65,97 +37,94 @@ async def _handle_connection_request(ws: WebSocket, payload: ConnectionRequest) 
         difficulty=payload.difficulty or 1,
     )
 
-    _current_trainer_id = battle.players[0].trainer_id
-    _current_battle_id = str(battle.id)
-    _current_controller_type = payload.controller_type
+    state.trainer_id = battle.players[0].trainer_id
+    state.battle_id = str(battle.id)
+    state.controller_type = payload.controller_type
 
-    initial_state = _create_initial_turn_dto(battle, instances)
+    initial_state_dto = await service.get_initial_state_dto(battle, instances)
 
     response = {
         "address": "connection:response",
         "payload": {
-            "trainer_id": _current_trainer_id,
-            "battle_id": _current_battle_id,
+            "trainer_id": state.trainer_id,
+            "battle_id": state.battle_id,
             "battle_type": battle.battle_type,
             "team_size": int(battle.battle_type[0]),
-            "initial_state": initial_state.model_dump(),
+            "initial_state": initial_state_dto.model_dump(),
         },
     }
     await _send_json(ws, response)
 
-    if _current_controller_type == "ai":
-        await _run_ai_vs_ai_loop(ws)
+    if state.controller_type == "ai":
+        await _run_ai_vs_ai_loop(ws, state)
 
 
-async def _run_ai_vs_ai_loop(ws: WebSocket) -> None:
-    global _current_battle_id
-
-    service = _get_battle_service()
-
-    while True:
-        battle = await service.get_battle(_current_battle_id)
-        if not battle or battle.status == "finished":
-            break
-
-        result = await service.process_ai_turn(_current_battle_id)
-
-        await _send_json(ws, {
-            "address": "turn:result",
-            "payload": result["turn_data"].model_dump(),
-        })
-
-        battle = await service.get_battle(_current_battle_id)
-
-
-async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit) -> None:
-    global _current_trainer_id, _current_battle_id, _current_controller_type
-
-    if _current_controller_type != "human":
+async def _run_ai_vs_ai_loop(ws: WebSocket, state: ConnectionState) -> None:
+    if not state.battle_id:
         return
 
-    service = _get_battle_service()
+    coordinator = get_battle_coordinator_service()
+    results = await coordinator.run_ai_vs_ai_loop(state.battle_id)
 
-    action_data = payload.action.model_dump()
-    target_data = action_data.get("target")
-    target = TargetScope(**target_data) if target_data else None
-    action_dict = {
-        "player": payload.trainer_id,
-        "type": action_data["type"],
-        "user_instance_id": action_data["user_instance_id"],
-        "move_id": action_data.get("move_id"),
-        "target": target,
-        "replacement_instance_id": action_data.get("replacement_instance_id"),
-    }
-    action = type("TurnAction", (), action_dict)()
+    for result in results:
+        await _send_json(
+            ws,
+            {
+                "address": "turn:result",
+                "payload": result["turn_data"].model_dump(),
+            },
+        )
 
-    result = await service.submit_action(
-        battle_id=_current_battle_id,
-        trainer_id=payload.trainer_id,
-        action=action,
+
+async def _handle_turn_submit(ws: WebSocket, payload: TurnSubmit, state: ConnectionState) -> None:
+    if state.controller_type != "human" or not state.battle_id:
+        return
+
+    coordinator = get_battle_coordinator_service()
+
+    target = TargetScope(**payload.action.target.model_dump()) if payload.action.target else None
+
+    domain_action = DomainTurnAction(
+        player=payload.trainer_id,
+        type=payload.action.type,
+        user_instance_id=payload.action.user_instance_id,
+        move_id=payload.action.move_id,
+        target=target,
+        replacement_instance_id=payload.action.replacement_instance_id,
     )
 
-    if result is None:
-        return
+    results = await coordinator.submit_human_action(
+        battle_id=state.battle_id,
+        trainer_id=payload.trainer_id,
+        action=domain_action,
+    )
 
-    turn_data = result.get("turn_data")
-    if turn_data:
-        await _send_json(ws, {
-            "address": "turn:result",
-            "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
-        })
-    else:
-        await _send_json(ws, {
-            "address": "turn:result",
-            "payload": result,
-        })
+    for result in results:
+        if turn_data := result.get("turn_data"):
+            await _send_json(
+                ws,
+                {
+                    "address": "turn:result",
+                    "payload": turn_data.model_dump() if hasattr(turn_data, "model_dump") else turn_data,
+                },
+            )
+        else:
+            await _send_json(
+                ws,
+                {
+                    "address": "turn:result",
+                    "payload": result,
+                },
+            )
 
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     """Handle WebSocket connection for battle communication."""
     await ws.accept()
+    state = ConnectionState()
 
-    try:
+    with contextlib.suppress(WebSocketDisconnect):
         while True:
             data = await ws.receive_json()
             address = data.get("address")
@@ -163,19 +132,19 @@ async def websocket_endpoint(ws: WebSocket):
 
             if address == "connection:request":
                 connection_req = ConnectionRequest(**payload)
-                await _handle_connection_request(ws, connection_req)
+                await _handle_connection_request(ws, connection_req, state)
             elif address == "turn:submit":
                 turn_req = TurnSubmit(**payload)
-                await _handle_turn_submit(ws, turn_req)
+                await _handle_turn_submit(ws, turn_req, state)
             elif address == "ping":
                 await ws.send_json({"address": "pong"})
             else:
-                await ws.send_json({
-                    "address": "error",
-                    "payload": {
-                        "code": "INVALID_ADDRESS",
-                        "message": f"Unknown address: {address}",
+                await ws.send_json(
+                    {
+                        "address": "error",
+                        "payload": {
+                            "code": "INVALID_ADDRESS",
+                            "message": f"Unknown address: {address}",
+                        },
                     }
-                })
-    except WebSocketDisconnect:
-        pass
+                )

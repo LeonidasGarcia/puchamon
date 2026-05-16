@@ -1,6 +1,7 @@
 """Strategy for `damage` move effects."""
 
 from loguru import logger
+
 from .....pokedex.domain.entities.effects import DamagePayload
 from ...exceptions import BattleValidationError
 from ...mechanics import calculate_damage, faint_instance, resolve_damage_hit_count, resolve_damage_roll_percent

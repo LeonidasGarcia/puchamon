@@ -1,5 +1,9 @@
 """Strategy for `protect` move effects."""
 
+import random
+
+from loguru import logger
+
 from .....pokedex.domain.entities.effects import ProtectPayload
 from ...exceptions import BattleValidationError
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
@@ -23,15 +27,33 @@ class ProtectEffectStrategy(MoveEffectStrategy):
         if source.fainted or source.current_hp <= 0:
             return
 
-        # Check if already protected
-        if "protect" in source.volatile_status:
+        current_turn = context.battle.turn
+        last_turn = source.turn_counters.get("_protect_last_turn", 0)
+
+        if current_turn == last_turn + 1:
+            consecutive = source.turn_counters.get("protect", 0) + 1
+        else:
+            consecutive = 1
+
+        miss_chance = min(consecutive * 0.25, 1.0)
+        roll = random.random()
+
+        logger.debug(f"[PROTECT] {source.pokemon_id}: turn_coun  ters={source.turn_counters}, consecutive={consecutive}, roll={roll:.2f}")
+
+        if roll < miss_chance:
+            source.turn_counters["protect"] = 0
+            source.turn_counters["_protect_last_turn"] = current_turn
+            logger.debug(f"[PROTECT] {source.pokemon_id}: FAILED - consecutive now=0 - turn_counters after={source.turn_counters}")
             context.add_event(
                 kind="move_failed",
-                message=f"{format_pokemon_name(source.pokemon_id)} is already protected!",
+                message=f"{format_pokemon_name(source.pokemon_id)} couldn't use Protect!",
                 source_instance_id=execution.source_instance_id,
             )
             return
 
+        source.turn_counters["protect"] = consecutive
+        source.turn_counters["_protect_last_turn"] = current_turn
+        logger.debug(f"[PROTECT] {source.pokemon_id}: SUCCESS - consecutive now={consecutive} - turn_counters after={source.turn_counters}")
         source.volatile_status.append("protect")
         context.add_event(
             kind="status_applied",

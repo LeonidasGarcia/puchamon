@@ -5,12 +5,10 @@ from math import floor
 from ....pokedex.domain.entities import Moveset, Pokemon
 from ..entities import BattleStats
 from ..exceptions import BattleValidationError
-from ..rules import DEFAULT_BATTLE_IV, DEFAULT_BATTLE_LEVEL
+from ..rules import DEFAULT_BATTLE_IV, DEFAULT_BATTLE_LEVEL, MAX_EV_PER_STAT, MAX_TOTAL_EVS
 
 _SUPPORTED_STAT_KEYS: tuple[str, ...] = ("hp", "atk", "def_", "spa", "spd", "spe")
 _STAT_KEY_ALIASES: dict[str, str] = {"def": "def_"}
-_MAX_EV_PER_STAT = 252
-_MAX_TOTAL_EVS = 510
 _MAX_IV = 31
 _NATURE_EFFECTS: dict[str, tuple[str | None, str | None]] = {
     "hardy": (None, None),
@@ -66,12 +64,12 @@ def _normalize_evs(moveset: Moveset) -> dict[str, int]:
     evs = {stat_key: 0 for stat_key in _SUPPORTED_STAT_KEYS}
     for raw_stat_key, raw_value in moveset.evs.items():
         stat_key = _normalize_stat_key(raw_stat_key)
-        if raw_value < 0 or raw_value > _MAX_EV_PER_STAT:
+        if raw_value < 0 or raw_value > MAX_EV_PER_STAT:
             raise BattleValidationError(f"Moveset '{moveset.id or moveset.moveset_name}' has invalid EV '{raw_stat_key}'={raw_value}")
         evs[stat_key] = raw_value
 
-    if sum(evs.values()) > _MAX_TOTAL_EVS:
-        raise BattleValidationError(f"Moveset '{moveset.id or moveset.moveset_name}' exceeds the 510 EV limit")
+    if sum(evs.values()) > MAX_TOTAL_EVS:
+        raise BattleValidationError(f"Moveset '{moveset.id or moveset.moveset_name}' exceeds the {MAX_TOTAL_EVS} EV limit")
     return evs
 
 
@@ -85,9 +83,7 @@ def _resolve_nature_multiplier(nature_name: str, stat_key: str) -> float:
 
     if stat_key == raised_stat_key:
         return 1.1
-    if stat_key == lowered_stat_key:
-        return 0.9
-    return 1.0
+    return 0.9 if stat_key == lowered_stat_key else 1.0
 
 
 def _calculate_hp_stat(*, base_stat: int, ev: int, level: int, iv: int) -> int:

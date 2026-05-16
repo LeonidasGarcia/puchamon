@@ -22,16 +22,10 @@ def is_immune_to_status(instance: "BattleInstance", status_id: str) -> bool:
     # For now, following strict Gen 5, Electric types have no inherent status immunity to paralysis.
 
     # Ice types cannot be frozen.
-    if status_id == "freeze" and "ice" in instance.types:
-        return True
-
-    return False
+    return status_id == "freeze" and "ice" in instance.types
 
 
 def is_immune_to_volatile(instance: "BattleInstance", volatile_id: str) -> bool:
     """Check if a pokemon is immune to a volatile status condition."""
     # Grass types are immune to Leech Seed (seeded).
-    if volatile_id == "seeded" and "grass" in instance.types:
-        return True
-
-    return False
+    return volatile_id == "seeded" and "grass" in instance.types
