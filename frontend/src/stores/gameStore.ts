@@ -23,6 +23,21 @@ export type PlayerPhase =
   | 'animating';
 
 /**
+ * PokemonAnimationState represents the current animation state of a pokemon on the field.
+ * Used to drive visual animations via Framer Motion.
+ */
+export enum PokemonAnimationState {
+  Idle = 'idle',
+  Attacking = 'attacking',
+  TakingDamage = 'taking_damage',
+  ToxicEffect = 'toxic_effect',
+  ParalyzedEffect = 'paralyzed_effect',
+  Fainted = 'fainted',
+  SwitchingIn = 'switching_in',
+  SwitchingOut = 'switching_out',
+}
+
+/**
  * InitializeData is the payload received from the server via `connection:response`.
  * It contains all the initial state needed to set up the battle client-side.
  */
@@ -65,6 +80,9 @@ interface GameState {
 
   /** Queue of turns that arrived while a turn was still being animated (AI vs AI bursts). */
   turnQueue: BattleTurnDTO[];
+
+  /** Animation state for each pokemon instance on the field. */
+  animationStates: Record<string, PokemonAnimationState>;
 }
 
 /**
@@ -77,9 +95,18 @@ interface GameActions {
 
   addTurn: (turn: BattleTurnDTO) => void;
 
+  getAnimationStateForEvent: (event: BattleTurnEvent) => {
+    sourceState: PokemonAnimationState | null;
+    targetState: PokemonAnimationState | null;
+  };
+
   applyEventKind: (event: BattleTurnEvent) => void;
 
   finalizeTurnAnimation: () => void;
+
+  setAnimationState: (instanceId: string, state: PokemonAnimationState) => void;
+
+  toIdle: (instanceId: string) => void;
 }
 
 type GameStore = GameState & GameActions;
@@ -96,7 +123,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   status: null,
   winnerTrainerId: null,
   availableSwitches: [],
-
+  animationStates: {},
   turnQueue: [],
 
   initialize: (data: InitializeData) => {
@@ -133,6 +160,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       winnerTrainerId: null,
       availableSwitches: [],
       turnQueue: [],
+      animationStates: {},
     });
   },
 
@@ -153,10 +181,45 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  getAnimationStateForEvent: (event: BattleTurnEvent) => {
+    switch (event.kind) {
+      case 'move_used':
+        return {
+          sourceState: PokemonAnimationState.Attacking,
+          targetState: null,
+        };
+      case 'damage':
+        return {
+          sourceState: null,
+          targetState: PokemonAnimationState.TakingDamage,
+        };
+      case 'pokemon_fainted':
+        return {
+          sourceState: null,
+          targetState: PokemonAnimationState.Fainted,
+        };
+      case 'switch':
+        return {
+          sourceState: PokemonAnimationState.SwitchingOut,
+          targetState: null,
+        };
+      default:
+        return { sourceState: null, targetState: null };
+    }
+  },
+
   applyEventKind: (event: BattleTurnEvent) => {
-    const { turnHistory } = get();
+    const { turnHistory, setAnimationState } = get();
     const currentTurn = turnHistory[turnHistory.length - 1];
     if (!currentTurn) return;
+
+    const { sourceState, targetState } = get().getAnimationStateForEvent(event);
+    if (sourceState && event.source_instance_id) {
+      setAnimationState(event.source_instance_id, sourceState);
+    }
+    if (targetState && event.target_instance_id) {
+      setAnimationState(event.target_instance_id, targetState);
+    }
 
     const snapshot = currentTurn.post_turn_snapshot;
     const targetId = event.target_instance_id;
@@ -289,6 +352,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           winnerTrainerId: snapshot.result?.winner_trainer_id ?? null,
           playerPhase: 'finished',
           turnQueue: [],
+          animationStates: {},
         });
         break;
       }
@@ -363,5 +427,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
         turnHistory: nextTurn ? [...turnHistory, nextTurn] : turnHistory,
       });
     }
+  },
+
+  setAnimationState: (instanceId: string, state: PokemonAnimationState) => {
+    set((s) => ({
+      animationStates: { ...s.animationStates, [instanceId]: state },
+    }));
+  },
+
+  toIdle: (instanceId: string) => {
+    set((s) => ({
+      animationStates: {
+        ...s.animationStates,
+        [instanceId]: PokemonAnimationState.Idle,
+      },
+    }));
   },
 }));
