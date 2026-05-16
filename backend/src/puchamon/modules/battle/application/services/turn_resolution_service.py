@@ -253,8 +253,7 @@ class TurnResolutionService:
         self._cleanup_volatile_statuses(context)
 
         # 3. Only increment turn if no replacements are pending
-        if not needs_replacement:
-            context.battle.turn += 1
+        # Note: Turn increment moved to after move execution to keep turn number consistent in logs
 
         # 4. Check for Win Conditions
         # A trainer loses if all their pokemon are fainted (not just active ones).

@@ -193,11 +193,8 @@ class BattleService:
 
         battle.current_turn_actions = []
 
-        if battle.phase == "awaiting_replacements":
-            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
-            if not needs_replacement:
-                battle.turn += 1
-                battle.phase = "awaiting_actions"
+        if battle.phase != "awaiting_replacements" and battle.status == "active":
+            battle.turn += 1
 
         await battle.save()
         for instance in instances.values():
