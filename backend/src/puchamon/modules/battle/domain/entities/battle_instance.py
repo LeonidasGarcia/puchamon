@@ -50,3 +50,4 @@ class BattleInstance(BaseEntity):
     fainted: bool
     is_revealed: bool
     revealed_moves: list[str]
+    turn_counters: dict[str, int] = Field(default_factory=dict)
