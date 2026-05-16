@@ -3,7 +3,10 @@ import asyncio
 from loguru import logger
 
 from puchamon.modules.battle.application.services.battle_setup_service import BattleSetupService
-from puchamon.modules.battle.application.services.turn_resolution_service import TurnResolutionService
+from puchamon.modules.battle.application.services.turn_resolution_service import (
+    TurnResolutionService,
+    _ResolveTurnParams,
+)
 from puchamon.modules.battle.domain.entities import Player, TargetScope, TurnAction
 from puchamon.modules.battle.domain.registries import (
     build_default_action_strategy_registry,
@@ -86,13 +89,15 @@ async def simulate():
     logger.info(f"P2 Action: {p2_pokemon.pokemon_id} uses {p2_move_id}")
 
     context = turn_service.resolve_turn(
-        battle=battle,
-        instances=instance_dict,
-        actions=actions,
-        movements=movements,
-        conditions=conditions,
-        move_effects=move_effects,
-        type_chart=types,
+        _ResolveTurnParams(
+            battle=battle,
+            instances=instance_dict,
+            actions=actions,
+            movements=movements,
+            conditions=conditions,
+            move_effects=move_effects,
+            type_chart=types,
+        )
     )
 
     for event in context.events:

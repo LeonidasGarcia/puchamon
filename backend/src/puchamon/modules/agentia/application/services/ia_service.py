@@ -15,9 +15,10 @@ from ....battle.domain.entities import (
 from ...domain.move_selectors import GreedyHPMoveSelector, MoveSelector, RandomMoveSelector
 from ...domain.switch_selectors import BestHPSwitchSelector, RandomSwitchSelector, SwitchSelector
 
-AIDifficultyLevel = Literal[1, 2]
+AIDifficultyLevel = Literal[1, 2, 3]
 AI_LEVEL_EASY = 1
 AI_LEVEL_MEDIUM = 2
+AI_LEVEL_HARD = 3
 
 
 @dataclass
@@ -46,7 +47,7 @@ class IAService:
             player: The AI player entity.
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
-            ai_level: AI difficulty level (1=easy, 2=medium).
+            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
             movements: Dict of Movement entities keyed by ID.
 
         Returns:

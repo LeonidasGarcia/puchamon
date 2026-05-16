@@ -20,6 +20,10 @@ def _apply_move_effects(
     source_instance: BattleInstance,
     damage_roll_percent: int | None = None,
 ) -> None:
+    movement = execution.movement
+    if movement is None:
+        raise BattleValidationError("execution.movement cannot be None when applying move effects")
+
     move_effect_strategy_registry = execution.move_effect_strategy_registry
     if not move_effect_strategy_registry:
         raise BattleValidationError("Cannot apply move effects without a registered strategy dispatcher")
@@ -41,7 +45,7 @@ def _apply_move_effects(
             if not blocked_targets and index == 0:
                 context.add_event(
                     kind="move_failed_no_target",
-                    message=f"{execution.movement.name} failed because there was no valid target",
+                    message=f"{movement.name} failed because there was no valid target",
                     source_instance_id=execution.action.user_instance_id,
                     move_id=execution.action.move_id,
                 )
@@ -49,10 +53,9 @@ def _apply_move_effects(
 
         # Chance Check: Roll for secondary effects (e.g. flinch, burn chance)
         full_chance = 100
-        if effect.chance < full_chance:
-            if random.randint(1, full_chance) > effect.chance:
-                logger.debug(f"[EFFECT] {effect.kind} falló chance ({effect.chance}%)")
-                continue
+        if effect.chance < full_chance and random.randint(1, full_chance) > effect.chance:
+            logger.debug(f"[EFFECT] {effect.kind} falló chance ({effect.chance}%)")
+            continue
 
         effect_strategy = move_effect_strategy_registry.get(effect.kind)
         logger.debug(f"[EFFECT] Aplicando {effect.kind} a {len(target_instance_ids)} targets: {target_instance_ids}")
@@ -191,9 +194,8 @@ class MoveActionStrategy(ActionStrategy):
                 return
 
             if valid_target_ids:
-                # Accuracy Check (only for moves that target specific pokemons)
                 target = context.get_instance(valid_target_ids[0])
-                if not calculate_accuracy(context, movement, source_instance, target):
+                if not calculate_accuracy(movement, target):
                     context.add_event(
                         kind="move_missed",
                         message=f"{format_pokemon_name(source_instance.pokemon_id)}'s attack missed!",

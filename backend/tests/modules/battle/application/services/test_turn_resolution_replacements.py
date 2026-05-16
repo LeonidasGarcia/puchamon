@@ -1,5 +1,8 @@
 import pytest
-from puchamon.modules.battle.application.services.turn_resolution_service import TurnResolutionService
+from puchamon.modules.battle.application.services.turn_resolution_service import (
+    TurnResolutionService,
+    _ResolveTurnParams,
+)
 from puchamon.modules.battle.domain.entities.battle import Battle, SideState
 from puchamon.modules.battle.domain.entities.battle_instance import BattleInstance, StatStages
 from puchamon.modules.battle.domain.registries import (
@@ -90,21 +93,23 @@ def test_fainted_pokemon_leaves_slot_empty_for_manual_replacement(service):
         status="active",
         phase="awaiting_actions",
         sides={
-            "t1": SideState(hazards=[], active_pokemon_instance_ids=[None]),  # Slot is None because p1 fainted
-            "t2": SideState(hazards=[], active_pokemon_instance_ids=["p3"]),
+            "t1": SideState(active_pokemon_instance_ids=[None]),  # Slot is None because p1 fainted
+            "t2": SideState(active_pokemon_instance_ids=["p3"]),
         },
         players=[],
         current_turn_actions=[],
     )
 
     context = service.resolve_turn(
-        battle=battle,
-        instances={"p1": p1, "p2": p2, "p3": p3},
-        actions=[],
-        movements={},
-        conditions={},
-        move_effects={},
-        type_chart={},
+        _ResolveTurnParams(
+            battle=battle,
+            instances={"p1": p1, "p2": p2, "p3": p3},
+            actions=[],
+            movements={},
+            conditions={},
+            move_effects={},
+            type_chart={},
+        )
     )
 
     # It should NOT auto-replace

@@ -1,6 +1,6 @@
 """Service for handling battle-related logic and lifecycle."""
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from bson import ObjectId
 from loguru import logger
@@ -18,7 +18,7 @@ from ..dto.battle_turn_dto import BattleTurnDTO
 from ..mappers.battle_snapshot_mapper import to_battle_snapshot_dto
 from ..mappers.battle_turn_mapper import map_context_to_turn_dto
 from .battle_setup_service import BattleSetupService
-from .turn_resolution_service import TurnResolutionService
+from .turn_resolution_service import TurnResolutionService, _ResolveTurnParams
 
 
 class BattleService:
@@ -84,7 +84,7 @@ class BattleService:
                 trainer_id=str(ObjectId()),
                 name="AI Opponent",
                 controller_type="ai",
-                ai_level=difficulty,
+                ai_level=cast("Literal[1, 2, 3]", difficulty),
             )
             players = [client_player, opponent]
         else:
@@ -92,13 +92,13 @@ class BattleService:
                 trainer_id=str(ObjectId()),
                 name="AI Player 1",
                 controller_type="ai",
-                ai_level=difficulty,
+                ai_level=cast("Literal[1, 2, 3]", difficulty),
             )
             ai_player_2 = Player(
                 trainer_id=str(ObjectId()),
                 name="AI Player 2",
                 controller_type="ai",
-                ai_level=difficulty,
+                ai_level=cast("Literal[1, 2, 3]", difficulty),
             )
             players = [ai_player_1, ai_player_2]
 
@@ -228,7 +228,7 @@ class BattleService:
     ) -> BattleStrategyContext:
         """Resolve all actions for this turn."""
         data = self._data_cache
-        return self._turn_service.resolve_turn(
+        params = _ResolveTurnParams(
             battle=battle,
             instances=instances,
             actions=actions,
@@ -237,6 +237,7 @@ class BattleService:
             move_effects=data["move_effects"],
             type_chart=data["types"],
         )
+        return self._turn_service.resolve_turn(params)
 
     def _clear_turn_actions(self, battle: Battle) -> None:
         """Clear the current turn actions buffer."""
@@ -304,4 +305,3 @@ class BattleService:
             "pokemon_instances": [to_battle_snapshot_dto(battle, instances_list).model_dump()],
             "result": battle.result.model_dump() if battle.result else None,
         }
-

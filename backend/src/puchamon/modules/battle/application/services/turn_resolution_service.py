@@ -1,6 +1,9 @@
 """Service for resolving battle turns."""
 
+
+import contextlib
 import random
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -23,6 +26,21 @@ if TYPE_CHECKING:
     from ....pokedex.domain.entities import Condition, MoveEffect, Movement, Type
 
 
+@dataclass(frozen=True)
+class _ResolveTurnParams:
+    """Bundled parameters for resolve_turn to reduce argument count (PLR0913)."""
+
+    battle: Battle
+    instances: dict[str, BattleInstance]
+    actions: list[TurnAction]
+    movements: dict[str, "Movement"]
+    conditions: dict[str, "Condition"]
+    move_effects: dict[str, "MoveEffect"]
+    type_chart: dict[str, "Type"]
+    move_effects: dict[str, "MoveEffect"]
+    type_chart: dict[str, "Type"]
+
+
 class TurnResolutionService:
     """Core domain service for battle turn execution.
 
@@ -41,38 +59,27 @@ class TurnResolutionService:
         self._move_effect_registry = move_effect_registry
         self._condition_effect_registry = condition_effect_registry
 
-    def resolve_turn(
-        self,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-        actions: list[TurnAction],
-        movements: dict[str, "Movement"],
-        conditions: dict[str, "Condition"],
-        move_effects: dict[str, "MoveEffect"],
-        type_chart: dict[str, "Type"],
-    ) -> BattleStrategyContext:
+    def resolve_turn(self, params: _ResolveTurnParams) -> BattleStrategyContext:
         """Executes a full turn and returns the context with the resulting state and event log."""
+        battle = params.battle
+        instances = params.instances
         context = BattleStrategyContext(battle=battle, battle_instances=instances)
-        context.transient["type_chart"] = type_chart
+        context.transient["type_chart"] = params.type_chart
 
-        logger.debug(f"Resolving turn {battle.turn} with {len(actions)} actions")
-        # 1. Phase: Pre-Action (Switches)
-        self._resolve_switches(context, actions)
+        logger.debug(f"Resolving turn {battle.turn} with {len(params.actions)} actions")
+        self._resolve_switches(context, params.actions)
 
-        # 2. Phase: Determine Order
-        ordered_actions = self._sort_actions(context, actions, movements, conditions)
-        logger.debug(
-            f"[SORT] Ordered actions: {[(a.user_instance_id, movements.get(a.move_id).name if movements.get(a.move_id) else a.move_id) for a in ordered_actions]}"
-        )
+        ordered_actions = self._sort_actions(context, params.actions, params.movements, params.conditions)
+        move_names = [
+            (a.user_instance_id, params.movements.get(a.move_id).name if params.movements.get(a.move_id) else a.move_id) for a in ordered_actions
+        ]
+        logger.debug(f"[SORT] Ordered actions: {move_names}")
 
-        # 3. Phase: Execution (Moves)
-        self._execute_actions(context, ordered_actions, movements, move_effects, conditions)
+        self._execute_actions(context, ordered_actions, params.movements, params.move_effects, params.conditions)
         logger.debug(f"Events after execution: {len(context.events)}")
 
-        # 4. Phase: End of Turn (Residuals: Status conditions like Burn/Poison)
-        self._resolve_residuals(context, conditions)
+        self._resolve_residuals(context, params.conditions)
 
-        # 5. Phase: Faint Resolution & Turn Cleanup
         self._resolve_faints_and_cleanup(context)
 
         return context
@@ -85,7 +92,6 @@ class TurnResolutionService:
             strategy = self._action_registry.get("switch")
             execution = ActionExecutionInput(action=action, replacement_instance_id=action.replacement_instance_id)
             strategy.execute(context, execution)
-
     def _sort_actions(
         self,
         context: BattleStrategyContext,
@@ -121,7 +127,7 @@ class TurnResolutionService:
             if instance.status and instance.status in conditions:
                 condition = conditions[instance.status]
                 for effect in condition.effects:
-                    try:
+                    with contextlib.suppress(Exception):
                         strategy = self._condition_effect_registry.get(effect.kind)
                         if strategy.hook == "modify_speed":
                             execution = ConditionEffectExecutionInput(
@@ -136,16 +142,12 @@ class TurnResolutionService:
                             context.transient["current_speed"] = effective_speed
                             strategy.apply(context, execution)
                             effective_speed = context.transient.pop("current_speed", effective_speed)
-                    except Exception:
-                        pass  # Ignore if not registered or pending
-
             logger.debug(
                 f"[SORT] {instance.pokemon_id} used {movement.name if movement else action.move_id}: priority={priority}, speed={effective_speed}"
             )
             return (priority, effective_speed, random.random())
 
         return sorted(move_actions, key=get_action_priority_and_speed, reverse=True)
-
     def _execute_actions(
         self,
         context: BattleStrategyContext,
@@ -197,13 +199,6 @@ class TurnResolutionService:
             # This triggers all validations (PP, target accuracy, damage calculation, etc.)
             strategy.execute(context, execution)
 
-            # --- Mid-turn Replacement Check ---
-            # We no longer auto-replace mid-turn.
-            # In Gen 5+, replacements are chosen simultaneously after all turn actions are completed
-            # unless it's a specific pivot move. Since we want manual replacements at the end of the turn,
-            # we just leave the slot empty and let _resolve_faints_and_cleanup handle the phase change.
-            pass
-
     def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"]) -> None:
         """Applies end-of-turn effects like Burn, Poison."""
         # Major Status (Burn, Poison, Toxic)
@@ -217,9 +212,14 @@ class TurnResolutionService:
 
             strategies = self._condition_effect_registry.for_hook("end_turn")
             for strategy in strategies:
-                # Find matching effect in condition
-                effect = next((e for e in status_condition.effects if e.kind == strategy.kind), None)
-                if effect:
+                if effect := next(
+                    (
+                        e
+                        for e in status_condition.effects
+                        if e.kind == strategy.kind
+                    ),
+                    None,
+                ):
                     execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=instance.id)
                     strategy.apply(context, execution)
 
@@ -229,8 +229,11 @@ class TurnResolutionService:
         for instance in context.battle_instances.values():
             if instance.fainted or instance.current_hp <= 0:
                 continue
-            expired = [vs for vs in instance.volatile_status if vs in volatile_statuses_to_expire]
-            if expired:
+            if expired := [
+                vs
+                for vs in instance.volatile_status
+                if vs in volatile_statuses_to_expire
+            ]:
                 for status in expired:
                     instance.volatile_status.remove(status)
                 context.add_event(
@@ -242,13 +245,14 @@ class TurnResolutionService:
 
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
         """Increment the turn counter, update durations, and check for victory."""
-        # 1. Check if replacements are needed first
-        needs_replacement = False
-        for side in context.battle.sides.values():
-            if any(slot is None for slot in side.active_pokemon_instance_ids):
-                needs_replacement = True
-                break
-
+        needs_replacement = next(
+            (
+                True
+                for side in context.battle.sides.values()
+                if any(slot is None for slot in side.active_pokemon_instance_ids)
+            ),
+            False,
+        )
         # 2. Cleanup volatile statuses that expire at end of turn
         self._cleanup_volatile_statuses(context)
 
@@ -283,19 +287,23 @@ class TurnResolutionService:
                 message=f"{winner_name} won the battle!",
                 winner_trainer_id=winner_id,
             )
-        elif len(active_trainers) == 0:
+        elif not active_trainers:
             context.battle.status = "finished"
             context.add_event(kind="battle_finished", message="The battle ended in a draw!")
 
         # 4. Phase Transition
         # If the battle isn't finished but someone needs to replace a pokemon
         if context.battle.status == "active":
-            needs_replacement = False
-            for side in context.battle.sides.values():
-                if any(slot is None for slot in side.active_pokemon_instance_ids):
-                    needs_replacement = True
-                    break
-
+            needs_replacement = next(
+                (
+                    True
+                    for side in context.battle.sides.values()
+                    if any(
+                        slot is None for slot in side.active_pokemon_instance_ids
+                    )
+                ),
+                False,
+            )
             if needs_replacement:
                 context.battle.phase = "awaiting_replacements"
             else:

@@ -143,6 +143,7 @@ class BattleSetupService:
         if not movement or not movement.effect_ids:
             return True
 
+        del move_effects  # intentionally unused - stub for future effect validation
         return True
 
     @classmethod
