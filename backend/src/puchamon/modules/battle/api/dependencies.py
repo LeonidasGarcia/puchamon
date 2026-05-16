@@ -1,7 +1,7 @@
 """Dependency injection for battle API."""
 
-from ...agentia.application.services.ia_service import IAService
 from ...agentia.application.services.battle_execution_service import BattleExecutionService
+from ...agentia.application.services.ia_service import IAService
 from ..application.services.battle_service import BattleService
 
 

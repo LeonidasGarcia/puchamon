@@ -14,7 +14,7 @@ from ...domain.registries import (
     build_default_condition_effect_strategy_registry,
     build_default_move_effect_strategy_registry,
 )
-from ...domain.runtime.context import BattleStrategyContext
+from ...domain.runtime.context import ActionExecutionInput, BattleStrategyContext
 from ..dto.battle_turn_dto import BattleTurnDTO
 from ..mappers.battle_snapshot_mapper import to_battle_snapshot_dto
 from ..mappers.battle_turn_mapper import map_context_to_turn_dto
@@ -181,8 +181,6 @@ class BattleService:
                         instances=instances,
                         ai_level=player.ai_level or 1,
                     )
-                    if ai_action:
-                        actions.append(ai_action)
                 else:
                     ai_action = await self._ia_service.generate_action(
                         player=player,
@@ -191,9 +189,8 @@ class BattleService:
                         ai_level=player.ai_level or 1,
                         movements=data["movements"],
                     )
-                    if ai_action:
-                        actions.append(ai_action)
-
+                if ai_action:
+                    actions.append(ai_action)
         processed_turn = battle.turn
         context: BattleStrategyContext = self._turn_service.resolve_turn(
             battle=battle,
@@ -211,47 +208,26 @@ class BattleService:
         logger.info(f"[SUBMIT_ACTION] Sides state: { {k: v.active_pokemon_instance_ids for k, v in battle.sides.items()} }")
 
         if battle.phase == "awaiting_replacements":
-            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
-            logger.info(f"[SUBMIT_ACTION] needs_replacement={needs_replacement}")
-            if needs_replacement:
-                logger.info("[SUBMIT_ACTION] Generating AI switch for awaiting_replacements phase")
-                switch_actions: list[TurnAction] = []
-                for player in battle.players:
+            for player in battle.players:
+                if player.controller_type == "ai":
                     ai_side = battle.sides.get(player.trainer_id)
-                    if ai_side:
-                        empty_slots = [i for i, slot in enumerate(ai_side.active_pokemon_instance_ids) if slot is None]
-                        logger.info(f"[SUBMIT_ACTION] Player {player.trainer_id} (AI={player.controller_type}) has empty slots: {empty_slots}")
-                    if player.controller_type == "ai":
-                        ai_side = battle.sides.get(player.trainer_id)
-                        if ai_side and any(slot is None for slot in ai_side.active_pokemon_instance_ids):
-                            ai_switch = await self._ia_service.generate_switch_action(
-                                player=player,
-                                battle=battle,
-                                instances=instances,
-                                ai_level=player.ai_level or 1,
-                            )
-                            if ai_switch:
-                                switch_actions.append(ai_switch)
-                                logger.info(
-                                    f"[SUBMIT_ACTION] Generated switch action for AI: {ai_switch.type}, replacement={ai_switch.replacement_instance_id}"
-                                )
+                    if ai_side and any(slot is None for slot in ai_side.active_pokemon_instance_ids):
+                        logger.info(f"[SUBMIT_ACTION] Generating AI switch for {player.trainer_id}")
+                        ai_switch = await self._ia_service.generate_switch_action(
+                            player=player,
+                            battle=battle,
+                            instances=instances,
+                            ai_level=player.ai_level or 1,
+                        )
+                        if ai_switch:
+                            actions.append(ai_switch)
+                            logger.info(f"[SUBMIT_ACTION] AI switch generated: replacement={ai_switch.replacement_instance_id}")
+                            
+                            switch_strategy = self._turn_service._action_registry.get("switch")
+                            execution = ActionExecutionInput(action=ai_switch, replacement_instance_id=ai_switch.replacement_instance_id)
+                            switch_strategy.execute(context, execution)
 
-                if switch_actions:
-                    logger.info(
-                        f"[SUBMIT_ACTION] Resolving replacement turn with {len(switch_actions)} switch actions: {[a.replacement_instance_id for a in switch_actions]}"
-                    )
-                    context = self._turn_service.resolve_turn(
-                        battle=battle,
-                        instances=instances,
-                        actions=switch_actions,
-                        movements=data["movements"],
-                        conditions=data["conditions"],
-                        move_effects=data["move_effects"],
-                        type_chart=data["types"],
-                    )
-                    needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
-                    logger.info(f"[SUBMIT_ACTION] After switch resolution, needs_replacement={needs_replacement}")
-
+            needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
             if not needs_replacement:
                 battle.turn += 1
                 battle.phase = "awaiting_actions"
@@ -341,6 +317,25 @@ class BattleService:
         battle.current_turn_actions = []
 
         if battle.phase == "awaiting_replacements":
+            for player in battle.players:
+                if player.controller_type == "ai":
+                    ai_side = battle.sides.get(player.trainer_id)
+                    if ai_side and any(slot is None for slot in ai_side.active_pokemon_instance_ids):
+                        logger.info(f"[PROCESS_AI_TURN] Generating AI switch for {player.trainer_id}")
+                        ai_switch = await self._ia_service.generate_switch_action(
+                            player=player,
+                            battle=battle,
+                            instances=instances,
+                            ai_level=player.ai_level or 1,
+                        )
+                        if ai_switch:
+                            actions.append(ai_switch)
+                            logger.info(f"[PROCESS_AI_TURN] AI switch generated: replacement={ai_switch.replacement_instance_id}")
+                            
+                            switch_strategy = self._turn_service._action_registry.get("switch")
+                            execution = ActionExecutionInput(action=ai_switch, replacement_instance_id=ai_switch.replacement_instance_id)
+                            switch_strategy.execute(context, execution)
+
             needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
             if not needs_replacement:
                 battle.turn += 1
