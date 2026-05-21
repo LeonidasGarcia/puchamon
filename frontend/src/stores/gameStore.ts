@@ -29,12 +29,12 @@ export type PlayerPhase =
 export enum PokemonAnimationState {
   Idle = 'idle',
   Attacking = 'attacking',
-  TakingDamage = 'taking_damage',
-  ToxicEffect = 'toxic_effect',
-  ParalyzedEffect = 'paralyzed_effect',
+  TakingDamage = 'takingDamage',
+  ToxicEffect = 'toxicEffect',
+  ParalyzedEffect = 'paralyzedEffect',
   Fainted = 'fainted',
-  SwitchingIn = 'switching_in',
-  SwitchingOut = 'switching_out',
+  SwitchingIn = 'switchingIn',
+  SwitchingOut = 'switchingOut',
 }
 
 /**
