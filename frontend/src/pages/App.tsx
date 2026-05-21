@@ -164,8 +164,8 @@ export default function App() {
           weatherId={(weather?.weather_id as WeatherColorsKeys) ?? null}
           weatherRemainingTurns={weather?.remaining_turns ?? null}
           hazards={(sides['p1']?.hazards as HazardColorsKeys[]) ?? []}
-          myPokemon={myPokemon}
-          opponentPokemon={opponentPokemon}
+          myPokemon={[activePokemon]}
+          opponentPokemon={[activeOpponentPokemon]}
           isOpponentFainted={isOpponentFainted}
           isPlayerFainted={isPlayerFainted}
         />

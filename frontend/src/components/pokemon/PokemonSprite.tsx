@@ -16,7 +16,7 @@ export default function PokemonSprite(props: PokemonSpriteProps) {
   const controls = useAnimation();
 
   // animación a renderizar según el estado
-  const { animationStates, toIdle } = useGameStore();
+  const { animationStates, toIdle, playerPhase } = useGameStore();
 
   const animationState = animationStates[props.instanceId];
 
@@ -39,6 +39,7 @@ export default function PokemonSprite(props: PokemonSpriteProps) {
       transition: { duration: 1 },
     },
     idle: {
+      opacity: 1,
       x: 0,
       y: 0,
     },
@@ -64,12 +65,17 @@ export default function PokemonSprite(props: PokemonSpriteProps) {
     await controls.start(state);
   };
 
-  console.log(animationState);
+  console.log(props.instanceId);
 
   useEffect(() => {
     (async () => {
       await playAnimation(animationState);
-      toIdle(props.instanceId);
+      if (
+        animationState !== PokemonAnimationState.Fainted &&
+        playerPhase !== 'finished'
+      ) {
+        toIdle(props.instanceId);
+      }
     })();
   }, [animationState]);
 
