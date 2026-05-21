@@ -35,18 +35,25 @@ class ProtectEffectStrategy(MoveEffectStrategy):
         else:
             consecutive = 1
 
-        # Primer uso (consecutive = 1) -> 0% miss chance
-        # Segundo uso (consecutive = 2) -> 33% miss chance (como en 3ra Gen+ aprox, o podemos usar 50% / 25%)
-        # Siguiendo la fórmula original pero ajustada:
-        miss_chance = min((consecutive - 1) * 0.33, 1.0)
+        # Success rates mapping by consecutive use
+        success_chances = {
+            1: 1.0,
+            2: 0.5,
+            3: 0.25,
+        }
+        success_chance = success_chances.get(consecutive, 0.0)
+
         roll = random.random()
 
-        logger.debug(f"[PROTECT] {source.pokemon_id}: turn_coun  ters={source.turn_counters}, consecutive={consecutive}, roll={roll:.2f}")
+        logger.debug(
+            f"[PROTECT] {source.pokemon_id}: turn_counters={source.turn_counters}, "
+            f"consecutive={consecutive}, roll={roll:.2f}, success_chance={success_chance}"
+        )
 
-        if roll < miss_chance:
+        if roll >= success_chance:
             source.turn_counters["protect"] = 0
             source.turn_counters["_protect_last_turn"] = current_turn
-            logger.debug(f"[PROTECT] {source.pokemon_id}: FAILED - consecutive now=0 - turn_counters after={source.turn_counters}")
+            logger.debug(f"[PROTECT] {source.pokemon_id}: FAILED - consecutive now=0")
             context.add_event(
                 kind="move_failed",
                 message=f"{format_pokemon_name(source.pokemon_id)} couldn't use Protect!",
@@ -56,7 +63,7 @@ class ProtectEffectStrategy(MoveEffectStrategy):
 
         source.turn_counters["protect"] = consecutive
         source.turn_counters["_protect_last_turn"] = current_turn
-        logger.debug(f"[PROTECT] {source.pokemon_id}: SUCCESS - consecutive now={consecutive} - turn_counters after={source.turn_counters}")
+        logger.debug(f"[PROTECT] {source.pokemon_id}: SUCCESS - consecutive now={consecutive}")
         source.volatile_status.append("protect")
         context.add_event(
             kind="status_applied",

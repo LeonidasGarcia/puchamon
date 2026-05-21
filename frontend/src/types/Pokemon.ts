@@ -239,7 +239,7 @@ export const POKE_DATA = {
       category: "major",
       defaultDuration: null,
       effects: [
-        { kind: "speed_modifier", payload: { multiplier: 0.25 } },
+        { kind: "speed_modifier", payload: { multiplier: 0.5 } },
         { kind: "full_paralysis_chance", payload: { chance: 25 } },
       ],
     },
