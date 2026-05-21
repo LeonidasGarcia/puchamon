@@ -65,8 +65,6 @@ export default function PokemonSprite(props: PokemonSpriteProps) {
     await controls.start(state);
   };
 
-  console.log(props.instanceId);
-
   useEffect(() => {
     (async () => {
       await playAnimation(animationState);
