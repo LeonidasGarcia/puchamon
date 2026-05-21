@@ -19,15 +19,15 @@ class BadPoisonConditionEffectStrategy(ConditionEffectStrategy):
             return
 
         instance = context.get_instance(execution.holder_instance_id)
-        if instance.fainted or instance.current_hp <= 0:
+        if instance.fainted or instance.current_hp <= 0 or not instance.status:
             return
 
         payload = execution.effect.payload
 
-        # TODO: Implement progressive damage multiplier (N * base_ratio)
-        # Currently BattleInstance doesn't store the number of turns the status has been active.
-        # For now, we use the base_ratio (1/16).
-        damage = max(1, floor(instance.max_hp * payload.base_ratio))
+        # Number of turns the status has been active
+        turns_active = instance.turn_counters.get(instance.status, 1)
+
+        damage = max(1, floor(instance.max_hp * (payload.base_ratio * turns_active)))
         applied_damage = min(instance.current_hp, damage)
         instance.current_hp -= applied_damage
 
@@ -41,3 +41,5 @@ class BadPoisonConditionEffectStrategy(ConditionEffectStrategy):
 
         if instance.current_hp == 0:
             faint_instance(context, instance)
+        else:
+            instance.turn_counters[instance.status] = turns_active + 1

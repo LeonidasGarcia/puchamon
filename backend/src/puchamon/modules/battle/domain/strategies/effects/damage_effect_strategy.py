@@ -80,7 +80,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
             target_instance.current_hp -= applied_damage
 
             logger.debug(
-                f"[DAMAGE] {target_instance.pokemon_id} recibió {applied_damage} daño (HP: {target_instance.current_hp + applied_damage} -> {target_instance.current_hp}, roll: {damage_roll_percent})"
+                f"[DAMAGE] {target_instance.pokemon_id} recibió {applied_damage} daño (HP: {target_instance.current_hp + applied_damage} -> {target_instance.current_hp}, roll: {damage_roll_percent})"  # noqa: E501
             )
 
             context.add_event(

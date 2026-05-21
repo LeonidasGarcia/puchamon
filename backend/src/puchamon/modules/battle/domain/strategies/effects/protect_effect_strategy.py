@@ -28,14 +28,17 @@ class ProtectEffectStrategy(MoveEffectStrategy):
             return
 
         current_turn = context.battle.turn
-        last_turn = source.turn_counters.get("_protect_last_turn", 0)
+        last_turn = source.turn_counters.get("_protect_last_turn", -1)
 
         if current_turn == last_turn + 1:
             consecutive = source.turn_counters.get("protect", 0) + 1
         else:
             consecutive = 1
 
-        miss_chance = min(consecutive * 0.25, 1.0)
+        # Primer uso (consecutive = 1) -> 0% miss chance
+        # Segundo uso (consecutive = 2) -> 33% miss chance (como en 3ra Gen+ aprox, o podemos usar 50% / 25%)
+        # Siguiendo la fórmula original pero ajustada:
+        miss_chance = min((consecutive - 1) * 0.33, 1.0)
         roll = random.random()
 
         logger.debug(f"[PROTECT] {source.pokemon_id}: turn_coun  ters={source.turn_counters}, consecutive={consecutive}, roll={roll:.2f}")
