@@ -61,8 +61,8 @@ def test_protect_blocks_protectable_move(move_action_strategy, move_registry, co
         turn=1,
         status="active",
         sides={
-            "t1": SideState(hazards=[], active_pokemon_instance_ids=["p1"]),
-            "t2": SideState(hazards=[], active_pokemon_instance_ids=["p2"]),
+            "t1": SideState(active_pokemon_instance_ids=["p1"]),
+            "t2": SideState(active_pokemon_instance_ids=["p2"]),
         },
         players=[Player(trainer_id="t1", name="P1", controller_type="human"), Player(trainer_id="t2", name="P2", controller_type="human")],
         current_turn_actions=[],
@@ -131,8 +131,8 @@ def test_protect_allows_unprotectable_move(move_action_strategy, move_registry, 
         turn=1,
         status="active",
         sides={
-            "t1": SideState(hazards=[], active_pokemon_instance_ids=["p1"]),
-            "t2": SideState(hazards=[], active_pokemon_instance_ids=["p2"]),
+            "t1": SideState(active_pokemon_instance_ids=["p1"]),
+            "t2": SideState(active_pokemon_instance_ids=["p2"]),
         },
         players=[Player(trainer_id="t1", name="P1", controller_type="human"), Player(trainer_id="t2", name="P2", controller_type="human")],
         current_turn_actions=[],
@@ -197,5 +197,7 @@ def test_protect_allows_unprotectable_move(move_action_strategy, move_registry, 
 
     # Assertions
     events = context.events
-    assert not any(e.kind == "move_blocked" for e in events), "Expected no 'move_blocked' event for an unprotectable move"
+    assert all(
+        e.kind != "move_blocked" for e in events
+    ), "Expected no 'move_blocked' event for an unprotectable move"
     assert any(e.kind == "move_used" for e in events)

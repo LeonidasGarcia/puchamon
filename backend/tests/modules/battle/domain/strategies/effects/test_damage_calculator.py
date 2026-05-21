@@ -82,8 +82,8 @@ def _build_battle(*, source_instance_id: str, target_instance_id: str) -> Battle
         status="active",
         phase="resolving_turn",
         sides={
-            "trainer-1": SideState(hazards=[], active_pokemon_instance_ids=[source_instance_id]),
-            "trainer-2": SideState(hazards=[], active_pokemon_instance_ids=[target_instance_id]),
+            "trainer-1": SideState(active_pokemon_instance_ids=[source_instance_id]),
+            "trainer-2": SideState(active_pokemon_instance_ids=[target_instance_id]),
         },
         players=[
             Player(trainer_id="trainer-1", name="Ash", controller_type="human"),

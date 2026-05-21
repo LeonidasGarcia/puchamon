@@ -116,7 +116,7 @@ def calculate_type_effectiveness(movement_type: str, target_types: list[str], ty
     return effectiveness
 
 
-def calculate_damage(
+def calculate_damage(  # noqa: PLR0913
     *,
     movement: Movement,
     payload: DamagePayload,
