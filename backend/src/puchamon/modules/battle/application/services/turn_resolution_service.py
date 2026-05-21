@@ -1,6 +1,5 @@
 """Service for resolving battle turns."""
 
-
 import contextlib
 import random
 from dataclasses import dataclass
@@ -131,8 +130,11 @@ class TurnResolutionService:
 
             # Invoke ConditionEffectStrategyRegistry with hook="modify_speed"
             # to dynamically alter the `effective_speed` based on conditions like paralysis.
-            if instance.status and instance.status in conditions:
-                condition = conditions[instance.status]
+            active_conditions = instance.volatile_status + ([instance.status] if instance.status else [])
+            for status_id in active_conditions:
+                if status_id not in conditions:
+                    continue
+                condition = conditions[status_id]
                 for effect in condition.effects:
                     with contextlib.suppress(Exception):
                         strategy = self._condition_effect_registry.get(effect.kind)
@@ -182,8 +184,7 @@ class TurnResolutionService:
 
             # Check if skipped by condition (e.g. Paralyzed)
             if context.get_action_block_reason(action.user_instance_id):
-                # The strategy handles this internally, but it's good to keep the flow clear.
-                pass
+                continue
 
             move_id = action.move_id
             movement = movements.get(move_id) if move_id else None
@@ -210,39 +211,32 @@ class TurnResolutionService:
 
     def _resolve_residuals(self, context: BattleStrategyContext, conditions: dict[str, "Condition"]) -> None:
         """Applies end-of-turn effects like Burn, Poison."""
-        # Major Status (Burn, Poison, Toxic)
-        for instance in context.battle_instances.values():
-            if instance.fainted or instance.current_hp <= 0 or not instance.status:
-                continue
-
-            status_condition = conditions.get(instance.status)
-            if not status_condition:
-                continue
-
-            strategies = self._condition_effect_registry.for_hook("end_turn")
-            for strategy in strategies:
-                if effect := next(
-                    (
-                        e
-                        for e in status_condition.effects
-                        if e.kind == strategy.kind
-                    ),
-                    None,
-                ):
-                    execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=str(instance.id))
-                    strategy.apply(context, execution)
-
-    def _cleanup_volatile_statuses(self, context: BattleStrategyContext) -> None:
-        """Remove volatile statuses that expire at end of turn (e.g. protect)."""
-        volatile_statuses_to_expire = {"protect"}
         for instance in context.battle_instances.values():
             if instance.fainted or instance.current_hp <= 0:
                 continue
-            if expired := [
-                vs
-                for vs in instance.volatile_status
-                if vs in volatile_statuses_to_expire
-            ]:
+
+            active_conditions = instance.volatile_status + ([instance.status] if instance.status else [])
+            for status_id in active_conditions:
+                status_condition = conditions.get(status_id)
+                if not status_condition:
+                    continue
+
+                strategies = self._condition_effect_registry.for_hook("end_turn")
+                for strategy in strategies:
+                    if effect := next(
+                        (e for e in status_condition.effects if e.kind == strategy.kind),
+                        None,
+                    ):
+                        execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=str(instance.id))
+                        strategy.apply(context, execution)
+
+    def _cleanup_volatile_statuses(self, context: BattleStrategyContext) -> None:
+        """Remove volatile statuses that expire at end of turn (e.g. protect, flinch)."""
+        volatile_statuses_to_expire = {"protect", "flinch"}
+        for instance in context.battle_instances.values():
+            if instance.fainted or instance.current_hp <= 0:
+                continue
+            if expired := [vs for vs in instance.volatile_status if vs in volatile_statuses_to_expire]:
                 for status in expired:
                     instance.volatile_status.remove(status)
                 context.add_event(
@@ -296,13 +290,7 @@ class TurnResolutionService:
         # If the battle isn't finished but someone needs to replace a pokemon
         if context.battle.status == "active":
             needs_replacement = next(
-                (
-                    True
-                    for side in context.battle.sides.values()
-                    if any(
-                        slot is None for slot in side.active_pokemon_instance_ids
-                    )
-                ),
+                (True for side in context.battle.sides.values() if any(slot is None for slot in side.active_pokemon_instance_ids)),
                 False,
             )
             if needs_replacement:

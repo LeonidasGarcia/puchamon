@@ -40,6 +40,32 @@ class DamageCalculationInput:
 
 
 @dataclass(slots=True)
+class DamageResolutionInput:
+    """Encapsulates parameters required to resolve total damage for a target."""
+
+    context: "BattleStrategyContext"
+    execution: "MoveEffectExecutionInput"
+    source: BattleInstance
+    target: BattleInstance
+    payload: DamagePayload
+    hit_count: int
+    movement: Movement
+
+
+@dataclass(slots=True)
+class DamageApplicationInput:
+    """Encapsulates parameters required to apply damage to a target."""
+
+    context: "BattleStrategyContext"
+    execution: "MoveEffectExecutionInput"
+    source: BattleInstance
+    target: BattleInstance
+    payload: DamagePayload
+    hit_count: int
+    movement: Movement
+
+
+@dataclass(slots=True)
 class BattleStrategyEvent:
     """Domain event emitted while a strategy mutates the battle state."""
 
@@ -138,6 +164,8 @@ class ActionExecutionInput:
             target_instance_ids=target_instance_ids,
             movement=self.movement,
             metadata=metadata if metadata is not None else {},
+            condition_effect_strategy_registry=self.condition_effect_strategy_registry,
+            conditions=self.conditions,
         )
 
 
@@ -150,6 +178,8 @@ class MoveEffectExecutionInput:
     target_instance_ids: list[str]
     movement: Movement | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    condition_effect_strategy_registry: "Any | None" = None
+    conditions: "dict[str, Condition] | None" = None
 
 
 @dataclass(slots=True)
