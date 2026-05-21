@@ -99,6 +99,7 @@ async def test_generate_random_pokemon_orchestration(mock_pokemon, mock_moveset,
             move_effects={},
         )
 
+        assert instance is not None
         assert instance.id == "inst1"
         assert instance.pokemon_id == "pikachu"
 
