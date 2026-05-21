@@ -2,9 +2,29 @@
 
 from .....pokedex.domain.entities.effects import ModifyStatPayload
 from ...exceptions import BattleValidationError
+from ...rules import MAX_STAT_STAGE, MIN_STAT_STAGE
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
 from ...utils import format_pokemon_name
 from .base import MoveEffectStrategy
+
+DRASTIC_RISE = 3
+SHARP_RISE = 2
+NORMAL_RISE = 1
+NORMAL_FALL = -1
+HARSH_FALL = -2
+
+
+def _get_stage_change_description(change_amount: int) -> str:
+    """Return a descriptive message based on the amount of stage change."""
+    if change_amount >= DRASTIC_RISE:
+        return "rose drastically"
+    if change_amount == SHARP_RISE:
+        return "rose sharply"
+    if change_amount == NORMAL_RISE:
+        return "rose"
+    if change_amount == NORMAL_FALL:
+        return "fell"
+    return "fell harshly" if change_amount == HARSH_FALL else "fell severely"
 
 
 class ModifyStatEffectStrategy(MoveEffectStrategy):
@@ -20,54 +40,48 @@ class ModifyStatEffectStrategy(MoveEffectStrategy):
             raise BattleValidationError("Modify stat effect strategies require a ModifyStatPayload instance")
 
         for target_id in execution.target_instance_ids:
-            target = context.get_instance(target_id)
-            if target.fainted or target.current_hp <= 0:
+            self._apply_to_target(context, target_id, payload)
+
+    def _apply_to_target(self, context: BattleStrategyContext, target_id: str, payload: ModifyStatPayload) -> None:
+        target = context.get_instance(target_id)
+        if target.fainted or target.current_hp <= 0:
+            return
+
+        for change in payload.changes:
+            stat_key = "def_" if change.stat == "def" else change.stat
+
+            # Check if stat exists in StatStages
+            if not hasattr(target.stages, stat_key):
                 continue
 
-            for change in payload.changes:
-                stat_key = "def_" if change.stat == "def" else change.stat
+            current_stage = getattr(target.stages, stat_key)
 
-                # Check if stat exists in StatStages
-                if not hasattr(target.stages, stat_key):
-                    continue
+            # Pokémon Gen 5 rules: Stages are capped between MIN_STAT_STAGE and MAX_STAT_STAGE
+            new_stage = max(MIN_STAT_STAGE, min(MAX_STAT_STAGE, current_stage + change.stages))
 
-                current_stage = getattr(target.stages, stat_key)
-
-                # Pokémon Gen 5 rules: Stages are capped between -6 and +6
-                new_stage = max(-6, min(6, current_stage + change.stages))
-
-                if new_stage == current_stage:
-                    # No change occurred (already at max/min)
-                    message = f"{format_pokemon_name(target.pokemon_id)}'s {change.stat.upper()} won't go any {'higher' if change.stages > 0 else 'lower'}!"
-                    context.add_event(
-                        kind="stat_change_failed",
-                        message=message,
-                        target_instance_id=target_id,
-                        stat=change.stat,
-                    )
-                    continue
-
-                setattr(target.stages, stat_key, new_stage)
-
-                # Descriptive messages based on the amount of change
-                if change.stages >= 3:
-                    desc = "rose drastically"
-                elif change.stages == 2:
-                    desc = "rose sharply"
-                elif change.stages == 1:
-                    desc = "rose"
-                elif change.stages == -1:
-                    desc = "fell"
-                elif change.stages == -2:
-                    desc = "fell harshly"
-                else: # -3 or lower
-                    desc = "fell severely"
-
+            if new_stage == current_stage:
+                # No change occurred (already at max/min)
+                direction = "higher" if change.stages > 0 else "lower"
+                stat_name = change.stat.upper()
+                pkmn_name = format_pokemon_name(target.pokemon_id)
+                message = f"{pkmn_name}'s {stat_name} won't go any {direction}!"
                 context.add_event(
-                    kind="stat_changed",
-                    message=f"{format_pokemon_name(target.pokemon_id)}'s {change.stat.upper()} {desc}!",
+                    kind="stat_change_failed",
+                    message=message,
                     target_instance_id=target_id,
                     stat=change.stat,
-                    change=change.stages,
-                    new_stage=new_stage,
                 )
+                continue
+
+            setattr(target.stages, stat_key, new_stage)
+
+            desc = _get_stage_change_description(change.stages)
+
+            context.add_event(
+                kind="stat_changed",
+                message=f"{format_pokemon_name(target.pokemon_id)}'s {change.stat.upper()} {desc}!",
+                target_instance_id=target_id,
+                stat=change.stat,
+                change=change.stages,
+                new_stage=new_stage,
+            )

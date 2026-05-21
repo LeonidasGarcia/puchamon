@@ -9,8 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .core.domain import AppError
-from .modules.battle.api import router as battle_router
-from .modules.battle.api.websocket import router as websocket_router
+from .modules.battle.api import websocket_router
 from .shared.api import (
     LoguruMiddleware,
     app_error_handler,
@@ -53,7 +52,6 @@ def create() -> FastAPI:
         """Endpoint raíz para verificar que la aplicación está funcionando."""
         return {"message": "¡Bienvenido a Puchamon!", "version": __version__}
 
-    app.include_router(battle_router)
     app.include_router(websocket_router)
 
     return app

@@ -119,6 +119,34 @@ class MoveActionStrategy(ActionStrategy):
 
         return source_instance, execution.movement, move_state
 
+    def _evaluate_source_conditions(
+        self,
+        context: BattleStrategyContext,
+        execution: ActionExecutionInput,
+        source_instance: BattleInstance,
+    ) -> None:
+        active_conditions = source_instance.volatile_status + ([source_instance.status] if source_instance.status else [])
+        if not active_conditions:
+            return
+        if not execution.conditions or not execution.condition_effect_strategy_registry:
+            return
+
+        strategies = execution.condition_effect_strategy_registry.for_hook("before_action")
+        for status_id in active_conditions:
+            condition = execution.conditions.get(status_id)
+            if not condition:
+                continue
+
+            for effect in condition.effects:
+                for strategy in strategies:
+                    if effect.kind == strategy.kind:
+                        hook_input = ConditionEffectExecutionInput(
+                            condition=condition,
+                            effect=effect,
+                            holder_instance_id=execution.action.user_instance_id,
+                        )
+                        strategy.apply(context, hook_input)
+
     def _evaluate_target_conditions(
         self,
         context: BattleStrategyContext,
@@ -155,6 +183,14 @@ class MoveActionStrategy(ActionStrategy):
         """Resolve a move action against the current mutable battle state."""
         source_instance, movement, move_state = self._validate_preconditions(context, execution)
         if source_instance is None or movement is None or move_state is None:
+            return
+
+        self._evaluate_source_conditions(context, execution, source_instance)
+
+        # Re-check for blocks after evaluating source conditions (e.g. Paralysis roll, Flinch)
+        skip_reason = context.get_action_block_reason(execution.action.user_instance_id)
+        if skip_reason is not None:
+            context.clear_action_block(execution.action.user_instance_id)
             return
 
         move_state.current_pp -= 1

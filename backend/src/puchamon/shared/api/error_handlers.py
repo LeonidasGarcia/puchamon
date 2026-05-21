@@ -1,20 +1,23 @@
 """Error handlers personalizated to the application."""
+import contextlib
 
-from fastapi import Request, status
+from fastapi import Request, WebSocket, status
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.datastructures import State
 
 from ...core.domain import AppError
 
 
-async def _handle_websocket_error(request: Request, exc: Exception, close_code: int = 1011) -> None:
+async def _handle_websocket_error(request: Request, exc: Exception, close_code: int = 1011) -> bool:
     """Handle WebSocket errors by closing the connection properly."""
     if request.scope.get("type") == "websocket":
-        try:
-            await request.close(code=close_code, reason=str(exc))
-        except Exception:
-            pass
+        logger.error(f"Error en WebSocket (Code {close_code}): {exc}", exc_info=exc)
+        with contextlib.suppress(Exception):
+            # Casting to WebSocket for correct type checking on .close()
+            websocket: WebSocket[State] = WebSocket(request.scope, receive=request.receive, send=request._send)
+            await websocket.close(code=close_code, reason="Error interno en el motor de batalla.")
         return True
     return False
 
@@ -38,7 +41,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse | N
             "error": True,
             "type": exc.__class__.__name__,
             "message": exc.message,
-            "request_id": request_id
+            "request_id": request_id,
         },
     )
 
@@ -57,7 +60,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             "error": True,
             "type": "FrameworkError",
             "message": exc.detail,
-            "request_id": request_id
+            "request_id": request_id,
         },
     )
 
@@ -79,8 +82,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         content={
             "error": True,
             "type": "InternalServerError",
-            "message": "Ocurrió un error inesperado en los servidores de ContractAI.",
-            "request_id": request_id
+            "message": "Ocurrió un error inesperado en los servidores de Puchamon.",
+            "request_id": request_id,
         },
     )
 
@@ -108,6 +111,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "type": "ValidationError",
             "message": "Los datos enviados en la petición no son válidos.",
             "details": error_messages,
-            "request_id": request_id
+            "request_id": request_id,
         },
     )

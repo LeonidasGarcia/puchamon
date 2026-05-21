@@ -121,9 +121,11 @@ class BattleSetupService:
 
         stats = build_battle_stats(pokemon=pokemon, moveset=moveset, level=DEFAULT_BATTLE_LEVEL)
 
-        move_state: list[MoveState] = [
-            MoveState(move_id=move_id, current_pp=movements.get(move_id).pp if movements.get(move_id) else 15) for move_id in valid_moves
-        ]
+        move_state: list[MoveState] = []
+        for move_id in valid_moves:
+            m = movements.get(move_id)
+            pp = m.pp if m else 15
+            move_state.append(MoveState(move_id=move_id, current_pp=pp))
 
         return BattleInstance(
             id=str(ObjectId()),

@@ -28,22 +28,32 @@ class ProtectEffectStrategy(MoveEffectStrategy):
             return
 
         current_turn = context.battle.turn
-        last_turn = source.turn_counters.get("_protect_last_turn", 0)
+        last_turn = source.turn_counters.get("_protect_last_turn", -1)
 
         if current_turn == last_turn + 1:
             consecutive = source.turn_counters.get("protect", 0) + 1
         else:
             consecutive = 1
 
-        miss_chance = min(consecutive * 0.25, 1.0)
+        # Success rates mapping by consecutive use
+        success_chances = {
+            1: 1.0,
+            2: 0.5,
+            3: 0.25,
+        }
+        success_chance = success_chances.get(consecutive, 0.0)
+
         roll = random.random()
 
-        logger.debug(f"[PROTECT] {source.pokemon_id}: turn_coun  ters={source.turn_counters}, consecutive={consecutive}, roll={roll:.2f}")
+        logger.debug(
+            f"[PROTECT] {source.pokemon_id}: turn_counters={source.turn_counters}, "
+            f"consecutive={consecutive}, roll={roll:.2f}, success_chance={success_chance}"
+        )
 
-        if roll < miss_chance:
+        if roll >= success_chance:
             source.turn_counters["protect"] = 0
             source.turn_counters["_protect_last_turn"] = current_turn
-            logger.debug(f"[PROTECT] {source.pokemon_id}: FAILED - consecutive now=0 - turn_counters after={source.turn_counters}")
+            logger.debug(f"[PROTECT] {source.pokemon_id}: FAILED - consecutive now=0")
             context.add_event(
                 kind="move_failed",
                 message=f"{format_pokemon_name(source.pokemon_id)} couldn't use Protect!",
@@ -53,7 +63,7 @@ class ProtectEffectStrategy(MoveEffectStrategy):
 
         source.turn_counters["protect"] = consecutive
         source.turn_counters["_protect_last_turn"] = current_turn
-        logger.debug(f"[PROTECT] {source.pokemon_id}: SUCCESS - consecutive now={consecutive} - turn_counters after={source.turn_counters}")
+        logger.debug(f"[PROTECT] {source.pokemon_id}: SUCCESS - consecutive now={consecutive}")
         source.volatile_status.append("protect")
         context.add_event(
             kind="status_applied",

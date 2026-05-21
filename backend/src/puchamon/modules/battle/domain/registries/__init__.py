@@ -14,6 +14,7 @@ from ..strategies.conditions import (
     FullParalysisChanceConditionEffectStrategy,
     PhysicalAttackModifierConditionEffectStrategy,
     SelfHitChanceConditionEffectStrategy,
+    SkipActionConditionEffectStrategy,
     SpeedModifierConditionEffectStrategy,
 )
 from ..strategies.effects import (
@@ -103,6 +104,7 @@ def build_default_condition_effect_strategy_registry() -> ConditionEffectStrateg
             FullParalysisChanceConditionEffectStrategy(),
             SelfHitChanceConditionEffectStrategy(),
             CannotMoveConditionEffectStrategy(),
+            SkipActionConditionEffectStrategy(),
             BlockProtectableMovesConditionEffectStrategy(),
         ]
     )
