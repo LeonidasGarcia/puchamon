@@ -5,6 +5,7 @@ from .context import (
     BattleStrategyContext,
     BattleStrategyEvent,
     ConditionEffectExecutionInput,
+    DamageCalculationInput,
     MoveEffectExecutionInput,
     StrategyHook,
 )
@@ -14,6 +15,7 @@ __all__: list[str] = [
     "BattleStrategyContext",
     "BattleStrategyEvent",
     "ConditionEffectExecutionInput",
+    "DamageCalculationInput",
     "MoveEffectExecutionInput",
     "StrategyHook",
 ]

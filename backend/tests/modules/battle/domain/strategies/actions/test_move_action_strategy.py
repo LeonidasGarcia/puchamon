@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from puchamon.modules.battle.domain.entities.battle import Battle, SideState, Player, TurnAction, TargetScope
 from puchamon.modules.battle.domain.entities.battle_instance import BattleInstance, StatStages
 from puchamon.modules.battle.domain.runtime.context import BattleStrategyContext, ActionExecutionInput
@@ -61,8 +61,8 @@ def test_protect_blocks_protectable_move(move_action_strategy, move_registry, co
         turn=1,
         status="active",
         sides={
-            "t1": SideState(hazards=[], active_pokemon_instance_ids=["p1"]),
-            "t2": SideState(hazards=[], active_pokemon_instance_ids=["p2"]),
+            "t1": SideState(active_pokemon_instance_ids=["p1"]),
+            "t2": SideState(active_pokemon_instance_ids=["p2"]),
         },
         players=[Player(trainer_id="t1", name="P1", controller_type="human"), Player(trainer_id="t2", name="P2", controller_type="human")],
         current_turn_actions=[],
@@ -131,8 +131,8 @@ def test_protect_allows_unprotectable_move(move_action_strategy, move_registry, 
         turn=1,
         status="active",
         sides={
-            "t1": SideState(hazards=[], active_pokemon_instance_ids=["p1"]),
-            "t2": SideState(hazards=[], active_pokemon_instance_ids=["p2"]),
+            "t1": SideState(active_pokemon_instance_ids=["p1"]),
+            "t2": SideState(active_pokemon_instance_ids=["p2"]),
         },
         players=[Player(trainer_id="t1", name="P1", controller_type="human"), Player(trainer_id="t2", name="P2", controller_type="human")],
         current_turn_actions=[],
@@ -184,18 +184,13 @@ def test_protect_allows_unprotectable_move(move_action_strategy, move_registry, 
         conditions={"protect": protect_condition},
     )
 
-    # Just mock calculate_accuracy to True so it doesn't fail there
-    import puchamon.modules.battle.domain.strategies.actions.move_action_strategy as mas
-
-    original_accuracy = mas.calculate_accuracy
-    mas.calculate_accuracy = lambda *args: True
-
-    try:
+    # Mock calculate_accuracy to True so it doesn't fail there
+    with patch("puchamon.modules.battle.domain.strategies.actions.move_action_strategy.calculate_accuracy", return_value=True):
         move_action_strategy.execute(context, execution)
-    finally:
-        mas.calculate_accuracy = original_accuracy
 
     # Assertions
     events = context.events
-    assert not any(e.kind == "move_blocked" for e in events), "Expected no 'move_blocked' event for an unprotectable move"
+    assert all(
+        e.kind != "move_blocked" for e in events
+    ), "Expected no 'move_blocked' event for an unprotectable move"
     assert any(e.kind == "move_used" for e in events)

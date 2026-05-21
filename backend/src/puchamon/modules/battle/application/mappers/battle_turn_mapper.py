@@ -112,16 +112,15 @@ def map_context_to_turn_dto(
     turn: int | None = None,
 ) -> BattleTurnDTO:
     """Map BattleStrategyContext and related data to BattleTurnDTO."""
-    event_order = 0
-    events: list[BattleTurnEventDTO] = []
-    for event in context.events:
-        events.append(to_battle_turn_event_dto(event, event_order))
-        event_order += 1
-
+    events: list[BattleTurnEventDTO] = [
+        to_battle_turn_event_dto(event, event_order)
+        for event_order, event in enumerate(context.events)
+    ]
     executed_dtos: list[ExecutedTurnActionDTO] = []
-    for order, action in enumerate(executed_actions, start=1):
-        executed_dtos.append(to_executed_action_dto(action, order))
-
+    executed_dtos.extend(
+        to_executed_action_dto(action, order)
+        for order, action in enumerate(executed_actions, start=1)
+    )
     declared_dtos: list[DeclaredTurnActionDTO] = [
         to_declared_action_dto(action) for action in declared_actions
     ]

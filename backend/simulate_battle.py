@@ -1,3 +1,5 @@
+"""Script to simulate a battle turn for testing purposes."""
+
 import asyncio
 
 from loguru import logger
@@ -18,6 +20,7 @@ from puchamon.shared.infrastructure.database import init_db
 
 
 async def simulate():
+    """Simulate a single battle turn with random pokemon and human/AI players."""
     await init_db()
     logger.info("Database initialized.")
 

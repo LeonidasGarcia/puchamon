@@ -37,8 +37,6 @@ class _ResolveTurnParams:
     conditions: dict[str, "Condition"]
     move_effects: dict[str, "MoveEffect"]
     type_chart: dict[str, "Type"]
-    move_effects: dict[str, "MoveEffect"]
-    type_chart: dict[str, "Type"]
 
 
 class TurnResolutionService:
@@ -70,9 +68,16 @@ class TurnResolutionService:
         self._resolve_switches(context, params.actions)
 
         ordered_actions = self._sort_actions(context, params.actions, params.movements, params.conditions)
-        move_names = [
-            (a.user_instance_id, params.movements.get(a.move_id).name if params.movements.get(a.move_id) else a.move_id) for a in ordered_actions
-        ]
+
+        move_names: list[tuple[str, str]] = []
+        for a in ordered_actions:
+            if move_id := a.move_id:
+                m = params.movements.get(move_id)
+                name = m.name if m else move_id
+            else:
+                name = "unknown"
+            move_names.append((a.user_instance_id, name))
+
         logger.debug(f"[SORT] Ordered actions: {move_names}")
 
         self._execute_actions(context, ordered_actions, params.movements, params.move_effects, params.conditions)
@@ -92,6 +97,7 @@ class TurnResolutionService:
             strategy = self._action_registry.get("switch")
             execution = ActionExecutionInput(action=action, replacement_instance_id=action.replacement_instance_id)
             strategy.execute(context, execution)
+
     def _sort_actions(
         self,
         context: BattleStrategyContext,
@@ -109,7 +115,8 @@ class TurnResolutionService:
         move_actions = [a for a in actions if a.type == "move"]
 
         def get_action_priority_and_speed(action: TurnAction) -> tuple[int, int, float]:
-            movement = movements.get(action.move_id) if action.move_id else None
+            move_id = action.move_id
+            movement = movements.get(move_id) if move_id else None
             priority = movement.priority if movement else 0
 
             instance = context.get_instance(action.user_instance_id)
@@ -133,7 +140,7 @@ class TurnResolutionService:
                             execution = ConditionEffectExecutionInput(
                                 condition=condition,
                                 effect=effect,
-                                holder_instance_id=instance.id,
+                                holder_instance_id=str(instance.id),
                                 source_instance_id=None,
                                 target_instance_id=None,
                                 movement=None,
@@ -148,6 +155,7 @@ class TurnResolutionService:
             return (priority, effective_speed, random.random())
 
         return sorted(move_actions, key=get_action_priority_and_speed, reverse=True)
+
     def _execute_actions(
         self,
         context: BattleStrategyContext,
@@ -177,7 +185,8 @@ class TurnResolutionService:
                 # The strategy handles this internally, but it's good to keep the flow clear.
                 pass
 
-            movement = movements.get(action.move_id) if action.move_id else None
+            move_id = action.move_id
+            movement = movements.get(move_id) if move_id else None
             if not movement:
                 logger.debug(f"Movement not found for {action.move_id}")
                 continue
@@ -220,7 +229,7 @@ class TurnResolutionService:
                     ),
                     None,
                 ):
-                    execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=instance.id)
+                    execution = ConditionEffectExecutionInput(condition=status_condition, effect=effect, holder_instance_id=str(instance.id))
                     strategy.apply(context, execution)
 
     def _cleanup_volatile_statuses(self, context: BattleStrategyContext) -> None:
@@ -239,20 +248,12 @@ class TurnResolutionService:
                 context.add_event(
                     kind="volatile_status_expired",
                     message=f"{instance.pokemon_id}'s {', '.join(expired)} wore off!",
-                    target_instance_id=instance.id,
+                    target_instance_id=str(instance.id),
                     volatile_status=expired,
                 )
 
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
         """Increment the turn counter, update durations, and check for victory."""
-        needs_replacement = next(
-            (
-                True
-                for side in context.battle.sides.values()
-                if any(slot is None for slot in side.active_pokemon_instance_ids)
-            ),
-            False,
-        )
         # 2. Cleanup volatile statuses that expire at end of turn
         self._cleanup_volatile_statuses(context)
 
