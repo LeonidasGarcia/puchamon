@@ -7,7 +7,7 @@ from puchamon.modules.battle.domain import (
     build_battle_stats,
 )
 from puchamon.modules.battle.domain.entities import Battle, BattleInstance, BattleStats, Player, SideState, StatStages
-from puchamon.modules.battle.domain.mechanics import calculate_damage, resolve_damage_roll_percent
+from puchamon.modules.battle.domain.mechanics import DamageCalculationInput, calculate_damage, resolve_damage_roll_percent
 from puchamon.modules.battle.domain.runtime import BattleStrategyContext, MoveEffectExecutionInput
 from puchamon.modules.battle.domain.strategies.effects.damage_effect_strategy import DamageEffectStrategy
 from puchamon.modules.pokedex.domain.entities import MoveEffect, Movement, Moveset, Pokemon
@@ -172,20 +172,24 @@ def test_calculate_damage_applies_stab_and_deterministic_multi_hit() -> None:
     )
 
     max_damage = calculate_damage(
-        movement=movement,
-        payload=DamagePayload(hits=RandomRange(mode="random_range", min=2, max=5)),
-        source_instance=source_instance,
-        target_instance=target_instance,
-        damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
-        type_chart={},
+        DamageCalculationInput(
+            movement=movement,
+            payload=DamagePayload(hits=RandomRange(mode="random_range", min=2, max=5)),
+            source=source_instance,
+            target=target_instance,
+            roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+            type_chart={},
+        )
     )
     min_damage = calculate_damage(
-        movement=movement,
-        payload=DamagePayload(hits=RandomRange(mode="random_range", min=2, max=5)),
-        source_instance=source_instance,
-        target_instance=target_instance,
-        damage_roll_percent=MIN_DAMAGE_ROLL_PERCENT,
-        type_chart={},
+        DamageCalculationInput(
+            movement=movement,
+            payload=DamagePayload(hits=RandomRange(mode="random_range", min=2, max=5)),
+            source=source_instance,
+            target=target_instance,
+            roll_percent=MIN_DAMAGE_ROLL_PERCENT,
+            type_chart={},
+        )
     )
 
     assert max_damage == 260
@@ -252,20 +256,24 @@ def test_calculate_damage_respects_target_defense_override() -> None:
     )
 
     regular_damage = calculate_damage(
-        movement=movement,
-        payload=DamagePayload(hits=1),
-        source_instance=source_instance,
-        target_instance=target_instance,
-        damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
-        type_chart={},
+        DamageCalculationInput(
+            movement=movement,
+            payload=DamagePayload(hits=1),
+            source=source_instance,
+            target=target_instance,
+            roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+            type_chart={},
+        )
     )
     override_damage = calculate_damage(
-        movement=movement,
-        payload=DamagePayload(hits=1, use_target_defense_stat="def"),
-        source_instance=source_instance,
-        target_instance=target_instance,
-        damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
-        type_chart={},
+        DamageCalculationInput(
+            movement=movement,
+            payload=DamagePayload(hits=1, use_target_defense_stat="def"),
+            source=source_instance,
+            target=target_instance,
+            roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+            type_chart={},
+        )
     )
 
     assert regular_damage > override_damage
@@ -323,12 +331,14 @@ def test_damage_effect_strategy_uses_calculated_damage_from_instance_stats() -> 
     payload = DamagePayload(hits=1)
     effect = MoveEffect.model_construct(id="effect-damage", kind="damage", target="target", chance=100, order=1, payload=payload)
     expected_damage = calculate_damage(
-        movement=movement,
-        payload=payload,
-        source_instance=source_instance,
-        target_instance=target_instance,
-        damage_roll_percent=MAX_DAMAGE_ROLL_PERCENT,
-        type_chart={},
+        DamageCalculationInput(
+            movement=movement,
+            payload=payload,
+            source=source_instance,
+            target=target_instance,
+            roll_percent=MAX_DAMAGE_ROLL_PERCENT,
+            type_chart={},
+        )
     )
     context = BattleStrategyContext(
         battle=_build_battle(source_instance_id="source-instance", target_instance_id="target-instance"),

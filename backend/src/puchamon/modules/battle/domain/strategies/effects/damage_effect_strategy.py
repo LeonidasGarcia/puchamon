@@ -4,7 +4,13 @@ from loguru import logger
 
 from .....pokedex.domain.entities.effects import DamagePayload
 from ...exceptions import BattleValidationError
-from ...mechanics import calculate_damage, faint_instance, resolve_damage_hit_count, resolve_damage_roll_percent
+from ...mechanics import (
+    DamageCalculationInput,
+    calculate_damage,
+    faint_instance,
+    resolve_damage_hit_count,
+    resolve_damage_roll_percent,
+)
 from ...runtime import BattleStrategyContext, MoveEffectExecutionInput
 from ...utils import format_pokemon_name
 from .pending import PendingMoveEffectStrategy
@@ -66,12 +72,14 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
             elif source_instance.stats is not None and target_instance.stats is not None:
                 damage_roll_percent = resolve_damage_roll_percent(configured_damage_roll_percent)
                 total_damage = calculate_damage(
-                    movement=execution.movement,
-                    payload=payload,
-                    source_instance=source_instance,
-                    target_instance=target_instance,
-                    damage_roll_percent=damage_roll_percent,
-                    type_chart=context.transient.get("type_chart", {}),
+                    DamageCalculationInput(
+                        movement=execution.movement,
+                        payload=payload,
+                        source=source_instance,
+                        target=target_instance,
+                        roll_percent=damage_roll_percent,
+                        type_chart=context.transient.get("type_chart", {}),
+                    )
                 )
             else:
                 total_damage = max(1, execution.movement.power * hit_count)

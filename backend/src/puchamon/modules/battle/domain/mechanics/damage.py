@@ -9,6 +9,7 @@ from ....pokedex.domain.entities.effects import DamagePayload, RandomRange
 from ..entities import BattleInstance
 from ..exceptions import BattleValidationError
 from ..rules import MAX_DAMAGE_ROLL_PERCENT, MIN_DAMAGE_ROLL_PERCENT
+from ..runtime import DamageCalculationInput
 
 if TYPE_CHECKING:
     from ....pokedex.domain.entities import Type
@@ -116,16 +117,15 @@ def calculate_type_effectiveness(movement_type: str, target_types: list[str], ty
     return effectiveness
 
 
-def calculate_damage(  # noqa: PLR0913
-    *,
-    movement: Movement,
-    payload: DamagePayload,
-    source_instance: BattleInstance,
-    target_instance: BattleInstance,
-    damage_roll_percent: int,
-    type_chart: dict[str, "Type"],
-) -> int:
+def calculate_damage(input_data: DamageCalculationInput) -> int:
     """Calculate deterministic damage for a resolved source, target and movement."""
+    movement = input_data.movement
+    payload = input_data.payload
+    source_instance = input_data.source
+    target_instance = input_data.target
+    damage_roll_percent = input_data.roll_percent
+    type_chart = input_data.type_chart
+
     attack_stat_key = _resolve_attack_stat_key(movement)
     defense_stat_key = _resolve_defense_stat_key(movement, payload)
 

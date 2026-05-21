@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from ....pokedex.domain.entities import Condition, MoveEffect, Movement
 from ....pokedex.domain.entities.conditions import ConditionEffect
+from ....pokedex.domain.entities.effects import DamagePayload
 from ..entities import Battle, BattleInstance, TurnAction
 from ..exceptions import BattleValidationError
 
 if TYPE_CHECKING:
+    from ....pokedex.domain.entities import Type
     from ..registries import MoveEffectStrategyRegistry
 
 
@@ -23,6 +25,18 @@ StrategyHook = Literal[
     "end_turn",
     "on_expire",
 ]
+
+
+@dataclass(slots=True)
+class DamageCalculationInput:
+    """Parameters for calculating move damage."""
+
+    movement: Movement
+    payload: DamagePayload
+    source: BattleInstance
+    target: BattleInstance
+    roll_percent: int
+    type_chart: dict[str, "Type"]
 
 
 @dataclass(slots=True)
