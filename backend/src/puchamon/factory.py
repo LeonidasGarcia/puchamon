@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .core.domain import AppError
-from .modules.battle.api.websocket import router as websocket_router
+from .modules.battle.api import websocket_router
 from .shared.api import (
     LoguruMiddleware,
     app_error_handler,
