@@ -211,7 +211,7 @@ const DATA = {
   conditions: [
     {
       _id: "burn",
-      name: "Burn",
+      name: "Quemado",
       category: "major",
       defaultDuration: null,
       effects: [
@@ -221,14 +221,14 @@ const DATA = {
     },
     {
       _id: "poison",
-      name: "Poison",
+      name: "Envenenado",
       category: "major",
       defaultDuration: null,
       effects: [{ kind: "end_turn_damage", payload: { ratio: 0.125 } }],
     },
     {
       _id: "toxic",
-      name: "Badly Poisoned",
+      name: "Gravemente Envenenado",
       category: "major",
       defaultDuration: null,
       effects: [
@@ -237,7 +237,7 @@ const DATA = {
     },
     {
       _id: "paralysis",
-      name: "Paralysis",
+      name: "Paralizado",
       category: "major",
       defaultDuration: null,
       effects: [
@@ -247,35 +247,35 @@ const DATA = {
     },
     {
       _id: "sleep",
-      name: "Sleep",
+      name: "Dormido",
       category: "major",
       defaultDuration: null,
       effects: [{ kind: "cannot_move", payload: {} }],
     },
     {
       _id: "freeze",
-      name: "Freeze",
+      name: "Congelado",
       category: "major",
       defaultDuration: null,
       effects: [{ kind: "cannot_move", payload: {} }],
     },
     {
       _id: "confusion",
-      name: "Confusion",
+      name: "Confundido",
       category: "volatile",
       defaultDuration: null,
       effects: [{ kind: "self_hit_chance", payload: { chance: 33 } }],
     },
     {
       _id: "flinch",
-      name: "Flinch",
+      name: "Aturdido",
       category: "volatile",
       defaultDuration: 1,
       effects: [{ kind: "skip_action", payload: {} }],
     },
     {
       _id: "protect",
-      name: "Protect",
+      name: "Protegido",
       category: "volatile",
       defaultDuration: 1,
       effects: [{ kind: "block_protectable_moves", payload: {} }],
@@ -495,7 +495,7 @@ const DATA = {
   moves: [
     {
       _id: "stone-edge",
-      name: "Stone Edge",
+      name: "Roca Afilada",
       type: "Rock",
       category: "Physical",
       power: 100,
@@ -509,7 +509,7 @@ const DATA = {
     },
     {
       _id: "crunch",
-      name: "Crunch",
+      name: "Triturar",
       type: "Dark",
       category: "Physical",
       power: 80,
@@ -523,7 +523,7 @@ const DATA = {
     },
     {
       _id: "earthquake",
-      name: "Earthquake",
+      name: "Terremoto",
       type: "Ground",
       category: "Physical",
       power: 100,
@@ -537,7 +537,7 @@ const DATA = {
     },
     {
       _id: "flash-cannon",
-      name: "Flash Cannon",
+      name: "Foco Resplandor",
       type: "Steel",
       category: "Special",
       power: 80,
@@ -551,7 +551,7 @@ const DATA = {
     },
     {
       _id: "ice-beam",
-      name: "Ice Beam",
+      name: "Rayo Hielo",
       type: "Ice",
       category: "Special",
       power: 95,
@@ -565,7 +565,7 @@ const DATA = {
     },
     {
       _id: "scald",
-      name: "Scald",
+      name: "Escaldar",
       type: "Water",
       category: "Special",
       power: 80,
@@ -579,7 +579,7 @@ const DATA = {
     },
     {
       _id: "toxic",
-      name: "Toxic",
+      name: "Toxico",
       type: "Poison",
       category: "Status",
       power: null,
@@ -593,7 +593,7 @@ const DATA = {
     },
     {
       _id: "protect",
-      name: "Protect",
+      name: "Protección",
       type: "Normal",
       category: "Status",
       power: null,
@@ -607,7 +607,7 @@ const DATA = {
     },
     {
       _id: "hydro-pump",
-      name: "Hydro Pump",
+      name: "Hidro Bomba",
       type: "Water",
       category: "Special",
       power: 120,
@@ -621,7 +621,7 @@ const DATA = {
     },
     {
       _id: "focus-blast",
-      name: "Focus Blast",
+      name: "Onda Certera",
       type: "Fighting",
       category: "Special",
       power: 120,
@@ -635,7 +635,7 @@ const DATA = {
     },
     {
       _id: "power-whip",
-      name: "Power Whip",
+      name: "Latigazo",
       type: "Grass",
       category: "Physical",
       power: 120,
@@ -649,7 +649,7 @@ const DATA = {
     },
     {
       _id: "iron-head",
-      name: "Iron Head",
+      name: "Cabeza de Hierro",
       type: "Steel",
       category: "Physical",
       power: 80,
@@ -663,7 +663,7 @@ const DATA = {
     },
     {
       _id: "thunder-wave",
-      name: "Thunder Wave",
+      name: "Onda Trueno",
       type: "Electric",
       category: "Status",
       power: null,
@@ -677,7 +677,7 @@ const DATA = {
     },
     {
       _id: "draco-meteor",
-      name: "Draco Meteor",
+      name: "Cometa Draco",
       type: "Dragon",
       category: "Special",
       power: 140,
@@ -691,7 +691,7 @@ const DATA = {
     },
     {
       _id: "psyshock",
-      name: "Psyshock",
+      name: "Psicocarga",
       type: "Psychic",
       category: "Special",
       power: 80,
@@ -719,7 +719,7 @@ const DATA = {
     },
     {
       _id: "rapid-spin",
-      name: "Rapid Spin",
+      name: "Giro Rápido",
       type: "Normal",
       category: "Physical",
       power: 20,
@@ -733,7 +733,7 @@ const DATA = {
     },
     {
       _id: "thunderbolt",
-      name: "Thunderbolt",
+      name: "Rayo",
       type: "Electric",
       category: "Special",
       power: 95,
@@ -747,7 +747,7 @@ const DATA = {
     },
     {
       _id: "recover",
-      name: "Recover",
+      name: "Recuperación",
       type: "Normal",
       category: "Status",
       power: null,
@@ -761,7 +761,7 @@ const DATA = {
     },
     {
       _id: "x-scissor",
-      name: "X-Scissor",
+      name: "Tijera-X",
       type: "Bug",
       category: "Physical",
       power: 80,
@@ -775,7 +775,7 @@ const DATA = {
     },
     {
       _id: "fire-punch",
-      name: "Fire Punch",
+      name: "Puño Fuego",
       type: "Fire",
       category: "Physical",
       power: 75,
@@ -789,7 +789,7 @@ const DATA = {
     },
     {
       _id: "will-o-wisp",
-      name: "Will-O-Wisp",
+      name: "Fuego Fatuo",
       type: "Fire",
       category: "Status",
       power: null,
@@ -803,7 +803,7 @@ const DATA = {
     },
     {
       _id: "mach-punch",
-      name: "Mach Punch",
+      name: "Ultrapuño",
       type: "Fighting",
       category: "Physical",
       power: 40,
@@ -817,7 +817,7 @@ const DATA = {
     },
     {
       _id: "bullet-seed",
-      name: "Bullet Seed",
+      name: "Bala Semilla",
       type: "Grass",
       category: "Physical",
       power: 25,
@@ -831,7 +831,7 @@ const DATA = {
     },
     {
       _id: "swords-dance",
-      name: "Swords Dance",
+      name: "Danza Espada",
       type: "Normal",
       category: "Status",
       power: null,
@@ -845,7 +845,7 @@ const DATA = {
     },
     {
       _id: "low-sweep",
-      name: "Low Sweep",
+      name: "Puntapié",
       type: "Fighting",
       category: "Physical",
       power: 65,
@@ -859,7 +859,7 @@ const DATA = {
     },
     {
       _id: "seed-bomb",
-      name: "Seed Bomb",
+      name: "Bomba Germen",
       type: "Grass",
       category: "Physical",
       power: 80,
@@ -873,7 +873,7 @@ const DATA = {
     },
     {
       _id: "lava-plume",
-      name: "Lava Plume",
+      name: "Humareda",
       type: "Fire",
       category: "Special",
       power: 80,
@@ -887,7 +887,7 @@ const DATA = {
     },
     {
       _id: "secret-sword",
-      name: "Secret Sword",
+      name: "Sable Místico",
       type: "Fighting",
       category: "Special",
       power: 85,
@@ -901,7 +901,7 @@ const DATA = {
     },
     {
       _id: "hidden-power-ice",
-      name: "Hidden Power Ice",
+      name: "Poder Oculto",
       type: "Ice",
       category: "Special",
       power: 70,
@@ -915,7 +915,7 @@ const DATA = {
     },
     {
       _id: "calm-mind",
-      name: "Calm Mind",
+      name: "Paz Mental",
       type: "Psychic",
       category: "Status",
       power: null,
@@ -929,7 +929,7 @@ const DATA = {
     },
     {
       _id: "spore",
-      name: "Spore",
+      name: "Espora",
       type: "Grass",
       category: "Status",
       power: null,
@@ -943,7 +943,7 @@ const DATA = {
     },
     {
       _id: "icy-wind",
-      name: "Icy Wind",
+      name: "Viento Helado",
       type: "Ice",
       category: "Special",
       power: 55,
@@ -957,7 +957,7 @@ const DATA = {
     },
     {
       _id: "shadow-ball",
-      name: "Shadow Ball",
+      name: "Bola Sombra",
       type: "Ghost",
       category: "Special",
       power: 80,
@@ -971,7 +971,7 @@ const DATA = {
     },
     {
       _id: "earth-power",
-      name: "Earth Power",
+      name: "Tierra Viva",
       type: "Ground",
       category: "Special",
       power: 90,
@@ -985,7 +985,7 @@ const DATA = {
     },
     {
       _id: "dragon-dance",
-      name: "Dragon Dance",
+      name: "Danza Dragón",
       type: "Dragon",
       category: "Status",
       power: null,
@@ -999,7 +999,7 @@ const DATA = {
     },
     {
       _id: "ice-punch",
-      name: "Ice Punch",
+      name: "Puño Hielo",
       type: "Ice",
       category: "Physical",
       power: 75,
@@ -1013,7 +1013,7 @@ const DATA = {
     },
     {
       _id: "blaze-kick",
-      name: "Blaze Kick",
+      name: "Patada Ígnea",
       type: "Fire",
       category: "Physical",
       power: 85,
@@ -1027,7 +1027,7 @@ const DATA = {
     },
     {
       _id: "curse",
-      name: "Curse",
+      name: "Maldición",
       type: "Ghost",
       category: "Status",
       power: null,
