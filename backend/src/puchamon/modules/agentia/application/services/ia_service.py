@@ -1,5 +1,6 @@
 """Service for handling IA-related logic."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -12,13 +13,16 @@ from ....battle.domain.entities import (
     TargetScope,
     TurnAction,
 )
-from ...domain.move_selectors import GreedyHPMoveSelector, MoveSelector, RandomMoveSelector
+from ...domain.heuristics import evaluate_level_2, evaluate_level_3
+from ...domain.move_selectors import MinimaxMoveSelector, MoveSelector, RandomMoveSelector
 from ...domain.switch_selectors import BestHPSwitchSelector, RandomSwitchSelector, SwitchSelector
 
 AIDifficultyLevel = Literal[1, 2, 3]
 AI_LEVEL_EASY = 1
 AI_LEVEL_MEDIUM = 2
 AI_LEVEL_HARD = 3
+
+DEFAULT_MINIMAX_DEPTH = 3
 
 
 @dataclass
@@ -97,7 +101,7 @@ class IAService:
         Args:
             player: The AI player entity.
             active_instance: The active BattleInstance.
-            ai_level: AI difficulty level (1=easy, 2=medium).
+            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
             context: Context for move selection (battle state, instances, movements).
 
         Returns:
@@ -111,8 +115,26 @@ class IAService:
         selector: MoveSelector
         if ai_level == AI_LEVEL_EASY or not context.battle or not context.instances:
             selector = RandomMoveSelector()
+        elif ai_level == AI_LEVEL_MEDIUM:
+            heuristic_func: Callable[[Battle, dict[str, BattleInstance], str], float] = evaluate_level_2
+            selector = MinimaxMoveSelector(
+                context.battle,
+                context.instances,
+                player.trainer_id,
+                context.movements,
+                DEFAULT_MINIMAX_DEPTH,
+                heuristic_func,
+            )
         else:
-            selector = GreedyHPMoveSelector(context.battle, context.instances, context.movements)
+            heuristic_func = evaluate_level_3
+            selector = MinimaxMoveSelector(
+                context.battle,
+                context.instances,
+                player.trainer_id,
+                context.movements,
+                DEFAULT_MINIMAX_DEPTH,
+                heuristic_func,
+            )
         move_id = selector.select(available_moves)
 
         if move_id is None:
@@ -143,7 +165,7 @@ class IAService:
             player: The AI player entity.
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
-            ai_level: AI difficulty level (1=easy, 2=medium).
+            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
 
         Returns:
             A TurnAction with type="switch" or None if no replacements available.
