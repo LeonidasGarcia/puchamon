@@ -16,6 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
+ai-real-benchmark = "puchamon.modules.agentia.domain.seeded_battle_benchmark:main"
 start = "puchamon.main:main"
 
 [build-system]

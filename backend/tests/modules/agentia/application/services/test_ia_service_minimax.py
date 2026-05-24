@@ -340,6 +340,66 @@ class TestIAServiceLevel1Regression:
         assert action.player == "trainer_ai"
 
 
+class TestIAServiceReplacementActions:
+    """Tests for forced replacement actions in awaiting_replacements phase."""
+
+    @pytest.mark.asyncio
+    async def test_generate_switch_action_replaces_empty_slot(self):
+        active = make_instance("p1", "trainer_ai", 100, 100)
+        replacement = make_instance("p2", "trainer_ai", 80, 100, slot=None)
+        opponent = make_instance("p3", "opponent", 100, 100)
+
+        battle = Battle.model_construct(
+            id="b1",
+            battle_type="2v2",
+            turn=4,
+            status="active",
+            phase="awaiting_replacements",
+            sides={
+                "trainer_ai": SideState(active_pokemon_instance_ids=["p1", None]),
+                "opponent": SideState(active_pokemon_instance_ids=["p3"]),
+            },
+            players=[Player(trainer_id="trainer_ai", name="AI Trainer", controller_type="ai", ai_level=1)],
+            current_turn_actions=[],
+        )
+
+        action = await IAService().generate_switch_action(
+            player=battle.players[0],
+            battle=battle,
+            instances={"p1": active, "p2": replacement, "p3": opponent},
+        )
+
+        assert action is not None
+        assert action.type == "switch"
+        assert action.player == "trainer_ai"
+        assert action.user_instance_id == ""
+        assert action.replacement_instance_id == "p2"
+
+    @pytest.mark.asyncio
+    async def test_generate_switch_action_returns_none_without_empty_slot(self):
+        active = make_instance("p1", "trainer_ai", 100, 100)
+        replacement = make_instance("p2", "trainer_ai", 80, 100, slot=None)
+
+        battle = Battle.model_construct(
+            id="b1",
+            battle_type="2v2",
+            turn=4,
+            status="active",
+            phase="awaiting_replacements",
+            sides={"trainer_ai": SideState(active_pokemon_instance_ids=["p1"])},
+            players=[Player(trainer_id="trainer_ai", name="AI Trainer", controller_type="ai", ai_level=1)],
+            current_turn_actions=[],
+        )
+
+        action = await IAService().generate_switch_action(
+            player=battle.players[0],
+            battle=battle,
+            instances={"p1": active, "p2": replacement},
+        )
+
+        assert action is None
+
+
 class TestIAServiceMinimaxIntegration:
     """Tests verifying Minimax is properly integrated with IAService."""
 

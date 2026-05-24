@@ -301,7 +301,7 @@ class TestEvaluateLevel3:
 
         assert -0.2 < score < 0.2
 
-    def test_player_status_advantage_increases_score(self):
+    def test_player_status_penalty_decreases_score(self):
         p1 = make_instance("p1", "player", 50, 100, status="burn")
         p2 = make_instance("p2", "opponent", 50, 100)
 
@@ -322,9 +322,9 @@ class TestEvaluateLevel3:
 
         score = evaluate_level_3(battle, instances, "player")
 
-        assert score > 0.0
+        assert score < 0.0
 
-    def test_opponent_status_advantage_decreases_score(self):
+    def test_opponent_status_penalty_increases_score(self):
         p1 = make_instance("p1", "player", 50, 100)
         p2 = make_instance("p2", "opponent", 50, 100, status="poison")
 
@@ -345,7 +345,7 @@ class TestEvaluateLevel3:
 
         score = evaluate_level_3(battle, instances, "player")
 
-        assert score < 0.0
+        assert score > 0.0
 
     def test_moreAlive_pokemon_increases_score(self):
         p1 = make_instance("p1", "player", 50, 100)
@@ -372,7 +372,7 @@ class TestEvaluateLevel3:
 
         assert score > 0.0
 
-    def test_score_is_bounded_between_minus_one_and_one(self):
+    def test_score_uses_ga_optimized_scale(self):
         p1 = make_instance("p1", "player", 100, 100)
         p2 = make_instance("p2", "opponent", 0, 100)
 
@@ -393,4 +393,4 @@ class TestEvaluateLevel3:
 
         score = evaluate_level_3(battle, instances, "player")
 
-        assert -1.0 <= score <= 1.0
+        assert 0.0 < score <= 1.0

@@ -6,9 +6,9 @@ from secrets import choice
 from typing import Literal
 
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import Movement
+from ...pokedex.domain.entities import Movement, Type
 from .action_utils import get_available_actions, get_opponent_trainer_id
-from .heuristics import evaluate_level_2, evaluate_level_3
+from .heuristics import evaluate_level_2, evaluate_level_3, evaluate_level_3_weighted
 from .minimax import minimax
 from .state_simulator import simulate_state_transition
 
@@ -32,6 +32,7 @@ class ActionSelector(ABC):
         instances: dict[str, BattleInstance],
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, Type] | None = None,
     ) -> Action | None:
         """Select an action (move or switch) from available options.
 
@@ -58,9 +59,10 @@ class RandomActionSelector(ActionSelector):
         instances: dict[str, BattleInstance],
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, Type] | None = None,
     ) -> Action | None:
         """Select an unpredictable action from available moves and switches."""
-        del movements
+        del movements, type_chart
 
         actions = get_available_actions(battle, instances, trainer_id)
         if not actions:
@@ -84,10 +86,28 @@ class MinimaxActionSelector(ActionSelector):
         self,
         ai_level: AIDifficultyLevel,
         depth: int = DEFAULT_MINIMAX_DEPTH,
+        level_3_weights: Mapping[str, float] | None = None,
     ):
         self.ai_level = ai_level
         self.depth = depth
-        self.heuristic_func = evaluate_level_2 if ai_level == AI_LEVEL_MEDIUM else evaluate_level_3
+        self.level_3_weights = level_3_weights
+        if ai_level == AI_LEVEL_MEDIUM:
+            self.heuristic_func = evaluate_level_2
+        elif level_3_weights is None:
+            self.heuristic_func = evaluate_level_3
+        else:
+
+            def weighted_level_3(battle_state, battle_instances, player_trainer_id, movements=None, type_chart=None):
+                return evaluate_level_3_weighted(
+                    battle_state,
+                    battle_instances,
+                    player_trainer_id,
+                    movements=movements,
+                    type_chart=type_chart,
+                    weights=level_3_weights,
+                )
+
+            self.heuristic_func = weighted_level_3
 
     def select(
         self,
@@ -95,6 +115,7 @@ class MinimaxActionSelector(ActionSelector):
         instances: dict[str, BattleInstance],
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, Type] | None = None,
     ) -> Action | None:
         """Select the best action using Minimax with Alpha-Beta pruning."""
         opponent_trainer_id = get_opponent_trainer_id(battle, trainer_id)
@@ -119,6 +140,7 @@ class MinimaxActionSelector(ActionSelector):
                 trainer_id,
                 opponent_trainer_id,
                 movements,
+                type_chart,
             )
             score = minimax(
                 next_battle,
@@ -130,6 +152,7 @@ class MinimaxActionSelector(ActionSelector):
                 False,
                 self.heuristic_func,
                 movements,
+                type_chart,
             )
             if score > best_score:
                 best_score = score

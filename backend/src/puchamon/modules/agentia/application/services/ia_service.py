@@ -1,5 +1,7 @@
 """Service for handling IA-related logic."""
 
+from collections.abc import Mapping
+
 from ....battle.domain.entities import (
     Battle,
     BattleInstance,
@@ -7,6 +9,7 @@ from ....battle.domain.entities import (
     TargetScope,
     TurnAction,
 )
+from ....pokedex.domain.entities import Type
 from ...domain.action_selectors import (
     AI_LEVEL_EASY,
     ActionSelector,
@@ -19,13 +22,51 @@ from ...domain.action_selectors import (
 class IAService:
     """Service class for generating AI actions in battles."""
 
-    async def generate_action(
+    async def generate_switch_action(
+        self,
+        player: Player,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
+    ) -> TurnAction | None:
+        """Generate a forced switch action for an AI player that needs a replacement."""
+        del ai_level
+
+        side = battle.sides.get(player.trainer_id)
+        if not side or all(slot is not None for slot in side.active_pokemon_instance_ids):
+            return None
+
+        active_ids = {instance_id for instance_id in side.active_pokemon_instance_ids if instance_id is not None}
+        replacement = next(
+            (
+                instance
+                for instance in sorted(instances.values(), key=lambda item: item.slot if isinstance(item.slot, int) else 999)
+                if instance.trainer_id == player.trainer_id
+                and str(instance.id) not in active_ids
+                and not instance.fainted
+                and instance.current_hp > 0
+            ),
+            None,
+        )
+        if replacement is None:
+            return None
+
+        return TurnAction(
+            player=player.trainer_id,
+            type="switch",
+            user_instance_id="",
+            replacement_instance_id=str(replacement.id),
+        )
+
+    async def generate_action(  # noqa: PLR0913
         self,
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
         movements: dict | None = None,
+        type_chart: Mapping[str, Type] | None = None,
+        level_3_weights: Mapping[str, float] | None = None,
     ) -> TurnAction | None:
         """Generate a TurnAction for an AI player.
 
@@ -35,6 +76,8 @@ class IAService:
             instances: Dict of battle instances keyed by ID.
             ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
             movements: Dict of Movement entities keyed by ID.
+            type_chart: Dict of Type entities keyed by ID.
+            level_3_weights: Optional chromosome weights used by GA training or benchmark evaluation.
 
         Returns:
             A TurnAction for the AI player or None if no actions available.
@@ -43,9 +86,9 @@ class IAService:
         if ai_level == AI_LEVEL_EASY:
             selector = RandomActionSelector()
         else:
-            selector = MinimaxActionSelector(ai_level)
+            selector = MinimaxActionSelector(ai_level, level_3_weights=level_3_weights)
 
-        action = selector.select(battle, instances, player.trainer_id, movements)
+        action = selector.select(battle, instances, player.trainer_id, movements, type_chart)
 
         if action is None:
             return None

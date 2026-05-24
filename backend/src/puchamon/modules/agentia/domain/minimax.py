@@ -96,6 +96,7 @@ def minimax(  # noqa: PLR0913
                 acting_trainer_id,
                 opposing_trainer_id,
                 movements,
+                type_chart,
             )
             eval_score = minimax(
                 next_battle,
@@ -124,6 +125,7 @@ def minimax(  # noqa: PLR0913
             acting_trainer_id,
             opposing_trainer_id,
             movements,
+            type_chart,
         )
         eval_score = minimax(
             next_battle,
