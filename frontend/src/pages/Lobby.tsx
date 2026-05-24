@@ -41,7 +41,10 @@ export default function Lobby() {
   };
 
   const isConfigValid =
-    name && controllerType && difficulty && battleType &&
+    name &&
+    controllerType &&
+    difficulty &&
+    battleType &&
     (controllerType === 'human' || ai2_difficulty);
 
   return (

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface ConnectionState {
   name: string | null;
@@ -14,26 +15,30 @@ interface ConnectionState {
   reset: () => void;
 }
 
-const initialState = {
-  name: null,
-  controllerType: null,
-  difficulty: null,
-  ai2_difficulty: null,
-  battleType: null,
-} as const;
-
-export const useConnectionStore = create<ConnectionState>((set) => ({
-  ...initialState,
-  setName: (name) => set({ name }),
-  setControllerType: (controllerType) => set({ controllerType }),
-  setDifficulty: (difficulty) => set({ difficulty }),
-  setAi2Difficulty: (ai2_difficulty) => set({ ai2_difficulty }),
-  setBattleType: (battleType) => set({ battleType }),
-  reset: () => set({
-    name: null,
-    controllerType: null,
-    difficulty: null,
-    ai2_difficulty: null,
-    battleType: null,
-  }),
-}));
+export const useConnectionStore = create<ConnectionState>()(
+  persist(
+    (set) => ({
+      name: null,
+      controllerType: null,
+      difficulty: null,
+      ai2_difficulty: null,
+      battleType: null,
+      setName: (name) => set({ name }),
+      setControllerType: (controllerType) => set({ controllerType }),
+      setDifficulty: (difficulty) => set({ difficulty }),
+      setAi2Difficulty: (ai2_difficulty) => set({ ai2_difficulty }),
+      setBattleType: (battleType) => set({ battleType }),
+      reset: () =>
+        set({
+          name: null,
+          controllerType: null,
+          difficulty: null,
+          ai2_difficulty: null,
+          battleType: null,
+        }),
+    }),
+    {
+      name: 'puchamon-connection',
+    },
+  ),
+);
