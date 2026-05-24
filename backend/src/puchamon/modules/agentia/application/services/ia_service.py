@@ -1,9 +1,6 @@
 """Service for handling IA-related logic."""
 
-from dataclasses import dataclass
-from typing import Literal
-
-from loguru import logger
+from collections.abc import Mapping
 
 from ....battle.domain.entities import (
     Battle,
@@ -12,123 +9,18 @@ from ....battle.domain.entities import (
     TargetScope,
     TurnAction,
 )
-from ...domain.move_selectors import GreedyHPMoveSelector, MoveSelector, RandomMoveSelector
-from ...domain.switch_selectors import BestHPSwitchSelector, RandomSwitchSelector, SwitchSelector
-
-AIDifficultyLevel = Literal[1, 2, 3]
-AI_LEVEL_EASY = 1
-AI_LEVEL_MEDIUM = 2
-AI_LEVEL_HARD = 3
-
-
-@dataclass
-class AIMoveContext:
-    """Context data required for AI move selection."""
-
-    battle: Battle | None = None
-    instances: dict[str, BattleInstance] | None = None
-    movements: dict | None = None
+from ....pokedex.domain.entities import Type
+from ...domain.action_selectors import (
+    AI_LEVEL_EASY,
+    ActionSelector,
+    AIDifficultyLevel,
+    MinimaxActionSelector,
+    RandomActionSelector,
+)
 
 
 class IAService:
     """Service class for generating AI actions in battles."""
-
-    async def generate_action(
-        self,
-        player: Player,
-        battle: Battle,
-        instances: dict[str, BattleInstance],
-        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        movements: dict | None = None,
-    ) -> TurnAction:
-        """Generate a TurnAction for an AI player.
-
-        Args:
-            player: The AI player entity.
-            battle: The current battle state.
-            instances: Dict of battle instances keyed by ID.
-            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
-            movements: Dict of Movement entities keyed by ID.
-
-        Returns:
-            A TurnAction for the AI player.
-        """
-        side = battle.sides.get(player.trainer_id)
-        if not side:
-            raise ValueError(f"Player {player.trainer_id} not found in battle sides")
-
-        active_ids = side.active_pokemon_instance_ids
-        active_instance_ids = [uid for uid in active_ids if uid is not None]
-
-        if not active_instance_ids:
-            switch_action = await self.generate_switch_action(player, battle, instances, ai_level)
-            if switch_action:
-                return switch_action
-            raise ValueError(f"Player {player.trainer_id} has no active pokemon and no replacements available")
-
-        active_instance = instances.get(active_instance_ids[0])
-        if not active_instance:
-            raise ValueError(f"Active instance {active_instance_ids[0]} not found")
-
-        if active_instance.fainted:
-            switch_action = await self.generate_switch_action(player, battle, instances, ai_level)
-            if switch_action:
-                return switch_action
-
-        move_action = await self.generate_move_action(player, active_instance, ai_level, AIMoveContext(battle, instances, movements))
-        if move_action:
-            return move_action
-
-        switch_action = await self.generate_switch_action(player, battle, instances, ai_level)
-        if switch_action:
-            return switch_action
-
-        raise ValueError("AI has no valid actions available")
-
-    async def generate_move_action(
-        self,
-        player: Player,
-        active_instance: BattleInstance,
-        ai_level: AIDifficultyLevel,
-        context: AIMoveContext,
-    ) -> TurnAction | None:
-        """Generate a move action for the AI.
-
-        Args:
-            player: The AI player entity.
-            active_instance: The active BattleInstance.
-            ai_level: AI difficulty level (1=easy, 2=medium).
-            context: Context for move selection (battle state, instances, movements).
-
-        Returns:
-            A TurnAction with type="move" or None if no moves available.
-        """
-        available_moves = [ms for ms in active_instance.move_state if ms.current_pp > 0]
-
-        if not available_moves:
-            return None
-
-        selector: MoveSelector
-        if ai_level == AI_LEVEL_EASY or not context.battle or not context.instances:
-            selector = RandomMoveSelector()
-        else:
-            selector = GreedyHPMoveSelector(context.battle, context.instances, context.movements)
-        move_id = selector.select(available_moves)
-
-        if move_id is None:
-            return None
-
-        return TurnAction(
-            player=player.trainer_id,
-            type="move",
-            user_instance_id=str(active_instance.id),
-            move_id=move_id,
-            target=TargetScope(
-                scope="target",
-                target_side="foe_side",
-                target_active_slot=0,
-            ),
-        )
 
     async def generate_switch_action(
         self,
@@ -137,42 +29,96 @@ class IAService:
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
     ) -> TurnAction | None:
-        """Generate a switch action for the AI.
+        """Generate a forced switch action for an AI player that needs a replacement."""
+        del ai_level
+
+        side = battle.sides.get(player.trainer_id)
+        if not side or all(slot is not None for slot in side.active_pokemon_instance_ids):
+            return None
+
+        active_ids = {instance_id for instance_id in side.active_pokemon_instance_ids if instance_id is not None}
+        replacement = next(
+            (
+                instance
+                for instance in sorted(instances.values(), key=lambda item: item.slot if isinstance(item.slot, int) else 999)
+                if instance.trainer_id == player.trainer_id
+                and str(instance.id) not in active_ids
+                and not instance.fainted
+                and instance.current_hp > 0
+            ),
+            None,
+        )
+        if replacement is None:
+            return None
+
+        return TurnAction(
+            player=player.trainer_id,
+            type="switch",
+            user_instance_id="",
+            replacement_instance_id=str(replacement.id),
+        )
+
+    async def generate_action(  # noqa: PLR0913
+        self,
+        player: Player,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
+        movements: dict | None = None,
+        type_chart: Mapping[str, Type] | None = None,
+        level_3_weights: Mapping[str, float] | None = None,
+    ) -> TurnAction | None:
+        """Generate a TurnAction for an AI player.
 
         Args:
             player: The AI player entity.
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
-            ai_level: AI difficulty level (1=easy, 2=medium).
+            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
+            movements: Dict of Movement entities keyed by ID.
+            type_chart: Dict of Type entities keyed by ID.
+            level_3_weights: Optional chromosome weights used by GA training or benchmark evaluation.
 
         Returns:
-            A TurnAction with type="switch" or None if no replacements available.
+            A TurnAction for the AI player or None if no actions available.
         """
-        side = battle.sides.get(player.trainer_id)
-        logger.info(f"[IA_SWITCH] Player '{player.trainer_id}' (AI level {ai_level}) requesting switch. Phase={battle.phase}")
-        if not side:
-            logger.warning(f"[IA_SWITCH] No side found for player {player.trainer_id}")
-            return None
-
-        selector: SwitchSelector
+        selector: ActionSelector
         if ai_level == AI_LEVEL_EASY:
-            selector = RandomSwitchSelector()
+            selector = RandomActionSelector()
         else:
-            selector = BestHPSwitchSelector()
+            selector = MinimaxActionSelector(ai_level, level_3_weights=level_3_weights)
 
-        replacement_id = selector.select(battle, instances, player.trainer_id)
-        logger.info(f"[IA_SWITCH] Selector {selector.__class__.__name__} returned: {replacement_id}")
+        action = selector.select(battle, instances, player.trainer_id, movements, type_chart)
 
-        if replacement_id is None:
-            logger.warning(f"[IA_SWITCH] No replacement available for {player.trainer_id}")
+        if action is None:
             return None
 
-        active_ids = {uid for uid in side.active_pokemon_instance_ids if uid is not None}
-        logger.info(f"[IA_SWITCH] Active IDs: {active_ids}")
+        action_type, action_id = action
 
-        return TurnAction(
-            player=player.trainer_id,
-            type="switch",
-            user_instance_id=str(next(iter(active_ids))) if active_ids else "",
-            replacement_instance_id=replacement_id,
-        )
+        if action_type == "MOVE":
+            side = battle.sides.get(player.trainer_id)
+            active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
+            active_instance_id = active_ids[0] if active_ids else None
+
+            return TurnAction(
+                player=player.trainer_id,
+                type="move",
+                user_instance_id=str(active_instance_id) if active_instance_id else "",
+                move_id=action_id,
+                target=TargetScope(
+                    scope="target",
+                    target_side="foe_side",
+                    target_active_slot=0,
+                ),
+            )
+        else:
+            side = battle.sides.get(player.trainer_id)
+            active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
+            active_instance_id = active_ids[0] if active_ids else None
+
+            return TurnAction(
+                player=player.trainer_id,
+                type="switch",
+                user_instance_id=str(active_instance_id) if active_instance_id else "",
+                replacement_instance_id=action_id,
+            )

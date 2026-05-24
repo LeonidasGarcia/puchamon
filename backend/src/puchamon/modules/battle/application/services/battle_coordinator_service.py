@@ -169,6 +169,7 @@ class BattleCoordinatorService:
             instances=instances,
             ai_level=player.ai_level or 1,
             movements=data["movements"],
+            type_chart=data["types"],
         )
 
     async def run_ai_vs_ai_loop(self, battle_id: str) -> list[dict[str, Any]]:
