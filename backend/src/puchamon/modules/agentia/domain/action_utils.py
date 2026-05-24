@@ -47,7 +47,7 @@ def get_available_actions(
 
     if active_instance_id:
         active_instance = instances.get(active_instance_id)
-        if active_instance and not active_instance.fainted:
+        if active_instance and not active_instance.fainted and active_instance.current_hp > 0:
             for ms in active_instance.move_state:
                 if ms.current_pp > 0:
                     actions.append(("MOVE", ms.move_id))
@@ -55,11 +55,9 @@ def get_available_actions(
     for instance in instances.values():
         if instance.trainer_id != trainer_id:
             continue
-        if instance.fainted:
+        if instance.fainted or instance.current_hp <= 0:
             continue
-        if active_instance_id and instance.id == active_instance_id:
-            continue
-        if instance.slot is not None:
+        if active_instance_id and str(instance.id) == active_instance_id:
             continue
         actions.append(("SWITCH", str(instance.id)))
 

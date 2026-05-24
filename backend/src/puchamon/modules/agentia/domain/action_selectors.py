@@ -1,15 +1,16 @@
 """Action selection strategies for AI."""
 
-import copy
-import random
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from secrets import choice
 from typing import Literal
 
 from ...battle.domain.entities import Battle, BattleInstance
+from ...pokedex.domain.entities import Movement
 from .action_utils import get_available_actions, get_opponent_trainer_id
 from .heuristics import evaluate_level_2, evaluate_level_3
 from .minimax import minimax
-from .state_simulator import simulate_action
+from .state_simulator import simulate_state_transition
 
 Action = tuple[str, str]
 
@@ -30,7 +31,7 @@ class ActionSelector(ABC):
         battle: Battle,
         instances: dict[str, BattleInstance],
         trainer_id: str,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
     ) -> Action | None:
         """Select an action (move or switch) from available options.
 
@@ -56,13 +57,15 @@ class RandomActionSelector(ActionSelector):
         battle: Battle,
         instances: dict[str, BattleInstance],
         trainer_id: str,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
     ) -> Action | None:
-        """Select a random action from available moves and switches."""
+        """Select an unpredictable action from available moves and switches."""
+        del movements
+
         actions = get_available_actions(battle, instances, trainer_id)
         if not actions:
             return None
-        return random.choice(actions)
+        return choice(actions)
 
 
 class MinimaxActionSelector(ActionSelector):
@@ -91,7 +94,7 @@ class MinimaxActionSelector(ActionSelector):
         battle: Battle,
         instances: dict[str, BattleInstance],
         trainer_id: str,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
     ) -> Action | None:
         """Select the best action using Minimax with Alpha-Beta pruning."""
         opponent_trainer_id = get_opponent_trainer_id(battle, trainer_id)
@@ -107,20 +110,21 @@ class MinimaxActionSelector(ActionSelector):
         alpha = float("-inf")
         beta = float("inf")
 
+        search_depth = max(0, self.depth - 1)
         for action in actions:
-            state_copy = simulate_action(
-                copy.deepcopy(battle),
-                copy.deepcopy(instances),
+            next_battle, next_instances = simulate_state_transition(
+                battle,
+                instances,
                 action,
                 trainer_id,
                 opponent_trainer_id,
                 movements,
             )
             score = minimax(
-                state_copy[0],
-                state_copy[1],
+                next_battle,
+                next_instances,
                 trainer_id,
-                self.depth - 1,
+                search_depth,
                 alpha,
                 beta,
                 False,
