@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useBattleNetworkStore } from '../stores/battleNetworkStore';
@@ -18,7 +19,17 @@ export default function Lobby() {
   } = useConnectionStore();
   const connect = useBattleNetworkStore((state) => state.connect);
 
+  useEffect(() => {
+    if (controllerType === null) setControllerType('human');
+    if (battleType === null) setBattleType('1v1');
+    if (difficulty === null) setDifficulty(1);
+    if (ai2_difficulty === null) setAi2Difficulty(1);
+  }, []);
+
   const handleStartBattle = () => {
+    if (!name || !controllerType || !difficulty || !battleType) return;
+    if (controllerType === 'ai' && !ai2_difficulty) return;
+
     connect({
       name,
       controller_type: controllerType,
@@ -28,6 +39,10 @@ export default function Lobby() {
     });
     navigate('/battle');
   };
+
+  const isConfigValid =
+    name && controllerType && difficulty && battleType &&
+    (controllerType === 'human' || ai2_difficulty);
 
   return (
     <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
@@ -41,7 +56,7 @@ export default function Lobby() {
             <label className="block text-white text-sm mb-2">Nombre</label>
             <input
               type="text"
-              value={name}
+              value={name ?? ''}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2 bg-neutral-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -166,7 +181,12 @@ export default function Lobby() {
 
           <button
             onClick={handleStartBattle}
-            className="mt-4 w-full px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
+            disabled={!isConfigValid}
+            className={`mt-4 w-full px-6 py-3 font-bold rounded-lg transition-colors ${
+              isConfigValid
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-neutral-600 text-neutral-400 cursor-not-allowed'
+            }`}
           >
             Iniciar Batalla
           </button>
