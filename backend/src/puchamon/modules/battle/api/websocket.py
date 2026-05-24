@@ -35,6 +35,7 @@ async def _handle_connection_request(ws: WebSocket, payload: ConnectionRequest, 
         controller_type=payload.controller_type,
         battle_type=payload.battle_type,
         difficulty=payload.difficulty or 1,
+        ai2_difficulty=payload.ai2_difficulty,
     )
 
     state.trainer_id = battle.players[0].trainer_id

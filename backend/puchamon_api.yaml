@@ -154,8 +154,13 @@ components:
         difficulty:
           type: integer
           enum: [1, 2, 3]
-          description: AI difficulty level (1=easy, 2=medium, 3=hard). Only used when controller_type is human.
+          description: AI difficulty level for player 1 (1=easy, 2=medium, 3=hard).
           default: 1
+        ai2_difficulty:
+          type: integer
+          enum: [1, 2, 3]
+          description: AI difficulty level for player 2 in AI vs AI mode. If omitted, uses difficulty value.
+          nullable: true
       required: [name, controller_type, battle_type]
 
     ConnectionResponse:

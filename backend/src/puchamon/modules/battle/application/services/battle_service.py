@@ -58,6 +58,7 @@ class BattleService:
         controller_type: Literal["human", "ai"],
         battle_type: Literal["1v1", "2v2", "3v3"],
         difficulty: int = 1,
+        ai2_difficulty: int | None = None,
     ) -> tuple[Battle, list[BattleInstance]]:
         """Creates a new battle with random Pokemon for each player.
 
@@ -98,7 +99,7 @@ class BattleService:
                 trainer_id=str(ObjectId()),
                 name="AI Player 2",
                 controller_type="ai",
-                ai_level=cast("Literal[1, 2, 3]", difficulty),
+                ai_level=cast("Literal[1, 2, 3]", ai2_difficulty if ai2_difficulty is not None else difficulty),
             )
             players = [ai_player_1, ai_player_2]
 
