@@ -81,13 +81,14 @@ export default function App() {
   );
 
   useEffect(() => {
-    const { name, controllerType, difficulty, battleType } =
+    const { name, controllerType, difficulty, ai2_difficulty, battleType } =
       useConnectionStore.getState();
     connect({
       name,
       controller_type: controllerType,
       battle_type: battleType,
       difficulty,
+      ai2_difficulty: controllerType === 'ai' ? ai2_difficulty : undefined,
     });
 
     return () => {

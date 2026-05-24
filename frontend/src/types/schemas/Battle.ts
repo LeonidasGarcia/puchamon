@@ -141,6 +141,7 @@ export interface ConnectionRequest {
   controller_type: "human" | "ai";
   battle_type: "1v1" | "2v2" | "3v3";
   difficulty?: 1 | 2 | 3;
+  ai2_difficulty?: 1 | 2 | 3;
 }
 
 export interface ConnectionResponse {
