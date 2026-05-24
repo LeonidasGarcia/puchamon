@@ -8,10 +8,12 @@ export default function Lobby() {
     name,
     controllerType,
     difficulty,
+    ai2_difficulty,
     battleType,
     setName,
     setControllerType,
     setDifficulty,
+    setAi2Difficulty,
     setBattleType,
   } = useConnectionStore();
   const connect = useBattleNetworkStore((state) => state.connect);
@@ -22,6 +24,7 @@ export default function Lobby() {
       controller_type: controllerType,
       battle_type: battleType,
       difficulty,
+      ai2_difficulty: controllerType === 'ai' ? ai2_difficulty : undefined,
     });
     navigate('/battle');
   };
@@ -91,6 +94,51 @@ export default function Lobby() {
                     {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : 'Difícil'}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {controllerType === 'ai' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-white text-sm mb-2">
+                  Dificultad IA 1
+                </label>
+                <div className="flex gap-4">
+                  {([1, 2, 3] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                        difficulty === d
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                      }`}
+                    >
+                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : 'Difícil'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-white text-sm mb-2">
+                  Dificultad IA 2
+                </label>
+                <div className="flex gap-4">
+                  {([1, 2, 3] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setAi2Difficulty(d)}
+                      className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                        ai2_difficulty === d
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                      }`}
+                    >
+                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : 'Difícil'}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
