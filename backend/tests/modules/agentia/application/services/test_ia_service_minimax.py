@@ -369,13 +369,13 @@ class TestIAServiceMinimaxIntegration:
 
         ia_service = IAService()
         player = battle.players[0]
-        active_instance = instances["p1"]
 
-        action = await ia_service.generate_move_action(
+        action = await ia_service.generate_action(
             player=player,
-            active_instance=active_instance,
+            battle=battle,
+            instances=instances,
             ai_level=AI_LEVEL_MEDIUM,
-            context=MagicMock(battle=battle, instances=instances, movements=movements),
+            movements=movements,
         )
 
         assert action is not None
@@ -407,13 +407,13 @@ class TestIAServiceMinimaxIntegration:
 
         ia_service = IAService()
         player = battle.players[0]
-        active_instance = instances["p1"]
 
-        action = await ia_service.generate_move_action(
+        action = await ia_service.generate_action(
             player=player,
-            active_instance=active_instance,
+            battle=battle,
+            instances=instances,
             ai_level=AI_LEVEL_HARD,
-            context=MagicMock(battle=battle, instances=instances, movements=movements),
+            movements=movements,
         )
 
         assert action is not None

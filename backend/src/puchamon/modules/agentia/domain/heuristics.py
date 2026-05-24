@@ -122,9 +122,8 @@ def evaluate_level_3(
 
     Factors (all normalized to [-1, 1]):
     - HP advantage: Difference in HP percentage between active Pokemon
-    - Type matchup: Advantage based on type effectiveness (future)
-    - Status advantage: Benefit from status conditions
     - Field presence: Number of alive Pokemon differences
+    - Status advantage: Benefit from status conditions
 
     Args:
         battle: The current battle state.
