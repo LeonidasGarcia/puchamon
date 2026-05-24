@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 
 interface ConnectionState {
-  name: string;
-  controllerType: 'human' | 'ai';
-  difficulty: 1 | 2 | 3;
-  ai2_difficulty: 1 | 2 | 3;
-  battleType: '1v1' | '2v2' | '3v3';
+  name: string | null;
+  controllerType: 'human' | 'ai' | null;
+  difficulty: 1 | 2 | 3 | null;
+  ai2_difficulty: 1 | 2 | 3 | null;
+  battleType: '1v1' | '2v2' | '3v3' | null;
   setName: (name: string) => void;
   setControllerType: (type: 'human' | 'ai') => void;
   setDifficulty: (difficulty: 1 | 2 | 3) => void;
@@ -15,12 +15,12 @@ interface ConnectionState {
 }
 
 const initialState = {
-  name: 'Player',
-  controllerType: 'human' as const,
-  difficulty: 1 as const,
-  ai2_difficulty: 1 as const,
-  battleType: '1v1' as const,
-};
+  name: null,
+  controllerType: null,
+  difficulty: null,
+  ai2_difficulty: null,
+  battleType: null,
+} as const;
 
 export const useConnectionStore = create<ConnectionState>((set) => ({
   ...initialState,
@@ -29,5 +29,11 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   setDifficulty: (difficulty) => set({ difficulty }),
   setAi2Difficulty: (ai2_difficulty) => set({ ai2_difficulty }),
   setBattleType: (battleType) => set({ battleType }),
-  reset: () => set(initialState),
+  reset: () => set({
+    name: null,
+    controllerType: null,
+    difficulty: null,
+    ai2_difficulty: null,
+    battleType: null,
+  }),
 }));
