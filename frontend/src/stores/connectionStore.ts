@@ -4,13 +4,13 @@ import { persist } from 'zustand/middleware';
 interface ConnectionState {
   name: string | null;
   controllerType: 'human' | 'ai' | null;
-  difficulty: 1 | 2 | 3 | null;
-  ai2_difficulty: 1 | 2 | 3 | null;
+  difficulty: 1 | 2 | 3 | 4 | null;
+  ai2_difficulty: 1 | 2 | 3 | 4 | null;
   battleType: '1v1' | '2v2' | '3v3' | null;
   setName: (name: string) => void;
   setControllerType: (type: 'human' | 'ai') => void;
-  setDifficulty: (difficulty: 1 | 2 | 3) => void;
-  setAi2Difficulty: (difficulty: 1 | 2 | 3) => void;
+  setDifficulty: (difficulty: 1 | 2 | 3 | 4) => void;
+  setAi2Difficulty: (difficulty: 1 | 2 | 3 | 4) => void;
   setBattleType: (type: '1v1' | '2v2' | '3v3') => void;
   reset: () => void;
 }

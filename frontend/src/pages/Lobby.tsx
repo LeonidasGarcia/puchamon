@@ -99,7 +99,7 @@ export default function Lobby() {
                 Dificultad
               </label>
               <div className="flex gap-4">
-                {([1, 2, 3] as const).map((d) => (
+                {([1, 2, 3, 4] as const).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDifficulty(d)}
@@ -109,7 +109,7 @@ export default function Lobby() {
                         : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                     }`}
                   >
-                    {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : 'Difícil'}
+                    {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : d === 3 ? 'Difícil' : 'GA'}
                   </button>
                 ))}
               </div>
@@ -123,7 +123,7 @@ export default function Lobby() {
                   Dificultad IA 1
                 </label>
                 <div className="flex gap-4">
-                  {([1, 2, 3] as const).map((d) => (
+                  {([1, 2, 3, 4] as const).map((d) => (
                     <button
                       key={d}
                       onClick={() => setDifficulty(d)}
@@ -133,7 +133,7 @@ export default function Lobby() {
                           : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                       }`}
                     >
-                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : 'Difícil'}
+                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : d === 3 ? 'Difícil' : 'GA'}
                     </button>
                   ))}
                 </div>
@@ -143,7 +143,7 @@ export default function Lobby() {
                   Dificultad IA 2
                 </label>
                 <div className="flex gap-4">
-                  {([1, 2, 3] as const).map((d) => (
+                  {([1, 2, 3, 4] as const).map((d) => (
                     <button
                       key={d}
                       onClick={() => setAi2Difficulty(d)}
@@ -153,7 +153,7 @@ export default function Lobby() {
                           : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                       }`}
                     >
-                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : 'Difícil'}
+                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : d === 3 ? 'Difícil' : 'GA'}
                     </button>
                   ))}
                 </div>
