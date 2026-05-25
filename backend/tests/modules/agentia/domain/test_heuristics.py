@@ -3,7 +3,8 @@
 import pytest
 from puchamon.modules.agentia.domain.heuristics import (
     evaluate_level_2,
-    evaluate_level_3,
+    evaluate_level_3_ga,
+    evaluate_level_3_manual,
     get_hp_percent,
     get_opponent_hp_values,
 )
@@ -297,7 +298,7 @@ class TestEvaluateLevel3:
         )
         instances = {"p1": p1, "p2": p2}
 
-        score = evaluate_level_3(battle, instances, "player")
+        score = evaluate_level_3_manual(battle, instances, "player")
 
         assert -0.2 < score < 0.2
 
@@ -320,7 +321,7 @@ class TestEvaluateLevel3:
         )
         instances = {"p1": p1, "p2": p2}
 
-        score = evaluate_level_3(battle, instances, "player")
+        score = evaluate_level_3_manual(battle, instances, "player")
 
         assert score < 0.0
 
@@ -343,7 +344,7 @@ class TestEvaluateLevel3:
         )
         instances = {"p1": p1, "p2": p2}
 
-        score = evaluate_level_3(battle, instances, "player")
+        score = evaluate_level_3_manual(battle, instances, "player")
 
         assert score > 0.0
 
@@ -368,7 +369,7 @@ class TestEvaluateLevel3:
         )
         instances = {"p1": p1, "p2": p2, "p3": p3, "p4": p4}
 
-        score = evaluate_level_3(battle, instances, "player")
+        score = evaluate_level_3_manual(battle, instances, "player")
 
         assert score > 0.0
 
@@ -391,6 +392,30 @@ class TestEvaluateLevel3:
         )
         instances = {"p1": p1, "p2": p2}
 
-        score = evaluate_level_3(battle, instances, "player")
+        score = evaluate_level_3_ga(battle, instances, "player")
 
         assert 0.0 < score <= 1.0
+
+    def test_manual_and_ga_weights_are_distinct(self):
+        p1 = make_instance("p1", "player", 100, 100)
+        p2 = make_instance("p2", "opponent", 25, 100)
+
+        battle = Battle.model_construct(
+            id="b1",
+            battle_type="1v1",
+            turn=1,
+            status="active",
+            phase="awaiting_actions",
+            sides={
+                "player": SideState(active_pokemon_instance_ids=["p1"]),
+                "opponent": SideState(active_pokemon_instance_ids=["p2"]),
+            },
+            players=[],
+            current_turn_actions=[],
+        )
+        instances = {"p1": p1, "p2": p2}
+
+        manual_score = evaluate_level_3_manual(battle, instances, "player")
+        ga_score = evaluate_level_3_ga(battle, instances, "player")
+
+        assert manual_score != ga_score

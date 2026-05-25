@@ -7,7 +7,7 @@ How to run from ``backend/``:
     RUN_REAL_AI_BENCHMARK=1 uv run pytest tests/modules/agentia/integration/test_seeded_real_ai_benchmark.py -s
 
 Useful knobs:
-    REAL_AI_BENCHMARK_REPETITIONS=1   # total battles = 3 matchups * 3 formats * repetitions * 2
+    REAL_AI_BENCHMARK_REPETITIONS=1   # total battles = 4 depths * 6 matchups * 3 formats * repetitions * 2
     REAL_AI_BENCHMARK_MAX_TURNS=80    # battles that exceed this limit are counted as no-winner runs
 
 Before running, make sure your database is configured in ``.env`` and the frontend seed was loaded into MongoDB.
@@ -58,5 +58,5 @@ async def test_seeded_real_ai_benchmark_outputs_table():
         for report_type, path in written_paths.items():
             print(f"- {report_type}: {path}")
 
-    assert len(summaries) == 9
-    assert sum(summary.battles for summary in summaries) == 18 * repetitions_per_side
+    assert len(summaries) == 72
+    assert sum(summary.battles for summary in summaries) == 144 * repetitions_per_side

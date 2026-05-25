@@ -8,7 +8,7 @@ from ...battle.domain.entities import Battle, BattleInstance
 from ...pokedex.domain.entities import Movement
 from .action_utils import get_opponent_trainer_id
 from .damage_calculator import calculate_simulated_damage
-from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS
+from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_MANUAL_WEIGHTS
 
 if TYPE_CHECKING:
     from ...pokedex.domain.entities import Type
@@ -428,28 +428,32 @@ def evaluate_level_2(
     return _team_hp_percent(instances, player_trainer_id) - opponent_active_hp
 
 
-def evaluate_level_3(
+def evaluate_level_3_manual(
     battle: Battle,
     instances: dict[str, BattleInstance],
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
 ) -> float:
-    """Evaluate battle state using GA-optimized Level 3 weights.
+    """Evaluate battle state with the manually tuned advanced heuristic."""
+    return evaluate_level_3_weighted(
+        battle,
+        instances,
+        player_trainer_id,
+        movements=movements,
+        type_chart=type_chart,
+        weights=LEVEL_3_MANUAL_WEIGHTS,
+    )
 
-    Level 3 is the production hard AI heuristic. Its only production weight set is the GA-optimized chromosome, so there
-    is no separate manual Level 3 policy at runtime.
 
-    Args:
-        battle: The current battle state.
-        instances: Dict of battle instances keyed by ID.
-        player_trainer_id: The trainer ID of the player being evaluated.
-        movements: Movement catalog used to evaluate offensive pressure.
-        type_chart: Optional type chart for simulated damage effectiveness.
-
-    Returns:
-        Heuristic score in a comparable [-1, 1] range where positive values favor the player.
-    """
+def evaluate_level_3_ga(
+    battle: Battle,
+    instances: dict[str, BattleInstance],
+    player_trainer_id: str,
+    movements: Mapping[str, Movement] | None = None,
+    type_chart: Mapping[str, "Type"] | None = None,
+) -> float:
+    """Evaluate battle state with the GA-optimized advanced heuristic."""
     return evaluate_level_3_weighted(
         battle,
         instances,
@@ -458,6 +462,17 @@ def evaluate_level_3(
         type_chart=type_chart,
         weights=LEVEL_3_GA_OPTIMIZED_WEIGHTS,
     )
+
+
+def evaluate_level_3(
+    battle: Battle,
+    instances: dict[str, BattleInstance],
+    player_trainer_id: str,
+    movements: Mapping[str, Movement] | None = None,
+    type_chart: Mapping[str, "Type"] | None = None,
+) -> float:
+    """Evaluate battle state with the GA-optimized advanced heuristic."""
+    return evaluate_level_3_ga(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart)
 
 
 def evaluate_level_3_weighted(  # noqa: PLR0913

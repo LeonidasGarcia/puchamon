@@ -2,8 +2,8 @@
 
 import pytest
 from unittest.mock import MagicMock
-from puchamon.modules.agentia.application.services import IAService, AI_LEVEL_EASY, AI_LEVEL_MEDIUM, AI_LEVEL_HARD
-from puchamon.modules.agentia.domain.heuristics import evaluate_level_2, evaluate_level_3
+from puchamon.modules.agentia.application.services import IAService, AI_LEVEL_EASY, AI_LEVEL_MEDIUM, AI_LEVEL_HARD_GA, AI_LEVEL_HARD_MANUAL
+from puchamon.modules.agentia.domain.heuristics import evaluate_level_2, evaluate_level_3_ga, evaluate_level_3_manual
 from puchamon.modules.battle.domain.entities import Battle, BattleInstance, SideState, Player, StatStages, BattleStats, MoveState
 from puchamon.modules.pokedex.domain.entities import Movement
 
@@ -212,10 +212,10 @@ class TestIAServiceLevel2Integration:
 
 
 class TestIAServiceLevel3Integration:
-    """Integration tests for IAService with AI Level 3 (Minimax + multi-factor heuristic)."""
+    """Integration tests for IAService with AI Level 3 (Minimax + manual multi-factor heuristic)."""
 
     @pytest.mark.asyncio
-    async def test_level3_uses_minimax_with_evaluate_level_3(self):
+    async def test_level3_uses_minimax_with_manual_heuristic(self):
         p1 = make_instance("p1", "trainer_ai", 100, 100)
         p2 = make_instance("p2", "opponent", 80, 100)
 
@@ -246,7 +246,7 @@ class TestIAServiceLevel3Integration:
             player=player,
             battle=battle,
             instances=instances,
-            ai_level=AI_LEVEL_HARD,
+            ai_level=AI_LEVEL_HARD_MANUAL,
             movements=movements,
         )
 
@@ -288,11 +288,47 @@ class TestIAServiceLevel3Integration:
             player=player,
             battle=battle,
             instances=instances,
-            ai_level=AI_LEVEL_HARD,
+            ai_level=AI_LEVEL_HARD_MANUAL,
             movements=movements,
         )
 
         assert action is not None
+        assert action.player == "trainer_ai"
+
+    @pytest.mark.asyncio
+    async def test_level4_uses_minimax_with_ga_heuristic(self):
+        p1 = make_instance("p1", "trainer_ai", 100, 100)
+        p2 = make_instance("p2", "opponent", 80, 100)
+
+        battle = Battle.model_construct(
+            id="b1",
+            battle_type="1v1",
+            turn=1,
+            status="active",
+            phase="awaiting_actions",
+            sides={
+                "trainer_ai": SideState(active_pokemon_instance_ids=["p1"]),
+                "opponent": SideState(active_pokemon_instance_ids=["p2"]),
+            },
+            players=[Player(trainer_id="trainer_ai", name="AI Trainer", controller_type="ai", ai_level=4)],
+            current_turn_actions=[],
+        )
+        instances = {"p1": p1, "p2": p2}
+        movements = {
+            "tackle": make_movement("tackle", power=40),
+            "flamethrower": make_movement("flamethrower", power=90, move_type="fire", category="special"),
+        }
+
+        action = await IAService().generate_action(
+            player=battle.players[0],
+            battle=battle,
+            instances=instances,
+            ai_level=AI_LEVEL_HARD_GA,
+            movements=movements,
+        )
+
+        assert action is not None
+        assert action.type == "move"
         assert action.player == "trainer_ai"
 
 
@@ -472,7 +508,7 @@ class TestIAServiceMinimaxIntegration:
             player=player,
             battle=battle,
             instances=instances,
-            ai_level=AI_LEVEL_HARD,
+            ai_level=AI_LEVEL_HARD_MANUAL,
             movements=movements,
         )
 

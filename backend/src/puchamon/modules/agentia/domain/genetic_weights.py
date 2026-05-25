@@ -1,6 +1,16 @@
-"""GA-optimized heuristic weights for the production Level 3 AI."""
+"""Manual and GA-optimized weights for advanced AI heuristics."""
 
 from typing import Final
+
+LEVEL_3_MANUAL_WEIGHTS: Final[dict[str, float]] = {
+    "hp": 0.25,
+    "alive": 0.15,
+    "damage": 0.25,
+    "type": 0.15,
+    "speed": 0.08,
+    "status": 0.07,
+    "effects": 0.05,
+}
 
 LEVEL_3_GA_OPTIMIZED_WEIGHTS: Final[dict[str, float]] = {
     "hp": 0.1765587813083075,

@@ -3,12 +3,14 @@
 import pytest
 from puchamon.modules.agentia.domain.action_selectors import (
     AI_LEVEL_EASY,
-    AI_LEVEL_HARD,
+    AI_LEVEL_HARD_GA,
+    AI_LEVEL_HARD_MANUAL,
     AI_LEVEL_MEDIUM,
     MinimaxActionSelector,
     RandomActionSelector,
 )
 from puchamon.modules.agentia.domain.action_utils import get_available_actions
+from puchamon.modules.agentia.domain.minimax import MinimaxMetrics
 from puchamon.modules.agentia.domain.state_simulator import simulate_action
 from puchamon.modules.battle.domain.entities import Battle, BattleInstance, SideState, StatStages, BattleStats, MoveState
 
@@ -104,13 +106,18 @@ class TestMinimaxActionSelector:
         assert selector.ai_level == AI_LEVEL_MEDIUM
         assert selector.depth == 3
 
-    def test_selector_with_level_3(self):
-        selector = MinimaxActionSelector(AI_LEVEL_HARD)
-        assert selector.ai_level == AI_LEVEL_HARD
+    def test_selector_with_level_3_manual(self):
+        selector = MinimaxActionSelector(AI_LEVEL_HARD_MANUAL)
+        assert selector.ai_level == AI_LEVEL_HARD_MANUAL
+        assert selector.depth == 3
+
+    def test_selector_with_level_4_ga(self):
+        selector = MinimaxActionSelector(AI_LEVEL_HARD_GA)
+        assert selector.ai_level == AI_LEVEL_HARD_GA
         assert selector.depth == 3
 
     def test_selector_custom_depth(self):
-        selector = MinimaxActionSelector(AI_LEVEL_HARD, depth=5)
+        selector = MinimaxActionSelector(AI_LEVEL_HARD_GA, depth=5)
         assert selector.depth == 5
 
     def test_select_returns_action_when_available(self):
@@ -133,10 +140,12 @@ class TestMinimaxActionSelector:
         instances = {"p1": p1, "p2": p2}
 
         selector = MinimaxActionSelector(AI_LEVEL_MEDIUM)
-        action = selector.select(battle, instances, "player")
+        metrics = MinimaxMetrics()
+        action = selector.select(battle, instances, "player", metrics=metrics)
 
         assert action is not None
         assert action[0] in ["MOVE", "SWITCH"]
+        assert metrics.nodes_visited > 0
 
     def test_select_prefers_higher_damage_move(self):
         from puchamon.modules.pokedex.domain.entities import Movement

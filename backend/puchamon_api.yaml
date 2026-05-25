@@ -153,12 +153,12 @@ components:
           description: Number of Pokemon per player
         difficulty:
           type: integer
-          enum: [1, 2, 3]
-          description: AI difficulty level for player 1 (1=easy, 2=medium, 3=hard).
+          enum: [1, 2, 3, 4]
+          description: AI difficulty level for player 1 (1=easy, 2=medium, 3=hard manual, 4=hard GA).
           default: 1
         ai2_difficulty:
           type: integer
-          enum: [1, 2, 3]
+          enum: [1, 2, 3, 4]
           description: AI difficulty level for player 2 in AI vs AI mode. If omitted, uses difficulty value.
           nullable: true
       required: [name, controller_type, battle_type]
@@ -390,9 +390,9 @@ components:
           enum: [human, ai]
         ai_level:
           type: integer
-          enum: [1, 2, 3]
+          enum: [1, 2, 3, 4]
           nullable: true
-          description: AI difficulty level. Only applies when controller_type is "ai", null otherwise.
+          description: AI difficulty level. 1=easy, 2=medium, 3=hard manual, 4=hard GA. Only applies when controller_type is "ai", null otherwise.
       required: [trainer_id, name, controller_type]
 
     SideState:

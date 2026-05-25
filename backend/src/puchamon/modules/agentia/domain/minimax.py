@@ -1,6 +1,7 @@
 """Minimax algorithm with Alpha-Beta pruning for AI decision making."""
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ...battle.domain.entities import Battle, BattleInstance
@@ -13,6 +14,14 @@ if TYPE_CHECKING:
 
 HeuristicFunction = Callable[..., float]
 MIN_REQUIRED_SIDES = 2
+
+
+@dataclass(slots=True)
+class MinimaxMetrics:
+    """Search counters collected during one Minimax decision."""
+
+    nodes_visited: int = 0
+    pruned_branches: int = 0
 
 
 def is_terminal_state(battle: Battle, instances: dict[str, BattleInstance]) -> bool:
@@ -54,6 +63,7 @@ def minimax(  # noqa: PLR0913
     heuristic_func: HeuristicFunction,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
+    metrics: MinimaxMetrics | None = None,
 ) -> float:
     """Minimax algorithm with Alpha-Beta pruning.
 
@@ -68,10 +78,14 @@ def minimax(  # noqa: PLR0913
         heuristic_func: Heuristic function to evaluate leaf nodes.
         movements: Dict of Movement entities.
         type_chart: Optional type chart used by proactive heuristics.
+        metrics: Optional counters for visited nodes and alpha-beta cutoffs.
 
     Returns:
         The evaluated score for this branch.
     """
+    if metrics is not None:
+        metrics.nodes_visited += 1
+
     if depth <= 0 or is_terminal_state(battle, instances):
         return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart)
 
@@ -109,10 +123,13 @@ def minimax(  # noqa: PLR0913
                 heuristic_func,
                 movements,
                 type_chart,
+                metrics,
             )
             max_eval = max(max_eval, eval_score)
             alpha = max(alpha, eval_score)
             if beta <= alpha:
+                if metrics is not None:
+                    metrics.pruned_branches += 1
                 break
         return max_eval
 
@@ -138,9 +155,12 @@ def minimax(  # noqa: PLR0913
             heuristic_func,
             movements,
             type_chart,
+            metrics,
         )
         min_eval = min(min_eval, eval_score)
         beta = min(beta, eval_score)
         if beta <= alpha:
+            if metrics is not None:
+                metrics.pruned_branches += 1
             break
     return min_eval

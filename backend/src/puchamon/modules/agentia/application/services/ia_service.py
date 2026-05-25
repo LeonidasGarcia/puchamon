@@ -12,11 +12,13 @@ from ....battle.domain.entities import (
 from ....pokedex.domain.entities import Type
 from ...domain.action_selectors import (
     AI_LEVEL_EASY,
+    DEFAULT_MINIMAX_DEPTH,
     ActionSelector,
     AIDifficultyLevel,
     MinimaxActionSelector,
     RandomActionSelector,
 )
+from ...domain.minimax import MinimaxMetrics
 
 
 class IAService:
@@ -67,6 +69,8 @@ class IAService:
         movements: dict | None = None,
         type_chart: Mapping[str, Type] | None = None,
         level_3_weights: Mapping[str, float] | None = None,
+        minimax_depth: int = DEFAULT_MINIMAX_DEPTH,
+        minimax_metrics: MinimaxMetrics | None = None,
     ) -> TurnAction | None:
         """Generate a TurnAction for an AI player.
 
@@ -74,10 +78,12 @@ class IAService:
             player: The AI player entity.
             battle: The current battle state.
             instances: Dict of battle instances keyed by ID.
-            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard).
+            ai_level: AI difficulty level (1=easy, 2=medium, 3=hard manual, 4=hard GA).
             movements: Dict of Movement entities keyed by ID.
             type_chart: Dict of Type entities keyed by ID.
             level_3_weights: Optional chromosome weights used by GA training or benchmark evaluation.
+            minimax_depth: Search depth used by Minimax levels.
+            minimax_metrics: Optional counters populated by Minimax levels.
 
         Returns:
             A TurnAction for the AI player or None if no actions available.
@@ -86,9 +92,9 @@ class IAService:
         if ai_level == AI_LEVEL_EASY:
             selector = RandomActionSelector()
         else:
-            selector = MinimaxActionSelector(ai_level, level_3_weights=level_3_weights)
+            selector = MinimaxActionSelector(ai_level, depth=minimax_depth, level_3_weights=level_3_weights)
 
-        action = selector.select(battle, instances, player.trainer_id, movements, type_chart)
+        action = selector.select(battle, instances, player.trainer_id, movements, type_chart, minimax_metrics)
 
         if action is None:
             return None

@@ -23,36 +23,45 @@ def test_format_seeded_benchmark_table_outputs_real_comparison_rows():
     summaries = [
         SeededBenchmarkSummary(
             level_a=1,
-            level_b=3,
+            level_b=4,
             battle_type="1v1",
+            minimax_depth=2,
             battles=2,
             wins_level_a=0,
             wins_level_b=2,
             draws=0,
             average_turns=8.5,
             average_winner_hp=0.42,
+            average_decision_time_ms=1.25,
+            average_nodes_visited=32.0,
+            average_pruned_branches=6.0,
         )
     ]
 
     table = format_seeded_benchmark_table(summaries)
 
     assert "Facil vs Dificil GA" in table
-    assert "| Matchup | Formato | Batallas |" in table
+    assert "| Depth | Matchup | Formato | Batallas |" in table
     assert "Dificil GA" in table
+    assert "32.00" in table
 
 
 def test_write_seeded_benchmark_reports_writes_markdown_json_and_csv(tmp_path):
     summaries = [
         SeededBenchmarkSummary(
             level_a=2,
-            level_b=3,
+            level_b=4,
             battle_type="3v3",
+            minimax_depth=4,
             battles=4,
             wins_level_a=1,
             wins_level_b=3,
             draws=0,
             average_turns=14.0,
             average_winner_hp=0.33,
+            average_decision_time_ms=2.5,
+            average_nodes_visited=54.0,
+            average_pruned_branches=12.0,
         )
     ]
 
@@ -69,6 +78,8 @@ def test_write_seeded_benchmark_reports_writes_markdown_json_and_csv(tmp_path):
     assert data["metadata"]["level_3_weights_source"] == "trained_this_run"
     assert data["summaries"][0]["matchup"] == "Intermedio vs Dificil GA"
     assert data["summaries"][0]["battle_type"] == "3v3"
+    assert data["summaries"][0]["minimax_depth"] == 4
+    assert data["summaries"][0]["average_nodes_visited"] == 54.0
 
 
 def test_seeded_genetic_fitness_config_accepts_all_battle_types():
@@ -94,6 +105,7 @@ def test_save_level_3_weights_writes_production_weight_module(tmp_path):
     saved_path = save_level_3_weights(result.weights, result, target_path=target_path)
 
     content = saved_path.read_text(encoding="utf-8")
+    assert "LEVEL_3_MANUAL_WEIGHTS" in content
     assert '"hp": 0.2' in content
     assert '"source": "saved_from_ai_real_benchmark"' in content
     assert '"fitness_value": 0.7' in content

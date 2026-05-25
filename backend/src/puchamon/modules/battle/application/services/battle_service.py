@@ -66,7 +66,7 @@ class BattleService:
             trainer_name: Name of the human player (or first AI in AI vs AI).
             controller_type: "human" for Player vs AI, "ai" for AI vs AI.
             battle_type: Type of battle ("1v1", "2v2", "3v3").
-            difficulty: AI difficulty level (1=easy, 2=medium, 3=hard). Only used when controller_type is "human".
+            difficulty: AI difficulty level (1=easy, 2=medium, 3=hard manual, 4=hard GA).
 
         Returns:
             A tuple of (Battle, list of BattleInstance).
@@ -85,7 +85,7 @@ class BattleService:
                 trainer_id=str(ObjectId()),
                 name="AI Opponent",
                 controller_type="ai",
-                ai_level=cast("Literal[1, 2, 3]", difficulty),
+                ai_level=cast("Literal[1, 2, 3, 4]", difficulty),
             )
             players = [client_player, opponent]
         else:
@@ -93,13 +93,13 @@ class BattleService:
                 trainer_id=str(ObjectId()),
                 name="AI Player 1",
                 controller_type="ai",
-                ai_level=cast("Literal[1, 2, 3]", difficulty),
+                ai_level=cast("Literal[1, 2, 3, 4]", difficulty),
             )
             ai_player_2 = Player(
                 trainer_id=str(ObjectId()),
                 name="AI Player 2",
                 controller_type="ai",
-                ai_level=cast("Literal[1, 2, 3]", ai2_difficulty if ai2_difficulty is not None else difficulty),
+                ai_level=cast("Literal[1, 2, 3, 4]", ai2_difficulty if ai2_difficulty is not None else difficulty),
             )
             players = [ai_player_1, ai_player_2]
 

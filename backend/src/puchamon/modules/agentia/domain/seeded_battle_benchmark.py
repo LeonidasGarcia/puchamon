@@ -12,6 +12,7 @@ import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Literal
 
 from ....shared.infrastructure.database import init_db
@@ -19,7 +20,7 @@ from ...battle.application.services.battle_service import BattleService
 from ...battle.application.services.battle_setup_service import BattleSetupService
 from ...battle.domain.entities import Battle, BattleInstance, Player, TurnAction
 from ..application.services.ia_service import IAService
-from .action_selectors import AI_LEVEL_EASY, AI_LEVEL_HARD, AI_LEVEL_MEDIUM
+from .action_selectors import AI_LEVEL_EASY, AI_LEVEL_HARD_GA, AI_LEVEL_HARD_MANUAL, AI_LEVEL_MEDIUM, DEFAULT_MINIMAX_DEPTH
 from .genetic_algorithm import (
     GENETIC_WEIGHT_NAMES,
     Chromosome,
@@ -30,22 +31,28 @@ from .genetic_algorithm import (
     chromosome_to_weight_mapping,
     weight_mapping_to_chromosome,
 )
-from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_GA_TRAINING_METADATA
+from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_GA_TRAINING_METADATA, LEVEL_3_MANUAL_WEIGHTS
+from .minimax import MinimaxMetrics
 
 BattleType = Literal["1v1", "2v2", "3v3"]
-AILevel = Literal[1, 2, 3]
+AILevel = Literal[1, 2, 3, 4]
 
 AI_LEVEL_LABELS: dict[int, str] = {
     AI_LEVEL_EASY: "Facil",
     AI_LEVEL_MEDIUM: "Intermedio",
-    AI_LEVEL_HARD: "Dificil GA",
+    AI_LEVEL_HARD_MANUAL: "Dificil Manual",
+    AI_LEVEL_HARD_GA: "Dificil GA",
 }
 DEFAULT_MATCHUPS: tuple[tuple[AILevel, AILevel], ...] = (
     (AI_LEVEL_EASY, AI_LEVEL_MEDIUM),
-    (AI_LEVEL_EASY, AI_LEVEL_HARD),
-    (AI_LEVEL_MEDIUM, AI_LEVEL_HARD),
+    (AI_LEVEL_MEDIUM, AI_LEVEL_HARD_MANUAL),
+    (AI_LEVEL_MEDIUM, AI_LEVEL_HARD_GA),
+    (AI_LEVEL_HARD_MANUAL, AI_LEVEL_HARD_GA),
+    (AI_LEVEL_EASY, AI_LEVEL_HARD_GA),
+    (AI_LEVEL_EASY, AI_LEVEL_HARD_MANUAL),
 )
 DEFAULT_BATTLE_TYPES: tuple[BattleType, ...] = ("1v1", "2v2", "3v3")
+DEFAULT_MINIMAX_DEPTHS: tuple[int, ...] = (1, 2, 3, 4)
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,17 +60,18 @@ class SeededBenchmarkConfig:
     """Configuration for the real seeded AI benchmark.
 
     Change ``repetitions_per_side`` to control total battle count:
-    total = len(matchups) * len(battle_types) * repetitions_per_side * 2.
+    total = len(minimax_depths) * len(matchups) * len(battle_types) * repetitions_per_side * 2.
 
     Examples:
-    - 1 repetition  -> 18 battles with the default matrix.
-    - 34 repetitions -> 612 battles with the default matrix.
+    - 1 repetition  -> 144 battles with the default depth/matchup matrix.
+    - 5 repetitions -> 720 battles with the default depth/matchup matrix.
 
     ``max_turns`` avoids a runaway battle. A battle that reaches this limit is counted as a draw.
     """
 
     matchups: tuple[tuple[AILevel, AILevel], ...] = DEFAULT_MATCHUPS
     battle_types: tuple[BattleType, ...] = DEFAULT_BATTLE_TYPES
+    minimax_depths: tuple[int, ...] = DEFAULT_MINIMAX_DEPTHS
     repetitions_per_side: int = 1
     max_turns: int = 120
     cleanup_created_battles: bool = True
@@ -74,11 +82,32 @@ class SeededBenchmarkConfig:
 class SeededGeneticFitnessConfig:
     """Configuration for training GA weights through real seeded battles."""
 
-    opponents: tuple[AILevel, ...] = (AI_LEVEL_EASY, AI_LEVEL_MEDIUM, AI_LEVEL_HARD)
+    opponents: tuple[AILevel, ...] = (AI_LEVEL_EASY, AI_LEVEL_MEDIUM, AI_LEVEL_HARD_MANUAL)
     battle_types: tuple[BattleType, ...] = ("1v1",)
     matches_per_opponent: int = 1
     max_turns: int = 80
+    minimax_depth: int = DEFAULT_MINIMAX_DEPTH
     cleanup_created_battles: bool = True
+
+
+@dataclass(slots=True)
+class SeededDecisionMetrics:
+    """Aggregated AI decision metrics for one battle."""
+
+    decision_count: int = 0
+    minimax_decision_count: int = 0
+    total_decision_time_ms: float = 0.0
+    nodes_visited: int = 0
+    pruned_branches: int = 0
+
+    def record(self, elapsed_ms: float, minimax_metrics: MinimaxMetrics, is_minimax: bool) -> None:
+        """Record one AI decision and optional Minimax counters."""
+        self.decision_count += 1
+        self.total_decision_time_ms += elapsed_ms
+        if is_minimax:
+            self.minimax_decision_count += 1
+            self.nodes_visited += minimax_metrics.nodes_visited
+            self.pruned_branches += minimax_metrics.pruned_branches
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,11 +117,17 @@ class SeededBattleResult:
     level_a: AILevel
     level_b: AILevel
     battle_type: BattleType
+    minimax_depth: int
     turns: int
     winner_level: AILevel | None
     winner_trainer_id: str | None
     remaining_hp_score: float
     reason: str
+    decision_count: int
+    minimax_decision_count: int
+    total_decision_time_ms: float
+    nodes_visited: int
+    pruned_branches: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,12 +137,16 @@ class SeededBenchmarkSummary:
     level_a: AILevel
     level_b: AILevel
     battle_type: BattleType
+    minimax_depth: int
     battles: int
     wins_level_a: int
     wins_level_b: int
     draws: int
     average_turns: float
     average_winner_hp: float
+    average_decision_time_ms: float
+    average_nodes_visited: float
+    average_pruned_branches: float
 
     @property
     def best_ai(self) -> str:
@@ -121,6 +160,7 @@ class SeededBenchmarkSummary:
         winrate_a = self.wins_level_a / self.battles if self.battles else 0.0
         winrate_b = self.wins_level_b / self.battles if self.battles else 0.0
         return [
+            str(self.minimax_depth),
             f"{AI_LEVEL_LABELS[self.level_a]} vs {AI_LEVEL_LABELS[self.level_b]}",
             self.battle_type,
             str(self.battles),
@@ -131,24 +171,39 @@ class SeededBenchmarkSummary:
             f"{winrate_b:.2%}",
             f"{self.average_turns:.2f}",
             f"{self.average_winner_hp:.2%}",
+            f"{self.average_decision_time_ms:.2f}",
+            f"{self.average_nodes_visited:.2f}",
+            f"{self.average_pruned_branches:.2f}",
             self.best_ai,
         ]
 
     def to_dict(self) -> dict[str, Any]:
         """Return this summary as a serializable dictionary."""
+        winrate_a = self.wins_level_a / self.battles if self.battles else 0.0
+        winrate_b = self.wins_level_b / self.battles if self.battles else 0.0
         return {
             "matchup": f"{AI_LEVEL_LABELS[self.level_a]} vs {AI_LEVEL_LABELS[self.level_b]}",
             "level_a": self.level_a,
             "level_b": self.level_b,
             "battle_type": self.battle_type,
+            "minimax_depth": self.minimax_depth,
             "battles": self.battles,
             "wins_level_a": self.wins_level_a,
             "wins_level_b": self.wins_level_b,
             "draws": self.draws,
-            "winrate_a": self.wins_level_a / self.battles if self.battles else 0.0,
-            "winrate_b": self.wins_level_b / self.battles if self.battles else 0.0,
+            "winrate_a": winrate_a,
+            "winrate_b": winrate_b,
+            "win_rate_a": winrate_a,
+            "win_rate_b": winrate_b,
             "average_turns": self.average_turns,
+            "turnos_promedio": self.average_turns,
             "average_winner_hp": self.average_winner_hp,
+            "average_decision_time_ms": self.average_decision_time_ms,
+            "tiempo_promedio_decision_ms": self.average_decision_time_ms,
+            "average_nodes_visited": self.average_nodes_visited,
+            "nodos_explorados": self.average_nodes_visited,
+            "average_pruned_branches": self.average_pruned_branches,
+            "nodos_podados": self.average_pruned_branches,
             "best_ai": self.best_ai,
         }
 
@@ -166,41 +221,45 @@ async def run_seeded_ai_benchmark(config: SeededBenchmarkConfig | None = None) -
 
     await _assert_seeded_data_available(battle_service)
 
-    for level_a, level_b in resolved_config.matchups:
-        for battle_type in resolved_config.battle_types:
-            results: list[SeededBattleResult] = []
-            for _ in range(resolved_config.repetitions_per_side):
-                results.append(
-                    await _run_single_seeded_battle(
-                        battle_service=battle_service,
-                        ia_service=ia_service,
-                        level_a=level_a,
-                        level_b=level_b,
-                        battle_type=battle_type,
-                        config=resolved_config,
-                        level_a_weights=resolved_config.level_3_weights if level_a == AI_LEVEL_HARD else None,
-                        level_b_weights=resolved_config.level_3_weights if level_b == AI_LEVEL_HARD else None,
+    for minimax_depth in resolved_config.minimax_depths:
+        for level_a, level_b in resolved_config.matchups:
+            for battle_type in resolved_config.battle_types:
+                results: list[SeededBattleResult] = []
+                for _ in range(resolved_config.repetitions_per_side):
+                    results.append(
+                        await _run_single_seeded_battle(
+                            battle_service=battle_service,
+                            ia_service=ia_service,
+                            level_a=level_a,
+                            level_b=level_b,
+                            battle_type=battle_type,
+                            config=resolved_config,
+                            minimax_depth=minimax_depth,
+                            level_a_weights=resolved_config.level_3_weights if level_a == AI_LEVEL_HARD_GA else None,
+                            level_b_weights=resolved_config.level_3_weights if level_b == AI_LEVEL_HARD_GA else None,
+                        )
                     )
-                )
-                results.append(
-                    await _run_single_seeded_battle(
-                        battle_service=battle_service,
-                        ia_service=ia_service,
-                        level_a=level_b,
-                        level_b=level_a,
-                        battle_type=battle_type,
-                        config=resolved_config,
-                        level_a_weights=resolved_config.level_3_weights if level_b == AI_LEVEL_HARD else None,
-                        level_b_weights=resolved_config.level_3_weights if level_a == AI_LEVEL_HARD else None,
+                    results.append(
+                        await _run_single_seeded_battle(
+                            battle_service=battle_service,
+                            ia_service=ia_service,
+                            level_a=level_b,
+                            level_b=level_a,
+                            battle_type=battle_type,
+                            config=resolved_config,
+                            minimax_depth=minimax_depth,
+                            level_a_weights=resolved_config.level_3_weights if level_b == AI_LEVEL_HARD_GA else None,
+                            level_b_weights=resolved_config.level_3_weights if level_a == AI_LEVEL_HARD_GA else None,
+                        )
                     )
-                )
-            summaries.append(_summarize_results(level_a, level_b, battle_type, results))
+                summaries.append(_summarize_results(level_a, level_b, battle_type, minimax_depth, results))
     return summaries
 
 
 def format_seeded_benchmark_table(summaries: list[SeededBenchmarkSummary]) -> str:
     """Format real seeded benchmark summaries as a markdown table."""
     headers = [
+        "Depth",
         "Matchup",
         "Formato",
         "Batallas",
@@ -211,9 +270,28 @@ def format_seeded_benchmark_table(summaries: list[SeededBenchmarkSummary]) -> st
         "Winrate B",
         "Turnos Prom.",
         "HP Restante",
+        "Decision ms",
+        "Nodos Expl.",
+        "Nodos Podados",
         "Mejor IA",
     ]
-    separator = ["---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---"]
+    separator = [
+        "---:",
+        "---",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---:",
+        "---",
+    ]
     rows = [headers, separator]
     rows.extend(summary.to_row() for summary in summaries)
     return "\n".join("| " + " | ".join(row) + " |" for row in rows)
@@ -273,7 +351,7 @@ def save_level_3_weights(
     training_result: GeneticAlgorithmResult,
     target_path: str | Path | None = None,
 ) -> Path:
-    """Persist trained GA weights as the production Level 3 defaults."""
+    """Persist trained GA weights as the Level 4 hard-GA defaults."""
     destination = Path(target_path) if target_path is not None else Path(__file__).with_name("genetic_weights.py")
     ordered_weights = {name: float(weights[name]) for name in GENETIC_WEIGHT_NAMES}
     evaluation = training_result.best.evaluation
@@ -283,10 +361,14 @@ def save_level_3_weights(
 
 
 def _format_genetic_weights_module(weights: Mapping[str, float], evaluation: FitnessEvaluation) -> str:
+    manual_weight_lines = [f'    "{name}": {LEVEL_3_MANUAL_WEIGHTS[name]!r},' for name in GENETIC_WEIGHT_NAMES]
     weight_lines = [f'    "{name}": {weights[name]!r},' for name in GENETIC_WEIGHT_NAMES]
     return (
-        '"""GA-optimized heuristic weights for the production Level 3 AI."""\n\n'
+        '"""Manual and GA-optimized weights for advanced AI heuristics."""\n\n'
         "from typing import Final\n\n"
+        "LEVEL_3_MANUAL_WEIGHTS: Final[dict[str, float]] = {\n"
+        + "\n".join(manual_weight_lines)
+        + "\n}\n\n"
         "LEVEL_3_GA_OPTIMIZED_WEIGHTS: Final[dict[str, float]] = {\n"
         + "\n".join(weight_lines)
         + "\n}\n\n"
@@ -329,7 +411,7 @@ async def run_seeded_genetic_weight_optimization(
     ga_config: GeneticAlgorithmConfig | None = None,
     fitness_config: SeededGeneticFitnessConfig | None = None,
 ) -> GeneticAlgorithmResult:
-    """Train Level 3 weights with the real-coded GA using real seeded battles."""
+    """Train Level 4 GA weights with the real-coded GA using real seeded battles."""
     resolved_ga_config = ga_config or _default_seeded_ga_config()
     resolved_fitness_config = fitness_config or SeededGeneticFitnessConfig()
     battle_service = BattleService()
@@ -352,6 +434,7 @@ async def _run_single_seeded_battle(  # noqa: PLR0913
     level_b: AILevel,
     battle_type: BattleType,
     config: SeededBenchmarkConfig,
+    minimax_depth: int,
     level_a_weights: Mapping[str, float] | None = None,
     level_b_weights: Mapping[str, float] | None = None,
 ) -> SeededBattleResult:
@@ -359,16 +442,19 @@ async def _run_single_seeded_battle(  # noqa: PLR0913
     battle_id = str(battle.id)
     try:
         level_3_weights_by_trainer_id: dict[str, Mapping[str, float]] = {}
-        if level_a == AI_LEVEL_HARD and level_a_weights is not None:
+        if level_a == AI_LEVEL_HARD_GA and level_a_weights is not None:
             level_3_weights_by_trainer_id["seeded-ai-a"] = level_a_weights
-        if level_b == AI_LEVEL_HARD and level_b_weights is not None:
+        if level_b == AI_LEVEL_HARD_GA and level_b_weights is not None:
             level_3_weights_by_trainer_id["seeded-ai-b"] = level_b_weights
 
+        decision_metrics = SeededDecisionMetrics()
         reason = await _run_ai_loop_with_turn_limit(
             battle_service,
             ia_service,
             battle_id,
             config.max_turns,
+            minimax_depth,
+            decision_metrics,
             level_3_weights_by_trainer_id,
         )
         final_battle = await battle_service.get_battle(battle_id)
@@ -379,11 +465,17 @@ async def _run_single_seeded_battle(  # noqa: PLR0913
             level_a=level_a,
             level_b=level_b,
             battle_type=battle_type,
+            minimax_depth=minimax_depth,
             turns=final_battle.turn if final_battle else config.max_turns,
             winner_level=winner_level,
             winner_trainer_id=winner_trainer_id,
             remaining_hp_score=_team_remaining_hp(final_instances, winner_trainer_id),
             reason=reason,
+            decision_count=decision_metrics.decision_count,
+            minimax_decision_count=decision_metrics.minimax_decision_count,
+            total_decision_time_ms=decision_metrics.total_decision_time_ms,
+            nodes_visited=decision_metrics.nodes_visited,
+            pruned_branches=decision_metrics.pruned_branches,
         )
     finally:
         if config.cleanup_created_battles:
@@ -416,11 +508,13 @@ async def _create_seeded_ai_battle(
     return battle, instances
 
 
-async def _run_ai_loop_with_turn_limit(
+async def _run_ai_loop_with_turn_limit(  # noqa: PLR0913
     battle_service: BattleService,
     ia_service: IAService,
     battle_id: str,
     max_turns: int,
+    minimax_depth: int,
+    decision_metrics: SeededDecisionMetrics,
     level_3_weights_by_trainer_id: Mapping[str, Mapping[str, float]] | None = None,
 ) -> str:
     while True:
@@ -440,6 +534,8 @@ async def _run_ai_loop_with_turn_limit(
             instances,
             data["movements"],
             data["types"],
+            minimax_depth,
+            decision_metrics,
             level_3_weights_by_trainer_id,
         )
         if not actions:
@@ -459,6 +555,8 @@ async def _generate_ai_actions(  # noqa: PLR0913
     instances: dict[str, BattleInstance],
     movements: dict,
     type_chart: dict,
+    minimax_depth: int,
+    decision_metrics: SeededDecisionMetrics,
     level_3_weights_by_trainer_id: Mapping[str, Mapping[str, float]] | None = None,
 ) -> list[TurnAction]:
     actions: list[TurnAction] = []
@@ -473,6 +571,8 @@ async def _generate_ai_actions(  # noqa: PLR0913
             else:
                 action = None
         else:
+            minimax_metrics = MinimaxMetrics()
+            started_at = perf_counter()
             action = await ia_service.generate_action(
                 player=player,
                 battle=battle,
@@ -481,7 +581,11 @@ async def _generate_ai_actions(  # noqa: PLR0913
                 movements=movements,
                 type_chart=type_chart,
                 level_3_weights=(level_3_weights_by_trainer_id or {}).get(player.trainer_id),
+                minimax_depth=minimax_depth,
+                minimax_metrics=minimax_metrics,
             )
+            elapsed_ms = (perf_counter() - started_at) * 1000
+            decision_metrics.record(elapsed_ms, minimax_metrics, is_minimax=(player.ai_level or AI_LEVEL_EASY) != AI_LEVEL_EASY)
 
         if action:
             actions.append(action)
@@ -526,6 +630,7 @@ def _summarize_results(
     level_a: AILevel,
     level_b: AILevel,
     battle_type: BattleType,
+    minimax_depth: int,
     results: list[SeededBattleResult],
 ) -> SeededBenchmarkSummary:
     wins_level_a = sum(1 for result in results if result.winner_level == level_a)
@@ -534,16 +639,25 @@ def _summarize_results(
     average_turns = sum(result.turns for result in results) / len(results) if results else 0.0
     winner_hp_values = [result.remaining_hp_score for result in results if result.winner_level is not None]
     average_winner_hp = sum(winner_hp_values) / len(winner_hp_values) if winner_hp_values else 0.0
+    decision_count = sum(result.decision_count for result in results)
+    minimax_decision_count = sum(result.minimax_decision_count for result in results)
+    average_decision_time_ms = sum(result.total_decision_time_ms for result in results) / decision_count if decision_count else 0.0
+    average_nodes_visited = sum(result.nodes_visited for result in results) / minimax_decision_count if minimax_decision_count else 0.0
+    average_pruned_branches = sum(result.pruned_branches for result in results) / minimax_decision_count if minimax_decision_count else 0.0
     return SeededBenchmarkSummary(
         level_a=level_a,
         level_b=level_b,
         battle_type=battle_type,
+        minimax_depth=minimax_depth,
         battles=len(results),
         wins_level_a=wins_level_a,
         wins_level_b=wins_level_b,
         draws=draws,
         average_turns=average_turns,
         average_winner_hp=average_winner_hp,
+        average_decision_time_ms=average_decision_time_ms,
+        average_nodes_visited=average_nodes_visited,
+        average_pruned_branches=average_pruned_branches,
     )
 
 
@@ -554,7 +668,11 @@ async def _evaluate_seeded_chromosome(
     config: SeededGeneticFitnessConfig,
 ) -> FitnessEvaluation:
     weights = chromosome_to_weight_mapping(chromosome)
-    battle_config = SeededBenchmarkConfig(max_turns=config.max_turns, cleanup_created_battles=config.cleanup_created_battles)
+    battle_config = SeededBenchmarkConfig(
+        max_turns=config.max_turns,
+        minimax_depths=(config.minimax_depth,),
+        cleanup_created_battles=config.cleanup_created_battles,
+    )
     weighted_results: list[tuple[bool, SeededBattleResult]] = []
 
     for opponent_level in config.opponents:
@@ -563,10 +681,11 @@ async def _evaluate_seeded_chromosome(
                 result_as_a = await _run_single_seeded_battle(
                     battle_service=battle_service,
                     ia_service=ia_service,
-                    level_a=AI_LEVEL_HARD,
+                    level_a=AI_LEVEL_HARD_GA,
                     level_b=opponent_level,
                     battle_type=battle_type,
                     config=battle_config,
+                    minimax_depth=config.minimax_depth,
                     level_a_weights=weights,
                 )
                 weighted_results.append((result_as_a.winner_trainer_id == "seeded-ai-a", result_as_a))
@@ -575,9 +694,10 @@ async def _evaluate_seeded_chromosome(
                     battle_service=battle_service,
                     ia_service=ia_service,
                     level_a=opponent_level,
-                    level_b=AI_LEVEL_HARD,
+                    level_b=AI_LEVEL_HARD_GA,
                     battle_type=battle_type,
                     config=battle_config,
+                    minimax_depth=config.minimax_depth,
                     level_b_weights=weights,
                 )
                 weighted_results.append((result_as_b.winner_trainer_id == "seeded-ai-b", result_as_b))
@@ -618,6 +738,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run real MongoDB-backed AI-vs-AI benchmarks.")
     parser.add_argument("--repetitions", type=int, default=int(os.getenv("REAL_AI_BENCHMARK_REPETITIONS", "1")))
     parser.add_argument("--max-turns", type=int, default=int(os.getenv("REAL_AI_BENCHMARK_MAX_TURNS", "80")))
+    parser.add_argument("--depths", nargs="+", type=int, choices=DEFAULT_MINIMAX_DEPTHS, default=DEFAULT_MINIMAX_DEPTHS)
     parser.add_argument("--output-dir", default=os.getenv("REAL_AI_BENCHMARK_OUTPUT_DIR", "benchmark-results"))
     parser.add_argument("--train-ga", action="store_true", help="Also run a small real-battle GA training pass.")
     parser.add_argument(
@@ -658,6 +779,7 @@ async def _run_cli(args: argparse.Namespace) -> None:
                 battle_types=tuple(args.ga_battle_types),
                 matches_per_opponent=args.ga_matches_per_opponent,
                 max_turns=args.max_turns,
+                minimax_depth=DEFAULT_MINIMAX_DEPTH,
             ),
         )
         print("\nREAL SEEDED GA TRAINING")
@@ -678,6 +800,7 @@ async def _run_cli(args: argparse.Namespace) -> None:
         SeededBenchmarkConfig(
             repetitions_per_side=args.repetitions,
             max_turns=args.max_turns,
+            minimax_depths=tuple(args.depths),
             cleanup_created_battles=True,
             level_3_weights=trained_weights,
         )
@@ -692,6 +815,8 @@ async def _run_cli(args: argparse.Namespace) -> None:
         metadata={
             "level_3_weights_source": "trained_this_run" if trained_weights is not None else "code_default",
             "level_3_weights": trained_weights or LEVEL_3_GA_OPTIMIZED_WEIGHTS,
+            "manual_weights": LEVEL_3_MANUAL_WEIGHTS,
+            "minimax_depths": tuple(args.depths),
         },
     )
     print("\nReportes guardados:")
