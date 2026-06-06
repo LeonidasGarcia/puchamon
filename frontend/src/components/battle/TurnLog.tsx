@@ -25,13 +25,18 @@ export default function TurnLog() {
       ref={containerRef}
       className="flex flex-col gap-2 overflow-y-auto w-full max-h-170 pr-2"
     >
-      {turnHistory.map((turn) => (
-        <TurnMessages
-          key={`history-${turn.turn}`}
-          turnNumber={turn.turn}
-          events={turn.events}
-        />
-      ))}
+      {turnHistory.map((turn, index) => {
+        const showHeader =
+          index === 0 || turnHistory[index - 1].turn !== turn.turn;
+        return (
+          <TurnMessages
+            key={`history-${turn.turn}-${index}`}
+            turnNumber={turn.turn}
+            events={turn.events}
+            showHeader={showHeader}
+          />
+        );
+      })}
     </div>
   );
 }

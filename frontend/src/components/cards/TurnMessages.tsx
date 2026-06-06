@@ -6,6 +6,7 @@ import { motion, type Variants } from 'motion/react';
 interface TurnMessagesProps {
   turnNumber: number;
   events: BattleTurnEvent[];
+  showHeader?: boolean;
 }
 
 const containerVariants: Variants = {
@@ -39,12 +40,15 @@ const eventVariants: Variants = {
 export default function TurnMessages({
   turnNumber,
   events,
+  showHeader = true,
 }: TurnMessagesProps) {
   const { applyEventKind, finalizeTurnAnimation } = useGameStore();
 
   return (
     <div className="flex flex-col gap-1 py-2">
-      <span className="text-white font-bold text-h2">Turno {turnNumber}</span>
+      {showHeader && (
+        <span className="text-white font-bold text-h2">Turno {turnNumber}</span>
+      )}
       <motion.div
         onAnimationComplete={() => {
           finalizeTurnAnimation();

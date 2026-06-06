@@ -198,6 +198,8 @@ class BattleService:
         instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
 
+        processed_turn = battle.turn
+
         for action in actions:
             if action.type != "switch":
                 raise BattleValidationError("Only switch actions are allowed during awaiting_replacements phase")
@@ -219,7 +221,7 @@ class BattleService:
         for instance in instances.values():
             await instance.save()
 
-        return self._build_turn_result(battle_id, battle.turn, actions, context)
+        return self._build_turn_result(battle_id, processed_turn, actions, context)
 
     def _resolve_turn(
         self,
