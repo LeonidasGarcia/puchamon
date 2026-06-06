@@ -45,7 +45,7 @@ def _apply_move_effects(
             if not blocked_targets and index == 0:
                 context.add_event(
                     kind="move_failed_no_target",
-                    message=f"{movement.name} failed because there was no valid target",
+                    message=f"¡{movement.name} falló porque no había un objetivo válido!",
                     source_instance_id=execution.action.user_instance_id,
                     move_id=execution.action.move_id,
                 )
@@ -100,7 +100,7 @@ class MoveActionStrategy(ActionStrategy):
         if skip_reason is not None:
             context.add_event(
                 kind="action_skipped",
-                message=f"{format_pokemon_name(source_instance.pokemon_id)} could not act because of {skip_reason}",
+                message=f"¡{format_pokemon_name(source_instance.pokemon_id)} no pudo actuar debido a {skip_reason}!",
                 source_instance_id=execution.action.user_instance_id,
                 move_id=execution.action.move_id,
                 reason=skip_reason,
@@ -199,7 +199,7 @@ class MoveActionStrategy(ActionStrategy):
 
         context.add_event(
             kind="move_used",
-            message=f"{format_pokemon_name(source_instance.pokemon_id)} used {movement.name}",
+            message=f"¡{format_pokemon_name(source_instance.pokemon_id)} usó {movement.name}!",
             source_instance_id=execution.action.user_instance_id,
             move_id=move_state.move_id,
         )
@@ -234,7 +234,7 @@ class MoveActionStrategy(ActionStrategy):
                 if not calculate_accuracy(movement, target):
                     context.add_event(
                         kind="move_missed",
-                        message=f"{format_pokemon_name(source_instance.pokemon_id)}'s attack missed!",
+                        message=f"¡El ataque de {format_pokemon_name(source_instance.pokemon_id)} falló!",
                         source_instance_id=execution.action.user_instance_id,
                         move_id=execution.action.move_id,
                     )

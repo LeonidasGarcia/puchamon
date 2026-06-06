@@ -35,7 +35,7 @@ class HealHpEffectStrategy(MoveEffectStrategy):
 
             context.add_event(
                 kind="heal_hp",
-                message=f"{format_pokemon_name(target.pokemon_id)} recovered {actual_heal} HP!",
+                message=f"¡{format_pokemon_name(target.pokemon_id)} recuperó {actual_heal} PS!",
                 target_instance_id=target_id,
                 value=actual_heal,
             )

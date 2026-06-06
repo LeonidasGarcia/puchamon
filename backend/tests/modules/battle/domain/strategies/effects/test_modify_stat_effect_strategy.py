@@ -48,7 +48,7 @@ def test_modify_stat_successfully(strategy):
     assert target.stages.atk == 1
     assert len(context.events) == 1
     assert context.events[0].kind == "stat_changed"
-    assert "rose" in context.events[0].message
+    assert "subió" in context.events[0].message
 
 
 def test_modify_stat_sharp_rise(strategy):
@@ -67,7 +67,7 @@ def test_modify_stat_sharp_rise(strategy):
     strategy.apply(context, execution)
 
     assert target.stages.spa == 2
-    assert "rose sharply" in context.events[0].message
+    assert "subió mucho" in context.events[0].message
 
 
 def test_modify_stat_caps_at_max(strategy):
@@ -108,7 +108,7 @@ def test_modify_stat_fails_at_limit(strategy):
 
     assert target.stages.atk == 6
     assert context.events[0].kind == "stat_change_failed"
-    assert "won't go any higher" in context.events[0].message
+    assert "no puede subir más" in context.events[0].message
 
 
 def test_modify_stat_multiple_changes(strategy):

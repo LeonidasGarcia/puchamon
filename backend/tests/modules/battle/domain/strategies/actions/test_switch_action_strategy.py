@@ -165,4 +165,4 @@ def test_switch_active_pokemon(strategy):
     assert battle.sides["t1"].active_pokemon_instance_ids[0] == "inst_2"
     assert replacement.is_revealed is True
     assert context.events[0].kind == "switch"
-    assert "switched out" in context.events[0].message
+    assert "se retiró" in context.events[0].message

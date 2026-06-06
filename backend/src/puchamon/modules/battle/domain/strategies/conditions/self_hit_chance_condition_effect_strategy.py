@@ -31,7 +31,7 @@ class SelfHitChanceConditionEffectStrategy(ConditionEffectStrategy):
             # Emits the message that it is confused, but the attack proceeds
             context.add_event(
                 kind="condition_message",
-                message=f"{format_pokemon_name(instance.pokemon_id)} is confused!",
+                message=f"¡{format_pokemon_name(instance.pokemon_id)} está confuso!",
                 target_instance_id=str(instance.id),
                 condition_id=execution.condition.id,
             )
@@ -59,7 +59,7 @@ class SelfHitChanceConditionEffectStrategy(ConditionEffectStrategy):
 
         context.add_event(
             kind="action_skipped",
-            message=f"{format_pokemon_name(instance.pokemon_id)} is confused! It hurt itself in its confusion!",
+            message=f"¡{format_pokemon_name(instance.pokemon_id)} está tan confuso que se hirió a sí mismo!",
             target_instance_id=str(instance.id),
             condition_id=execution.condition.id,
         )

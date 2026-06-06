@@ -32,7 +32,7 @@ class ApplyMajorStatusEffectStrategy(MoveEffectStrategy):
             if is_immune_to_status(target, payload.condition_id):
                 context.add_event(
                     kind="status_failed_immune",
-                    message=f"It doesn't affect {format_pokemon_name(target.pokemon_id)}...",
+                    message=f"No afecta a {format_pokemon_name(target.pokemon_id)}...",
                     target_instance_id=target_id,
                 )
                 continue
@@ -41,7 +41,7 @@ class ApplyMajorStatusEffectStrategy(MoveEffectStrategy):
 
             context.add_event(
                 kind="status_applied",
-                message=f"{format_pokemon_name(target.pokemon_id)} was {payload.condition_id}ed!",
+                message=f"¡{format_pokemon_name(target.pokemon_id)} ahora sufre de {payload.condition_id}!",
                 target_instance_id=target_id,
                 status_id=payload.condition_id,
             )

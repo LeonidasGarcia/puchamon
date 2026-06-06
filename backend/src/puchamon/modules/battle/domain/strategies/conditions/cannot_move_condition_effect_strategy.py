@@ -20,9 +20,9 @@ class CannotMoveConditionEffectStrategy(ConditionEffectStrategy):
 
         context.mark_action_blocked(execution.holder_instance_id, self.kind)
 
-        message = f"{format_pokemon_name(instance.pokemon_id)} cannot move because of {execution.condition.name}"
+        message = f"¡{format_pokemon_name(instance.pokemon_id)} no puede moverse a causa de {execution.condition.name}!"
         if execution.condition.id == "flinch":
-            message = f"{format_pokemon_name(instance.pokemon_id)} flinched and couldn't move!"
+            message = f"¡{format_pokemon_name(instance.pokemon_id)} retrocedió y no pudo moverse!"
 
         context.add_event(
             kind="action_skipped",

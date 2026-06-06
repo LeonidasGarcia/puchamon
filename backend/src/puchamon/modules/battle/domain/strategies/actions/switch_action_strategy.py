@@ -34,7 +34,7 @@ class SwitchActionStrategy(ActionStrategy):
 
             context.add_event(
                 kind="replacement",
-                message=f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield",
+                message=f"¡{format_pokemon_name(replacement_instance.pokemon_id)} entró al campo de batalla!",
                 source_instance_id=None,
                 target_instance_id=execution.replacement_instance_id,
                 active_slot=empty_slot,
@@ -64,7 +64,7 @@ class SwitchActionStrategy(ActionStrategy):
             replacement_instance.is_revealed = True
             context.add_event(
                 kind="switch",
-                message=(f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield"),
+                message=f"¡{format_pokemon_name(replacement_instance.pokemon_id)} entró al campo de batalla!",
                 source_instance_id=None,
                 target_instance_id=execution.replacement_instance_id,
                 active_slot=empty_slot,
@@ -82,8 +82,8 @@ class SwitchActionStrategy(ActionStrategy):
         context.add_event(
             kind="switch",
             message=(
-                f"{format_pokemon_name(source_instance.pokemon_id)} switched out and "
-                f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield"
+                f"¡{format_pokemon_name(source_instance.pokemon_id)} se retiró y "
+                f"{format_pokemon_name(replacement_instance.pokemon_id)} entró al campo de batalla!"
             ),
             source_instance_id=execution.action.user_instance_id,
             target_instance_id=execution.replacement_instance_id,

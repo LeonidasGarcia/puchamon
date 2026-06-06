@@ -241,7 +241,7 @@ class TurnResolutionService:
                     instance.volatile_status.remove(status)
                 context.add_event(
                     kind="volatile_status_expired",
-                    message=f"{instance.pokemon_id}'s {', '.join(expired)} wore off!",
+                    message=f"¡El efecto de {', '.join(expired)} de {instance.pokemon_id} se ha desvanecido!",
                     target_instance_id=str(instance.id),
                     volatile_status=expired,
                 )
@@ -279,12 +279,12 @@ class TurnResolutionService:
             )
             context.add_event(
                 kind="battle_finished",
-                message=f"{winner_name} won the battle!",
+                message=f"¡{winner_name} ha ganado la batalla!",
                 winner_trainer_id=winner_id,
             )
         elif not active_trainers:
             context.battle.status = "finished"
-            context.add_event(kind="battle_finished", message="The battle ended in a draw!")
+            context.add_event(kind="battle_finished", message="¡La batalla ha terminado en empate!")
 
         # 4. Phase Transition
         # If the battle isn't finished but someone needs to replace a pokemon

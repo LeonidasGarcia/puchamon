@@ -27,7 +27,7 @@ class FullParalysisChanceConditionEffectStrategy(ConditionEffectStrategy):
             context.mark_action_blocked(execution.holder_instance_id, self.kind)
             context.add_event(
                 kind="action_skipped",
-                message=f"{format_pokemon_name(instance.pokemon_id)} is paralyzed! It can't move!",
+                message=f"¡{format_pokemon_name(instance.pokemon_id)} está paralizado! ¡No se puede mover!",
                 target_instance_id=str(instance.id),
                 condition_id=execution.condition.id,
             )

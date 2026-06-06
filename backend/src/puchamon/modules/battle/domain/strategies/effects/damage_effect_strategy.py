@@ -92,7 +92,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
 
         params.context.add_event(
             kind="damage",
-            message=f"{format_pokemon_name(params.target.pokemon_id)} took {applied_damage} damage from {params.movement.name}",
+            message=f"¡{format_pokemon_name(params.target.pokemon_id)} recibió {applied_damage} puntos de daño por {params.movement.name}!",
             source_instance_id=params.execution.source_instance_id,
             target_instance_id=str(params.target.id),
             move_id=params.movement.id,
@@ -171,7 +171,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
             target = context.get_instance(target_id)
             context.add_event(
                 kind="damage",
-                message=f"{format_pokemon_name(target.pokemon_id)} took 0 damage from {movement.name}",
+                message=f"¡{format_pokemon_name(target.pokemon_id)} no recibió daño por {movement.name}!",
                 source_instance_id=execution.source_instance_id,
                 target_instance_id=target_id,
                 move_id=movement.id,
@@ -182,7 +182,7 @@ class DamageEffectStrategy(PendingMoveEffectStrategy):
         """Emit an event when there are no valid targets to damage."""
         context.add_event(
             kind="damage_no_target",
-            message=f"{movement.name} had no active target to damage",
+            message=f"¡{movement.name} no tenía objetivo al cual dañar!",
             source_instance_id=execution.source_instance_id,
             move_id=movement.id,
         )

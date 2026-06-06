@@ -48,4 +48,4 @@ def test_cannot_move_blocks_action(strategy):
     assert context.get_action_block_reason("inst_1") == "cannot_move"
     assert len(context.events) == 1
     assert context.events[0].kind == "action_skipped"
-    assert "flinched" in context.events[0].message
+    assert "retrocedió" in context.events[0].message

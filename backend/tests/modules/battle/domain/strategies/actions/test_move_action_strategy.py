@@ -123,7 +123,7 @@ def test_protect_blocks_protectable_move(move_action_strategy, move_registry, co
     events = context.events
     assert any(e.kind == "move_blocked" for e in events), "Expected a 'move_blocked' event to be emitted"
     assert events[-1].kind == "move_blocked"
-    assert "protected itself" in events[-1].message
+    assert "se protegió" in events[-1].message
 
 
 def test_protect_allows_unprotectable_move(move_action_strategy, move_registry, condition_registry):

@@ -56,7 +56,7 @@ class ProtectEffectStrategy(MoveEffectStrategy):
             logger.debug(f"[PROTECT] {source.pokemon_id}: FAILED - consecutive now=0")
             context.add_event(
                 kind="move_failed",
-                message=f"{format_pokemon_name(source.pokemon_id)} couldn't use Protect!",
+                message=f"¡{format_pokemon_name(source.pokemon_id)} no pudo usar Protección!",
                 source_instance_id=execution.source_instance_id,
             )
             return
@@ -67,7 +67,7 @@ class ProtectEffectStrategy(MoveEffectStrategy):
         source.volatile_status.append("protect")
         context.add_event(
             kind="status_applied",
-            message=f"{format_pokemon_name(source.pokemon_id)} protected itself!",
+            message=f"¡{format_pokemon_name(source.pokemon_id)} se protegió!",
             target_instance_id=execution.source_instance_id,
             status_id="protect",
         )

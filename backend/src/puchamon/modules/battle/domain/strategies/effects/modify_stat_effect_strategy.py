@@ -17,14 +17,14 @@ HARSH_FALL = -2
 def _get_stage_change_description(change_amount: int) -> str:
     """Return a descriptive message based on the amount of stage change."""
     if change_amount >= DRASTIC_RISE:
-        return "rose drastically"
+        return "subió drásticamente"
     if change_amount == SHARP_RISE:
-        return "rose sharply"
+        return "subió mucho"
     if change_amount == NORMAL_RISE:
-        return "rose"
+        return "subió"
     if change_amount == NORMAL_FALL:
-        return "fell"
-    return "fell harshly" if change_amount == HARSH_FALL else "fell severely"
+        return "bajó"
+    return "bajó mucho" if change_amount == HARSH_FALL else "bajó severamente"
 
 
 class ModifyStatEffectStrategy(MoveEffectStrategy):
@@ -61,10 +61,10 @@ class ModifyStatEffectStrategy(MoveEffectStrategy):
 
             if new_stage == current_stage:
                 # No change occurred (already at max/min)
-                direction = "higher" if change.stages > 0 else "lower"
+                direction = "subir" if change.stages > 0 else "bajar"
                 stat_name = change.stat.upper()
                 pkmn_name = format_pokemon_name(target.pokemon_id)
-                message = f"{pkmn_name}'s {stat_name} won't go any {direction}!"
+                message = f"¡El {stat_name} de {pkmn_name} no puede {direction} más!"
                 context.add_event(
                     kind="stat_change_failed",
                     message=message,
@@ -79,7 +79,7 @@ class ModifyStatEffectStrategy(MoveEffectStrategy):
 
             context.add_event(
                 kind="stat_changed",
-                message=f"{format_pokemon_name(target.pokemon_id)}'s {change.stat.upper()} {desc}!",
+                message=f"¡El {change.stat.upper()} de {format_pokemon_name(target.pokemon_id)} {desc}!",
                 target_instance_id=target_id,
                 stat=change.stat,
                 change=change.stages,

@@ -36,7 +36,7 @@ class BlockProtectableMovesConditionEffectStrategy(ConditionEffectStrategy):
                 blocked_targets.add(execution.holder_instance_id)
                 context.add_event(
                     kind="move_blocked",
-                    message=f"{format_pokemon_name(target_instance.pokemon_id)} protected itself!",
+                    message=f"¡{format_pokemon_name(target_instance.pokemon_id)} se protegió!",
                     source_instance_id=execution.source_instance_id,
                     target_instance_id=execution.holder_instance_id,
                     move_id=execution.movement.id,

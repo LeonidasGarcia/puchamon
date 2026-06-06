@@ -22,11 +22,11 @@ class SkipActionConditionEffectStrategy(ConditionEffectStrategy):
         context.mark_action_blocked(execution.holder_instance_id, self.kind)
 
         # Depending on the condition, emit a different message
-        message = f"{format_pokemon_name(instance.pokemon_id)} is unable to move!"
+        message = f"¡{format_pokemon_name(instance.pokemon_id)} no puede moverse!"
         if execution.condition.id == "sleep":
-            message = f"{format_pokemon_name(instance.pokemon_id)} is fast asleep."
+            message = f"¡{format_pokemon_name(instance.pokemon_id)} está profundamente dormido!"
         elif execution.condition.id == "freeze":
-            message = f"{format_pokemon_name(instance.pokemon_id)} is frozen solid!"
+            message = f"¡{format_pokemon_name(instance.pokemon_id)} está congelado!"
 
         context.add_event(
             kind="action_skipped",

@@ -29,7 +29,7 @@ class EndTurnDamageConditionEffectStrategy(ConditionEffectStrategy):
 
         context.add_event(
             kind="condition_damage",
-            message=f"{format_pokemon_name(instance.pokemon_id)} was hurt by its {execution.condition.name}!",
+            message=f"¡{format_pokemon_name(instance.pokemon_id)} recibe daño de {execution.condition.name}!",
             target_instance_id=str(instance.id),
             condition_id=execution.condition.id,
             value=applied_damage,

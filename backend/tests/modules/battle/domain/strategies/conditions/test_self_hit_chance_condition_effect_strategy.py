@@ -51,7 +51,7 @@ def test_confusion_hits_self(strategy):
     assert context.get_action_block_reason("inst_1") == "self_hit_chance"
     events = [e for e in context.events if e.kind == "action_skipped"]
     assert len(events) == 1
-    assert "hurt itself" in events[0].message
+    assert "se hirió a sí mismo" in events[0].message
 
     damage_events = [e for e in context.events if e.kind == "condition_damage"]
     assert len(damage_events) == 1
@@ -79,5 +79,5 @@ def test_confusion_does_not_hit_self(strategy):
     assert context.get_action_block_reason("inst_1") is None
     events = [e for e in context.events if e.kind == "condition_message"]
     assert len(events) == 1
-    assert "is confused!" in events[0].message
+    assert "está confuso!" in events[0].message
     assert instance.current_hp == 100
