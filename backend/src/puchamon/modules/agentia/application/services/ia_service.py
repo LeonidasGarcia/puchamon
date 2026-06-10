@@ -21,6 +21,13 @@ from ...domain.action_selectors import (
 from ...domain.minimax import MinimaxMetrics
 
 
+def _slot_sort_value(instance: BattleInstance) -> int:
+    """Return the team slot order, placing unknown slots last."""
+    if isinstance(instance.slot, int):
+        return instance.slot
+    return 999
+
+
 class IAService:
     """Service class for generating AI actions in battles."""
 
@@ -29,27 +36,19 @@ class IAService:
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
-        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
+        ai_level: AIDifficultyLevel = AI_LEVEL_EASY,  # noqa: ARG002
     ) -> TurnAction | None:
         """Generate a forced switch action for an AI player that needs a replacement."""
-        del ai_level
-
         side = battle.sides.get(player.trainer_id)
         if not side or all(slot is not None for slot in side.active_pokemon_instance_ids):
             return None
 
         active_ids = {instance_id for instance_id in side.active_pokemon_instance_ids if instance_id is not None}
-        replacement = next(
-            (
-                instance
-                for instance in sorted(instances.values(), key=lambda item: item.slot if isinstance(item.slot, int) else 999)
-                if instance.trainer_id == player.trainer_id
-                and str(instance.id) not in active_ids
-                and not instance.fainted
-                and instance.current_hp > 0
-            ),
-            None,
-        )
+        replacement = None
+        for instance in sorted(instances.values(), key=_slot_sort_value):
+            if instance.trainer_id == player.trainer_id and str(instance.id) not in active_ids and not instance.fainted and instance.current_hp > 0:
+                replacement = instance
+                break
         if replacement is None:
             return None
 

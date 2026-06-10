@@ -60,13 +60,11 @@ class RandomActionSelector(ActionSelector):
         battle: Battle,
         instances: dict[str, BattleInstance],
         trainer_id: str,
-        movements: Mapping[str, Movement] | None = None,
-        type_chart: Mapping[str, Type] | None = None,
-        metrics: MinimaxMetrics | None = None,
+        movements: Mapping[str, Movement] | None = None,  # noqa: ARG002
+        type_chart: Mapping[str, Type] | None = None,  # noqa: ARG002
+        metrics: MinimaxMetrics | None = None,  # noqa: ARG002
     ) -> Action | None:
         """Select an unpredictable action from available moves and switches."""
-        del movements, type_chart, metrics
-
         actions = get_available_actions(battle, instances, trainer_id)
         if not actions:
             return None
