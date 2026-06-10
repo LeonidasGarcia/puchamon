@@ -1,0 +1,1218 @@
+{
+  "weights": {
+    "hp": 0.3275128446735863,
+    "alive": 0.05326217511460886,
+    "damage": 0.11154927979175683,
+    "type": 0.01583918477846048,
+    "speed": 0.2759869418372587,
+    "status": 0.16541348795480293,
+    "effects": 0.05043608584952595
+  },
+  "fitness": 0.7789261310009146,
+  "win_rate": 0.7222222222222222,
+  "hp_remaining_score": 0.5953724211202571,
+  "average_turns": 5.666666666666667,
+  "generations": 25,
+  "history": [
+    {
+      "generation": 1,
+      "best": {
+        "weights": {
+          "hp": 0.16459465747920787,
+          "alive": 0.20778206093993232,
+          "damage": 0.11074302891165336,
+          "type": 0.0166648928187344,
+          "speed": 0.10010820305680761,
+          "status": 0.2613073419720755,
+          "effects": 0.1387998148215889
+        },
+        "fitness": 0.7214084765471022,
+        "evaluation": {
+          "fitness": 0.7214084765471022,
+          "win_rate": 0.6666666666666666,
+          "hp_remaining_score": 0.5781403210265778,
+          "average_turns": 6.144444444444445,
+          "speed_score": 0.9385555555555556,
+          "metadata": {
+            "weights": {
+              "hp": 0.16459465747920787,
+              "alive": 0.20778206093993232,
+              "damage": 0.11074302891165336,
+              "type": 0.0166648928187344,
+              "speed": 0.10010820305680761,
+              "status": 0.2613073419720755,
+              "effects": 0.1387998148215889
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6093477595766544
+    },
+    {
+      "generation": 2,
+      "best": {
+        "weights": {
+          "hp": 0.15832878505073927,
+          "alive": 0.1314499719444147,
+          "damage": 0.11724589737732295,
+          "type": 0.2300013648881394,
+          "speed": 0.15209686059404554,
+          "status": 0.14342389167596395,
+          "effects": 0.06745322846937422
+        },
+        "fitness": 0.7288239427420294,
+        "evaluation": {
+          "fitness": 0.7288239427420294,
+          "win_rate": 0.6777777777777778,
+          "hp_remaining_score": 0.5420727607536269,
+          "average_turns": 6.322222222222222,
+          "speed_score": 0.9367777777777778,
+          "metadata": {
+            "weights": {
+              "hp": 0.15832878505073927,
+              "alive": 0.1314499719444147,
+              "damage": 0.11724589737732295,
+              "type": 0.2300013648881394,
+              "speed": 0.15209686059404554,
+              "status": 0.14342389167596395,
+              "effects": 0.06745322846937422
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6130688329918287
+    },
+    {
+      "generation": 3,
+      "best": {
+        "weights": {
+          "hp": 0.12217054600214061,
+          "alive": 0.1691971364876266,
+          "damage": 0.13464021476436489,
+          "type": 0.17410540922478987,
+          "speed": 0.17737260940810995,
+          "status": 0.20265309338372475,
+          "effects": 0.0198609907292433
+        },
+        "fitness": 0.7186600773225865,
+        "evaluation": {
+          "fitness": 0.7186600773225865,
+          "win_rate": 0.6666666666666666,
+          "hp_remaining_score": 0.55604521767031,
+          "average_turns": 7.222222222222222,
+          "speed_score": 0.9277777777777778,
+          "metadata": {
+            "weights": {
+              "hp": 0.12217054600214061,
+              "alive": 0.1691971364876266,
+              "damage": 0.13464021476436489,
+              "type": 0.17410540922478987,
+              "speed": 0.17737260940810995,
+              "status": 0.20265309338372475,
+              "effects": 0.0198609907292433
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6338882714067169
+    },
+    {
+      "generation": 4,
+      "best": {
+        "weights": {
+          "hp": 0.27659758433854376,
+          "alive": 0.025948100073173747,
+          "damage": 0.19217635677274994,
+          "type": 0.021949530939182903,
+          "speed": 0.21576522674387086,
+          "status": 0.22381710615420877,
+          "effects": 0.04374609497827005
+        },
+        "fitness": 0.6991797225373659,
+        "evaluation": {
+          "fitness": 0.6991797225373659,
+          "win_rate": 0.6444444444444445,
+          "hp_remaining_score": 0.5773527809292143,
+          "average_turns": 6.0,
+          "speed_score": 0.94,
+          "metadata": {
+            "weights": {
+              "hp": 0.27659758433854376,
+              "alive": 0.025948100073173747,
+              "damage": 0.19217635677274994,
+              "type": 0.021949530939182903,
+              "speed": 0.21576522674387086,
+              "status": 0.22381710615420877,
+              "effects": 0.04374609497827005
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6186293232235883
+    },
+    {
+      "generation": 5,
+      "best": {
+        "weights": {
+          "hp": 0.21746091648988594,
+          "alive": 0.06511600938645479,
+          "damage": 0.11940357037645949,
+          "type": 0.1496396987294411,
+          "speed": 0.2178825814380122,
+          "status": 0.1270944480175939,
+          "effects": 0.10340277556215258
+        },
+        "fitness": 0.7717242531989889,
+        "evaluation": {
+          "fitness": 0.7717242531989889,
+          "win_rate": 0.7222222222222222,
+          "hp_remaining_score": 0.5272425319898889,
+          "average_turns": 6.444444444444445,
+          "speed_score": 0.9355555555555556,
+          "metadata": {
+            "weights": {
+              "hp": 0.21746091648988594,
+              "alive": 0.06511600938645479,
+              "damage": 0.11940357037645949,
+              "type": 0.1496396987294411,
+              "speed": 0.2178825814380122,
+              "status": 0.1270944480175939,
+              "effects": 0.10340277556215258
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6316428532634529
+    },
+    {
+      "generation": 6,
+      "best": {
+        "weights": {
+          "hp": 0.21127699075888987,
+          "alive": 0.06949417485080767,
+          "damage": 0.14200014208643752,
+          "type": 0.09632527440248047,
+          "speed": 0.19788539244038778,
+          "status": 0.12746130629068267,
+          "effects": 0.15555671917031402
+        },
+        "fitness": 0.7021381201090757,
+        "evaluation": {
+          "fitness": 0.7021381201090757,
+          "win_rate": 0.6555555555555556,
+          "hp_remaining_score": 0.49993675664631326,
+          "average_turns": 6.822222222222222,
+          "speed_score": 0.9317777777777778,
+          "metadata": {
+            "weights": {
+              "hp": 0.21127699075888987,
+              "alive": 0.06949417485080767,
+              "damage": 0.14200014208643752,
+              "type": 0.09632527440248047,
+              "speed": 0.19788539244038778,
+              "status": 0.12746130629068267,
+              "effects": 0.15555671917031402
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6181202637019473
+    },
+    {
+      "generation": 7,
+      "best": {
+        "weights": {
+          "hp": 0.2255507447229776,
+          "alive": 0.023684462975037564,
+          "damage": 0.1775179209488987,
+          "type": 0.08416236117527302,
+          "speed": 0.20712759389514493,
+          "status": 0.1810299746419928,
+          "effects": 0.10092694164067528
+        },
+        "fitness": 0.6908363012762698,
+        "evaluation": {
+          "fitness": 0.6908363012762698,
+          "win_rate": 0.6444444444444445,
+          "hp_remaining_score": 0.4990296794293652,
+          "average_turns": 7.022222222222222,
+          "speed_score": 0.9297777777777778,
+          "metadata": {
+            "weights": {
+              "hp": 0.2255507447229776,
+              "alive": 0.023684462975037564,
+              "damage": 0.1775179209488987,
+              "type": 0.08416236117527302,
+              "speed": 0.20712759389514493,
+              "status": 0.1810299746419928,
+              "effects": 0.10092694164067528
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.61786085686341
+    },
+    {
+      "generation": 8,
+      "best": {
+        "weights": {
+          "hp": 0.3062035298337423,
+          "alive": 0.06498247981244192,
+          "damage": 0.03462404258165653,
+          "type": 0.1460928726548298,
+          "speed": 0.2169599794256199,
+          "status": 0.12684536549929204,
+          "effects": 0.10429173019241758
+        },
+        "fitness": 0.7064004614161933,
+        "evaluation": {
+          "fitness": 0.7064004614161933,
+          "win_rate": 0.6555555555555556,
+          "hp_remaining_score": 0.5423379474952665,
+          "average_turns": 6.777777777777778,
+          "speed_score": 0.9322222222222223,
+          "metadata": {
+            "weights": {
+              "hp": 0.3062035298337423,
+              "alive": 0.06498247981244192,
+              "damage": 0.03462404258165653,
+              "type": 0.1460928726548298,
+              "speed": 0.2169599794256199,
+              "status": 0.12684536549929204,
+              "effects": 0.10429173019241758
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6163993200121549
+    },
+    {
+      "generation": 9,
+      "best": {
+        "weights": {
+          "hp": 0.29961547703530406,
+          "alive": 0.0635843639637766,
+          "damage": 0.03387909682369227,
+          "type": 0.14294964449201886,
+          "speed": 0.23380729990437205,
+          "status": 0.1241162527238767,
+          "effects": 0.10204786505695952
+        },
+        "fitness": 0.741966641863083,
+        "evaluation": {
+          "fitness": 0.741966641863083,
+          "win_rate": 0.6888888888888889,
+          "hp_remaining_score": 0.5609997519641644,
+          "average_turns": 6.044444444444444,
+          "speed_score": 0.9395555555555556,
+          "metadata": {
+            "weights": {
+              "hp": 0.29961547703530406,
+              "alive": 0.0635843639637766,
+              "damage": 0.03387909682369227,
+              "type": 0.14294964449201886,
+              "speed": 0.23380729990437205,
+              "status": 0.1241162527238767,
+              "effects": 0.10204786505695952
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6375391247608845
+    },
+    {
+      "generation": 10,
+      "best": {
+        "weights": {
+          "hp": 0.22201002159589533,
+          "alive": 0.08934683253567358,
+          "damage": 0.15334465915869758,
+          "type": 0.08959129318867576,
+          "speed": 0.18658322499426144,
+          "status": 0.16995032703715174,
+          "effects": 0.08917364148964457
+        },
+        "fitness": 0.7085622264839299,
+        "evaluation": {
+          "fitness": 0.7085622264839299,
+          "win_rate": 0.6555555555555556,
+          "hp_remaining_score": 0.5600667092837429,
+          "average_turns": 6.0,
+          "speed_score": 0.94,
+          "metadata": {
+            "weights": {
+              "hp": 0.22201002159589533,
+              "alive": 0.08934683253567358,
+              "damage": 0.15334465915869758,
+              "type": 0.08959129318867576,
+              "speed": 0.18658322499426144,
+              "status": 0.16995032703715174,
+              "effects": 0.08917364148964457
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6264548267594264
+    },
+    {
+      "generation": 11,
+      "best": {
+        "weights": {
+          "hp": 0.2288109860006019,
+          "alive": 0.12717537009033503,
+          "damage": 0.14195894823555621,
+          "type": 0.0723400498233519,
+          "speed": 0.19955328429360153,
+          "status": 0.13485338329519014,
+          "effects": 0.09530797826136338
+        },
+        "fitness": 0.7142698740897907,
+        "evaluation": {
+          "fitness": 0.7142698740897907,
+          "win_rate": 0.6666666666666666,
+          "hp_remaining_score": 0.5051987408979077,
+          "average_turns": 5.833333333333333,
+          "speed_score": 0.9416666666666667,
+          "metadata": {
+            "weights": {
+              "hp": 0.2288109860006019,
+              "alive": 0.12717537009033503,
+              "damage": 0.14195894823555621,
+              "type": 0.0723400498233519,
+              "speed": 0.19955328429360153,
+              "status": 0.13485338329519014,
+              "effects": 0.09530797826136338
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6208210224776987
+    },
+    {
+      "generation": 12,
+      "best": {
+        "weights": {
+          "hp": 0.3023218174725001,
+          "alive": 0.09659812361900867,
+          "damage": 0.0786737535139341,
+          "type": 0.0,
+          "speed": 0.23015532288478058,
+          "status": 0.17303479279625356,
+          "effects": 0.11921618971352299
+        },
+        "fitness": 0.7359801513252137,
+        "evaluation": {
+          "fitness": 0.7359801513252137,
+          "win_rate": 0.6888888888888889,
+          "hp_remaining_score": 0.5048015132521368,
+          "average_turns": 6.777777777777778,
+          "speed_score": 0.9322222222222223,
+          "metadata": {
+            "weights": {
+              "hp": 0.3023218174725001,
+              "alive": 0.09659812361900867,
+              "damage": 0.0786737535139341,
+              "type": 0.0,
+              "speed": 0.23015532288478058,
+              "status": 0.17303479279625356,
+              "effects": 0.11921618971352299
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6216487769830995
+    },
+    {
+      "generation": 13,
+      "best": {
+        "weights": {
+          "hp": 0.31904253506895264,
+          "alive": 0.04760183348829685,
+          "damage": 0.11017621380441672,
+          "type": 0.09362493182056225,
+          "speed": 0.18111799150602087,
+          "status": 0.15067271830493473,
+          "effects": 0.09776377600681595
+        },
+        "fitness": 0.6877063245217984,
+        "evaluation": {
+          "fitness": 0.6877063245217984,
+          "win_rate": 0.6333333333333333,
+          "hp_remaining_score": 0.5748965785513169,
+          "average_turns": 6.233333333333333,
+          "speed_score": 0.9376666666666666,
+          "metadata": {
+            "weights": {
+              "hp": 0.31904253506895264,
+              "alive": 0.04760183348829685,
+              "damage": 0.11017621380441672,
+              "type": 0.09362493182056225,
+              "speed": 0.18111799150602087,
+              "status": 0.15067271830493473,
+              "effects": 0.09776377600681595
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6287889216431685
+    },
+    {
+      "generation": 14,
+      "best": {
+        "weights": {
+          "hp": 0.344467484246043,
+          "alive": 0.03460886011378484,
+          "damage": 0.10082559459907543,
+          "type": 0.08771852348390968,
+          "speed": 0.20272072471963243,
+          "status": 0.13885074553215312,
+          "effects": 0.09080806730540156
+        },
+        "fitness": 0.7118799493411687,
+        "evaluation": {
+          "fitness": 0.7118799493411687,
+          "win_rate": 0.6555555555555556,
+          "hp_remaining_score": 0.5958550489672434,
+          "average_turns": 6.522222222222222,
+          "speed_score": 0.9347777777777778,
+          "metadata": {
+            "weights": {
+              "hp": 0.344467484246043,
+              "alive": 0.03460886011378484,
+              "damage": 0.10082559459907543,
+              "type": 0.08771852348390968,
+              "speed": 0.20272072471963243,
+              "status": 0.13885074553215312,
+              "effects": 0.09080806730540156
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.621455293071122
+    },
+    {
+      "generation": 15,
+      "best": {
+        "weights": {
+          "hp": 0.30342555523266923,
+          "alive": 0.055558945662355266,
+          "damage": 0.07311420896816576,
+          "type": 0.001118806984098816,
+          "speed": 0.36266500556011766,
+          "status": 0.20021505891678582,
+          "effects": 0.003902418675807481
+        },
+        "fitness": 0.7347412106502744,
+        "evaluation": {
+          "fitness": 0.7347412106502744,
+          "win_rate": 0.6888888888888889,
+          "hp_remaining_score": 0.4916898842805212,
+          "average_turns": 6.633333333333334,
+          "speed_score": 0.9336666666666666,
+          "metadata": {
+            "weights": {
+              "hp": 0.30342555523266923,
+              "alive": 0.055558945662355266,
+              "damage": 0.07311420896816576,
+              "type": 0.001118806984098816,
+              "speed": 0.36266500556011766,
+              "status": 0.20021505891678582,
+              "effects": 0.003902418675807481
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6329793649482344
+    },
+    {
+      "generation": 16,
+      "best": {
+        "weights": {
+          "hp": 0.34025072605081474,
+          "alive": 0.08390389699308086,
+          "damage": 0.07622832452100257,
+          "type": 0.04067091986438064,
+          "speed": 0.24776817444429866,
+          "status": 0.12387563410409778,
+          "effects": 0.08730232402232478
+        },
+        "fitness": 0.738541879172677,
+        "evaluation": {
+          "fitness": 0.738541879172677,
+          "win_rate": 0.6888888888888889,
+          "hp_remaining_score": 0.5250299028378813,
+          "average_turns": 5.7,
+          "speed_score": 0.943,
+          "metadata": {
+            "weights": {
+              "hp": 0.34025072605081474,
+              "alive": 0.08390389699308086,
+              "damage": 0.07622832452100257,
+              "type": 0.04067091986438064,
+              "speed": 0.24776817444429866,
+              "status": 0.12387563410409778,
+              "effects": 0.08730232402232478
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.636039137884602
+    },
+    {
+      "generation": 17,
+      "best": {
+        "weights": {
+          "hp": 0.3560029825898267,
+          "alive": 0.04738810737088413,
+          "damage": 0.09298332150363908,
+          "type": 0.07343856826336437,
+          "speed": 0.22270914197989458,
+          "status": 0.15324630080637242,
+          "effects": 0.05423157748601869
+        },
+        "fitness": 0.7327933300212842,
+        "evaluation": {
+          "fitness": 0.7327933300212842,
+          "win_rate": 0.6777777777777778,
+          "hp_remaining_score": 0.58171107799062,
+          "average_turns": 6.311111111111111,
+          "speed_score": 0.9368888888888889,
+          "metadata": {
+            "weights": {
+              "hp": 0.3560029825898267,
+              "alive": 0.04738810737088413,
+              "damage": 0.09298332150363908,
+              "type": 0.07343856826336437,
+              "speed": 0.22270914197989458,
+              "status": 0.15324630080637242,
+              "effects": 0.05423157748601869
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6233706174480944
+    },
+    {
+      "generation": 18,
+      "best": {
+        "weights": {
+          "hp": 0.2809724135862503,
+          "alive": 0.08481331085575218,
+          "damage": 0.10906500852470624,
+          "type": 0.06350162291151358,
+          "speed": 0.2848096526275686,
+          "status": 0.09166620248992038,
+          "effects": 0.08517178900428868
+        },
+        "fitness": 0.751960949402472,
+        "evaluation": {
+          "fitness": 0.751960949402472,
+          "win_rate": 0.7,
+          "hp_remaining_score": 0.5500539384691653,
+          "average_turns": 6.088888888888889,
+          "speed_score": 0.9391111111111111,
+          "metadata": {
+            "weights": {
+              "hp": 0.2809724135862503,
+              "alive": 0.08481331085575218,
+              "damage": 0.10906500852470624,
+              "type": 0.06350162291151358,
+              "speed": 0.2848096526275686,
+              "status": 0.09166620248992038,
+              "effects": 0.08517178900428868
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6213042773338178
+    },
+    {
+      "generation": 19,
+      "best": {
+        "weights": {
+          "hp": 0.322035237766923,
+          "alive": 0.0726328379959196,
+          "damage": 0.07672774923003853,
+          "type": 0.02059015611390144,
+          "speed": 0.32661662438926703,
+          "status": 0.14455207991938784,
+          "effects": 0.03684531458456259
+        },
+        "fitness": 0.7201640612445531,
+        "evaluation": {
+          "fitness": 0.7201640612445531,
+          "win_rate": 0.6666666666666666,
+          "hp_remaining_score": 0.5686406124455308,
+          "average_turns": 6.733333333333333,
+          "speed_score": 0.9326666666666666,
+          "metadata": {
+            "weights": {
+              "hp": 0.322035237766923,
+              "alive": 0.0726328379959196,
+              "damage": 0.07672774923003853,
+              "type": 0.02059015611390144,
+              "speed": 0.32661662438926703,
+              "status": 0.14455207991938784,
+              "effects": 0.03684531458456259
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6294387432055986
+    },
+    {
+      "generation": 20,
+      "best": {
+        "weights": {
+          "hp": 0.3738654762547606,
+          "alive": 0.05363406723475628,
+          "damage": 0.04976724651632941,
+          "type": 0.04775984791300324,
+          "speed": 0.28451100334293283,
+          "status": 0.1386948435788046,
+          "effects": 0.051767515159413045
+        },
+        "fitness": 0.7097170267926589,
+        "evaluation": {
+          "fitness": 0.7097170267926589,
+          "win_rate": 0.6555555555555556,
+          "hp_remaining_score": 0.5740591568154781,
+          "average_turns": 6.488888888888889,
+          "speed_score": 0.9351111111111111,
+          "metadata": {
+            "weights": {
+              "hp": 0.3738654762547606,
+              "alive": 0.05363406723475628,
+              "damage": 0.04976724651632941,
+              "type": 0.04775984791300324,
+              "speed": 0.28451100334293283,
+              "status": 0.1386948435788046,
+              "effects": 0.051767515159413045
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6067896465962149
+    },
+    {
+      "generation": 21,
+      "best": {
+        "weights": {
+          "hp": 0.3275128446735863,
+          "alive": 0.05326217511460886,
+          "damage": 0.11154927979175683,
+          "type": 0.01583918477846048,
+          "speed": 0.2759869418372587,
+          "status": 0.16541348795480293,
+          "effects": 0.05043608584952595
+        },
+        "fitness": 0.7789261310009146,
+        "evaluation": {
+          "fitness": 0.7789261310009146,
+          "win_rate": 0.7222222222222222,
+          "hp_remaining_score": 0.5953724211202571,
+          "average_turns": 5.666666666666667,
+          "speed_score": 0.9433333333333334,
+          "metadata": {
+            "weights": {
+              "hp": 0.3275128446735863,
+              "alive": 0.05326217511460886,
+              "damage": 0.11154927979175683,
+              "type": 0.01583918477846048,
+              "speed": 0.2759869418372587,
+              "status": 0.16541348795480293,
+              "effects": 0.05043608584952595
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6166871732052235
+    },
+    {
+      "generation": 22,
+      "best": {
+        "weights": {
+          "hp": 0.3393485549576493,
+          "alive": 0.0,
+          "damage": 0.11774310185161106,
+          "type": 0.027008204787057642,
+          "speed": 0.29461116405633553,
+          "status": 0.16046806400046612,
+          "effects": 0.06082091034688028
+        },
+        "fitness": 0.7372936294560802,
+        "evaluation": {
+          "fitness": 0.7372936294560802,
+          "win_rate": 0.6888888888888889,
+          "hp_remaining_score": 0.5147140723385798,
+          "average_turns": 6.133333333333334,
+          "speed_score": 0.9386666666666666,
+          "metadata": {
+            "weights": {
+              "hp": 0.3393485549576493,
+              "alive": 0.0,
+              "damage": 0.11774310185161106,
+              "type": 0.027008204787057642,
+              "speed": 0.29461116405633553,
+              "status": 0.16046806400046612,
+              "effects": 0.06082091034688028
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6469754294182467
+    },
+    {
+      "generation": 23,
+      "best": {
+        "weights": {
+          "hp": 0.280158526805424,
+          "alive": 0.13736434151454413,
+          "damage": 0.09140538798106683,
+          "type": 0.021938083213839856,
+          "speed": 0.2467210308843328,
+          "status": 0.18098236830056716,
+          "effects": 0.04143026130022527
+        },
+        "fitness": 0.7183998613645456,
+        "evaluation": {
+          "fitness": 0.7183998613645456,
+          "win_rate": 0.6666666666666666,
+          "hp_remaining_score": 0.5542208358676785,
+          "average_turns": 7.377777777777778,
+          "speed_score": 0.9262222222222223,
+          "metadata": {
+            "weights": {
+              "hp": 0.280158526805424,
+              "alive": 0.13736434151454413,
+              "damage": 0.09140538798106683,
+              "type": 0.021938083213839856,
+              "speed": 0.2467210308843328,
+              "status": 0.18098236830056716,
+              "effects": 0.04143026130022527
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6253549406279675
+    },
+    {
+      "generation": 24,
+      "best": {
+        "weights": {
+          "hp": 0.30525990815874654,
+          "alive": 0.0574180305096038,
+          "damage": 0.09912324615549245,
+          "type": 0.01361905071154752,
+          "speed": 0.3056026166118978,
+          "status": 0.1753395309709447,
+          "effects": 0.04363761688176725
+        },
+        "fitness": 0.7325921351351339,
+        "evaluation": {
+          "fitness": 0.7325921351351339,
+          "win_rate": 0.6777777777777778,
+          "hp_remaining_score": 0.5815324624624496,
+          "average_turns": 6.677777777777778,
+          "speed_score": 0.9332222222222222,
+          "metadata": {
+            "weights": {
+              "hp": 0.30525990815874654,
+              "alive": 0.0574180305096038,
+              "damage": 0.09912324615549245,
+              "type": 0.01361905071154752,
+              "speed": 0.3056026166118978,
+              "status": 0.1753395309709447,
+              "effects": 0.04363761688176725
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6422317531965419
+    },
+    {
+      "generation": 25,
+      "best": {
+        "weights": {
+          "hp": 0.30525990815874654,
+          "alive": 0.0574180305096038,
+          "damage": 0.09912324615549245,
+          "type": 0.01361905071154752,
+          "speed": 0.3056026166118978,
+          "status": 0.1753395309709447,
+          "effects": 0.04363761688176725
+        },
+        "fitness": 0.75448829126835,
+        "evaluation": {
+          "fitness": 0.75448829126835,
+          "win_rate": 0.7,
+          "hp_remaining_score": 0.575549579350168,
+          "average_turns": 6.133333333333334,
+          "speed_score": 0.9386666666666666,
+          "metadata": {
+            "weights": {
+              "hp": 0.30525990815874654,
+              "alive": 0.0574180305096038,
+              "damage": 0.09912324615549245,
+              "type": 0.01361905071154752,
+              "speed": 0.3056026166118978,
+              "status": 0.1753395309709447,
+              "effects": 0.04363761688176725
+            },
+            "matches": 90,
+            "training": {
+              "algorithm": "real-coded genetic algorithm",
+              "selection": "tournament",
+              "crossover": "arithmetic",
+              "mutation": "gaussian",
+              "elitism": true,
+              "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
+              "source": "benchmark-results/level3_ga_training.json",
+              "fitness_value": 0.6731253035593929,
+              "win_rate": 0.6222222222222222,
+              "hp_remaining_score": 0.5484752578161507,
+              "average_turns": 6.311111111111111
+            }
+          }
+        }
+      },
+      "average_fitness": 0.6394721229903421
+    }
+  ]
+}
