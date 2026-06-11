@@ -20,7 +20,7 @@ AI_LEVEL_MEDIUM = 2
 AI_LEVEL_HARD_MANUAL = 3
 AI_LEVEL_HARD_GA = 4
 
-DEFAULT_MINIMAX_DEPTH = 3
+DEFAULT_MINIMAX_DEPTH = 340
 
 
 class ActionSelector(ABC):
@@ -125,11 +125,24 @@ class MinimaxActionSelector(ActionSelector):
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
         """Select the best action using Minimax with Alpha-Beta pruning."""
+        actions = get_available_actions(battle, instances, trainer_id)
+        return self.select_from_actions(battle, instances, trainer_id, actions, movements, type_chart, metrics)
+
+    def select_from_actions(  # noqa: PLR0913
+        self,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+        trainer_id: str,
+        actions: list[Action],
+        movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, Type] | None = None,
+        metrics: MinimaxMetrics | None = None,
+    ) -> Action | None:
+        """Select the best action from a constrained root action list."""
         opponent_trainer_id = get_opponent_trainer_id(battle, trainer_id)
         if opponent_trainer_id is None:
             return None
 
-        actions = get_available_actions(battle, instances, trainer_id)
         if not actions:
             return None
 

@@ -6,6 +6,7 @@ from puchamon.modules.agentia.domain.action_selectors import (
     AI_LEVEL_HARD_GA,
     AI_LEVEL_HARD_MANUAL,
     AI_LEVEL_MEDIUM,
+    DEFAULT_MINIMAX_DEPTH,
     MinimaxActionSelector,
     RandomActionSelector,
 )
@@ -104,17 +105,17 @@ class TestMinimaxActionSelector:
     def test_selector_with_level_2(self):
         selector = MinimaxActionSelector(AI_LEVEL_MEDIUM)
         assert selector.ai_level == AI_LEVEL_MEDIUM
-        assert selector.depth == 3
+        assert selector.depth == DEFAULT_MINIMAX_DEPTH
 
     def test_selector_with_level_3_manual(self):
         selector = MinimaxActionSelector(AI_LEVEL_HARD_MANUAL)
         assert selector.ai_level == AI_LEVEL_HARD_MANUAL
-        assert selector.depth == 3
+        assert selector.depth == DEFAULT_MINIMAX_DEPTH
 
     def test_selector_with_level_4_ga(self):
         selector = MinimaxActionSelector(AI_LEVEL_HARD_GA)
         assert selector.ai_level == AI_LEVEL_HARD_GA
-        assert selector.depth == 3
+        assert selector.depth == DEFAULT_MINIMAX_DEPTH
 
     def test_selector_custom_depth(self):
         selector = MinimaxActionSelector(AI_LEVEL_HARD_GA, depth=5)

@@ -567,7 +567,21 @@ async def _generate_ai_actions(  # noqa: PLR0913
         if battle.phase == "awaiting_replacements":
             side = battle.sides.get(player.trainer_id)
             if side and any(slot is None for slot in side.active_pokemon_instance_ids):
-                action = await ia_service.generate_switch_action(player, battle, instances, ai_level=player.ai_level or AI_LEVEL_EASY)
+                minimax_metrics = MinimaxMetrics()
+                started_at = perf_counter()
+                action = await ia_service.generate_switch_action(
+                    player,
+                    battle,
+                    instances,
+                    ai_level=player.ai_level or AI_LEVEL_EASY,
+                    movements=movements,
+                    type_chart=type_chart,
+                    level_3_weights=(level_3_weights_by_trainer_id or {}).get(player.trainer_id),
+                    minimax_depth=minimax_depth,
+                    minimax_metrics=minimax_metrics,
+                )
+                elapsed_ms = (perf_counter() - started_at) * 1000
+                decision_metrics.record(elapsed_ms, minimax_metrics, is_minimax=(player.ai_level or AI_LEVEL_EASY) != AI_LEVEL_EASY)
             else:
                 action = None
         else:

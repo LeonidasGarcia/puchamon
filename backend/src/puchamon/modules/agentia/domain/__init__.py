@@ -1,4 +1,4 @@
-from .damage_calculator import calculate_damage, calculate_real_damage, calculate_simulated_damage
+from .damage_calculator import calculate_simulated_damage
 from .genetic_algorithm import GeneticAlgorithmConfig, GeneticAlgorithmResult, RealCodedGeneticAlgorithm
 from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_GA_TRAINING_METADATA, LEVEL_3_MANUAL_WEIGHTS
 from .heuristics import (
@@ -32,8 +32,6 @@ __all__ = [
     "RealCodedGeneticAlgorithm",
     "SeededBenchmarkConfig",
     "SeededGeneticFitnessConfig",
-    "calculate_damage",
-    "calculate_real_damage",
     "calculate_simulated_damage",
     "evaluate_level_2",
     "evaluate_level_3",

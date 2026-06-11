@@ -119,6 +119,7 @@ class BattleCoordinatorService:
 
         instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
         instances = {str(inst.id): inst for inst in instances_list}
+        data = await self._battle_service.get_pokedex_data()
 
         for player in battle.players:
             side = battle.sides.get(player.trainer_id)
@@ -133,6 +134,8 @@ class BattleCoordinatorService:
                     battle=battle,
                     instances=instances,
                     ai_level=player.ai_level or 1,
+                    movements=data["movements"],
+                    type_chart=data["types"],
                 )
                 if ai_switch:
                     ai_replacements.append(ai_switch)
@@ -160,6 +163,8 @@ class BattleCoordinatorService:
                     battle=battle,
                     instances=instances,
                     ai_level=player.ai_level or 1,
+                    movements=data["movements"],
+                    type_chart=data["types"],
                 )
             return None
 
