@@ -9,7 +9,7 @@ from ....battle.domain.entities import (
     TargetScope,
     TurnAction,
 )
-from ....pokedex.domain.entities import Type
+from ....pokedex.domain.entities import MoveEffect, Movement, Type
 from ...domain.action_selectors import (
     AI_LEVEL_EASY,
     DEFAULT_MINIMAX_DEPTH,
@@ -62,8 +62,9 @@ class IAService:
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
         level_3_weights: Mapping[str, float] | None = None,
         minimax_depth: int = DEFAULT_MINIMAX_DEPTH,
         minimax_metrics: MinimaxMetrics | None = None,
@@ -80,15 +81,27 @@ class IAService:
         action = replacement_actions[0]
         if ai_level != AI_LEVEL_EASY:
             selector = MinimaxActionSelector(ai_level, depth=minimax_depth, level_3_weights=level_3_weights)
-            selected_action = selector.select_from_actions(
-                battle,
-                instances,
-                player.trainer_id,
-                replacement_actions,
-                movements,
-                type_chart,
-                minimax_metrics,
-            )
+            if move_effects is None:
+                selected_action = selector.select_from_actions(
+                    battle,
+                    instances,
+                    player.trainer_id,
+                    replacement_actions,
+                    movements,
+                    type_chart,
+                    metrics=minimax_metrics,
+                )
+            else:
+                selected_action = selector.select_from_actions(
+                    battle,
+                    instances,
+                    player.trainer_id,
+                    replacement_actions,
+                    movements,
+                    type_chart,
+                    move_effects=move_effects,
+                    metrics=minimax_metrics,
+                )
             if selected_action is not None and selected_action[0] == "SWITCH":
                 action = selected_action
 
@@ -105,8 +118,9 @@ class IAService:
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
         level_3_weights: Mapping[str, float] | None = None,
         minimax_depth: int = DEFAULT_MINIMAX_DEPTH,
         minimax_metrics: MinimaxMetrics | None = None,
@@ -133,22 +147,33 @@ class IAService:
         else:
             selector = MinimaxActionSelector(ai_level, depth=minimax_depth, level_3_weights=level_3_weights)
 
-        action = selector.select(battle, instances, player.trainer_id, movements, type_chart, minimax_metrics)
+        if move_effects is None:
+            action = selector.select(battle, instances, player.trainer_id, movements, type_chart, metrics=minimax_metrics)
+        else:
+            action = selector.select(
+                battle,
+                instances,
+                player.trainer_id,
+                movements,
+                type_chart,
+                move_effects=move_effects,
+                metrics=minimax_metrics,
+            )
 
         if action is None:
             return None
 
         action_type, action_id = action
+        side = battle.sides.get(player.trainer_id)
+        active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
+        active_instance_id = active_ids[0] if active_ids else None
+        user_instance_id = str(active_instance_id) if active_instance_id else ""
 
         if action_type == "MOVE":
-            side = battle.sides.get(player.trainer_id)
-            active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
-            active_instance_id = active_ids[0] if active_ids else None
-
             return TurnAction(
                 player=player.trainer_id,
                 type="move",
-                user_instance_id=str(active_instance_id) if active_instance_id else "",
+                user_instance_id=user_instance_id,
                 move_id=action_id,
                 target=TargetScope(
                     scope="target",
@@ -156,14 +181,10 @@ class IAService:
                     target_active_slot=0,
                 ),
             )
-        else:
-            side = battle.sides.get(player.trainer_id)
-            active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
-            active_instance_id = active_ids[0] if active_ids else None
 
-            return TurnAction(
-                player=player.trainer_id,
-                type="switch",
-                user_instance_id=str(active_instance_id) if active_instance_id else "",
-                replacement_instance_id=action_id,
-            )
+        return TurnAction(
+            player=player.trainer_id,
+            type="switch",
+            user_instance_id=user_instance_id,
+            replacement_instance_id=action_id,
+        )

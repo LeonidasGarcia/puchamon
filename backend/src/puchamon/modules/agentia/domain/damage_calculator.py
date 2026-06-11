@@ -6,7 +6,7 @@ from math import floor
 from typing import TYPE_CHECKING
 
 from ...battle.domain.entities import BattleInstance
-from ...pokedex.domain.entities import Movement
+from ...pokedex.domain.entities import MoveEffect, Movement
 from ...pokedex.domain.entities.effects import DamagePayload, RandomRange
 
 if TYPE_CHECKING:
@@ -139,6 +139,18 @@ def _resolve_simulated_hit_count(payload: DamagePayload | None) -> int:
     if isinstance(payload.hits, RandomRange):
         return SIMULATION_MULTI_HIT_COUNT
     return max(1, payload.hits)
+
+
+def resolve_move_damage_payload(move: Movement, move_effects: Mapping[str, MoveEffect] | None) -> DamagePayload | None:
+    """Return the damage payload associated with a move, if any."""
+    if move_effects is None:
+        return None
+
+    for effect_id in move.effect_ids:
+        effect = move_effects.get(effect_id)
+        if effect is not None and effect.kind == "damage" and isinstance(effect.payload, DamagePayload):
+            return effect.payload
+    return None
 
 
 def calculate_simulated_damage(

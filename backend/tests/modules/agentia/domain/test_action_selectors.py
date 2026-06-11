@@ -282,6 +282,55 @@ class TestMinimaxActionSelector:
 
         assert new_instances["p2"].current_hp < 100
 
+    def test_simulate_move_uses_multihit_payload(self):
+        from puchamon.modules.pokedex.domain.entities import MoveEffect, Movement
+        from puchamon.modules.pokedex.domain.entities.effects import DamagePayload, RandomRange
+
+        p1 = make_instance("p1", "player", 100, 100)
+        p2 = make_instance("p2", "opponent", 100, 100)
+
+        battle = Battle.model_construct(
+            id="b1",
+            battle_type="1v1",
+            turn=1,
+            status="active",
+            phase="awaiting_actions",
+            sides={
+                "player": SideState(active_pokemon_instance_ids=["p1"]),
+                "opponent": SideState(active_pokemon_instance_ids=["p2"]),
+            },
+            players=[],
+            current_turn_actions=[],
+        )
+        instances = {"p1": p1, "p2": p2}
+
+        move = Movement.model_construct(
+            id="double-slap", name="Double Slap", type="fire", category="physical",
+            power=20, accuracy=100, pp=10, priority=0, target="target",
+            makes_contact=True, protectable=True, effect_ids=["double-slap-damage"],
+        )
+        effect = MoveEffect.model_construct(
+            id="double-slap-damage",
+            kind="damage",
+            target="target",
+            chance=100,
+            order=0,
+            payload=DamagePayload(hits=RandomRange(mode="random_range", min=2, max=5)),
+        )
+
+        new_battle, new_instances = simulate_state_transition(
+            battle,
+            instances,
+            ("MOVE", "double-slap"),
+            "player",
+            "opponent",
+            {"double-slap": move},
+            move_effects={"double-slap-damage": effect},
+        )
+
+        assert new_battle is not battle
+        assert new_instances["p2"].current_hp == 73
+
     def test_simulate_switch_changes_active(self):
         p1 = make_instance("p1", "player", 100, 100)
         p2 = make_instance("p2", "player", 80, 100, slot=None)

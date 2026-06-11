@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import Movement
+from ...pokedex.domain.entities import MoveEffect, Movement
 from .action_utils import get_available_actions, get_opponent_trainer_id
 from .state_simulator import simulate_state_transition
 
@@ -48,8 +48,9 @@ def _evaluate_leaf(  # noqa: PLR0913
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
+    move_effects: Mapping[str, MoveEffect] | None,
 ) -> float:
-    return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart)
+    return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
 
 
 def minimax(  # noqa: PLR0913
@@ -63,6 +64,7 @@ def minimax(  # noqa: PLR0913
     heuristic_func: HeuristicFunction,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
     metrics: MinimaxMetrics | None = None,
 ) -> float:
     """Minimax algorithm with Alpha-Beta pruning.
@@ -87,18 +89,18 @@ def minimax(  # noqa: PLR0913
         metrics.nodes_visited += 1
 
     if depth <= 0 or is_terminal_state(battle, instances):
-        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart)
+        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart, move_effects)
 
     opponent_trainer_id = get_opponent_trainer_id(battle, player_trainer_id)
     if opponent_trainer_id is None:
-        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart)
+        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart, move_effects)
 
     acting_trainer_id = player_trainer_id if is_maximizing_player else opponent_trainer_id
     opposing_trainer_id = opponent_trainer_id if is_maximizing_player else player_trainer_id
     actions = get_available_actions(battle, instances, acting_trainer_id)
 
     if not actions:
-        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart)
+        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart, move_effects)
 
     if is_maximizing_player:
         max_eval = float("-inf")
@@ -111,6 +113,7 @@ def minimax(  # noqa: PLR0913
                 opposing_trainer_id,
                 movements,
                 type_chart,
+                move_effects,
             )
             eval_score = minimax(
                 next_battle,
@@ -123,6 +126,7 @@ def minimax(  # noqa: PLR0913
                 heuristic_func,
                 movements,
                 type_chart,
+                move_effects,
                 metrics,
             )
             max_eval = max(max_eval, eval_score)
@@ -143,6 +147,7 @@ def minimax(  # noqa: PLR0913
             opposing_trainer_id,
             movements,
             type_chart,
+            move_effects,
         )
         eval_score = minimax(
             next_battle,
@@ -155,6 +160,7 @@ def minimax(  # noqa: PLR0913
             heuristic_func,
             movements,
             type_chart,
+            move_effects,
             metrics,
         )
         min_eval = min(min_eval, eval_score)

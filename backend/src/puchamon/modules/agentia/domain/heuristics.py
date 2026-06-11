@@ -5,9 +5,9 @@ from math import floor
 from typing import TYPE_CHECKING
 
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import Movement
+from ...pokedex.domain.entities import MoveEffect, Movement
 from .action_utils import get_opponent_trainer_id
-from .damage_calculator import calculate_simulated_damage
+from .damage_calculator import calculate_simulated_damage, resolve_move_damage_payload
 from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_MANUAL_WEIGHTS
 
 if TYPE_CHECKING:
@@ -151,6 +151,7 @@ def _offensive_pressure_for_pair(
     target: BattleInstance,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
+    move_effects: Mapping[str, MoveEffect] | None,
 ) -> float:
     if movements is None or target.max_hp <= 0:
         return 0.0
@@ -164,7 +165,8 @@ def _offensive_pressure_for_pair(
         if move is None or move.power is None or move.power <= 0:
             continue
 
-        simulated_damage = calculate_simulated_damage(move, attacker, target, type_chart=type_chart)
+        payload = resolve_move_damage_payload(move, move_effects)
+        simulated_damage = calculate_simulated_damage(move, attacker, target, payload=payload, type_chart=type_chart)
         expected_damage = simulated_damage * (_move_accuracy(move) / 100)
         pressure = (expected_damage / target.max_hp) * speed_modifier
         best_pressure = max(best_pressure, pressure)
@@ -178,6 +180,7 @@ def _team_offensive_pressure(  # noqa: PLR0913
     opponent_trainer_id: str,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
+    move_effects: Mapping[str, MoveEffect] | None,
 ) -> float:
     attackers = _active_instances(battle, instances, trainer_id)
     targets = _active_instances(battle, instances, opponent_trainer_id)
@@ -186,7 +189,7 @@ def _team_offensive_pressure(  # noqa: PLR0913
 
     total_pressure = 0.0
     for attacker in attackers:
-        total_pressure += max(_offensive_pressure_for_pair(attacker, target, movements, type_chart) for target in targets)
+        total_pressure += max(_offensive_pressure_for_pair(attacker, target, movements, type_chart, move_effects) for target in targets)
     return total_pressure
 
 
@@ -310,6 +313,7 @@ def _weighted_level_3_factors(  # noqa: PLR0913
     opponent_trainer_id: str,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
+    move_effects: Mapping[str, MoveEffect] | None,
 ) -> dict[str, float]:
     player_team_size = max(1, len(_team_instances(instances, player_trainer_id)))
     opponent_team_size = max(1, len(_team_instances(instances, opponent_trainer_id)))
@@ -328,8 +332,8 @@ def _weighted_level_3_factors(  # noqa: PLR0913
         "hp": _clamp_unit(_team_hp_percent(instances, player_trainer_id) - opponent_active_hp),
         "alive": _clamp_unit((_alive_team_count(instances, player_trainer_id) - _alive_team_count(instances, opponent_trainer_id)) / max_team_size),
         "damage": _clamp_unit(
-            _team_offensive_pressure(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart)
-            - _team_offensive_pressure(battle, instances, opponent_trainer_id, player_trainer_id, movements, type_chart)
+            _team_offensive_pressure(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart, move_effects)
+            - _team_offensive_pressure(battle, instances, opponent_trainer_id, player_trainer_id, movements, type_chart, move_effects)
         ),
         "type": _clamp_unit(
             _team_type_matchup_score(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart)
@@ -346,12 +350,13 @@ def _weighted_level_3_factors(  # noqa: PLR0913
     }
 
 
-def evaluate_level_2(
+def evaluate_level_2(  # noqa: PLR0913
     battle: Battle,
     instances: dict[str, BattleInstance],
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,  # noqa: ARG001
     type_chart: Mapping[str, "Type"] | None = None,  # noqa: ARG001
+    move_effects: Mapping[str, MoveEffect] | None = None,  # noqa: ARG001
 ) -> float:
     """Evaluate battle state using only HP percentage (Level 2 heuristic).
 
@@ -374,12 +379,13 @@ def evaluate_level_2(
     return _team_hp_percent(instances, player_trainer_id) - opponent_active_hp
 
 
-def evaluate_level_3_manual(
+def evaluate_level_3_manual(  # noqa: PLR0913
     battle: Battle,
     instances: dict[str, BattleInstance],
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
     """Evaluate battle state with the manually tuned advanced heuristic."""
     return evaluate_level_3_weighted(
@@ -388,16 +394,18 @@ def evaluate_level_3_manual(
         player_trainer_id,
         movements=movements,
         type_chart=type_chart,
+        move_effects=move_effects,
         weights=LEVEL_3_MANUAL_WEIGHTS,
     )
 
 
-def evaluate_level_3_ga(
+def evaluate_level_3_ga(  # noqa: PLR0913
     battle: Battle,
     instances: dict[str, BattleInstance],
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
     """Evaluate battle state with the GA-optimized advanced heuristic."""
     return evaluate_level_3_weighted(
@@ -406,6 +414,7 @@ def evaluate_level_3_ga(
         player_trainer_id,
         movements=movements,
         type_chart=type_chart,
+        move_effects=move_effects,
         weights=LEVEL_3_GA_OPTIMIZED_WEIGHTS,
     )
 
@@ -416,6 +425,7 @@ def evaluate_level_3_weighted(  # noqa: PLR0913
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
     weights: Mapping[str, float] | None = None,
 ) -> float:
     """Evaluate a configurable GA-friendly Level 3 heuristic.
@@ -429,5 +439,5 @@ def evaluate_level_3_weighted(  # noqa: PLR0913
         return 0.0
 
     normalized_weights = _normalize_weight_mapping(weights)
-    factors = _weighted_level_3_factors(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart)
+    factors = _weighted_level_3_factors(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart, move_effects)
     return sum(normalized_weights[key] * factors[key] for key in GENETIC_WEIGHT_KEYS)

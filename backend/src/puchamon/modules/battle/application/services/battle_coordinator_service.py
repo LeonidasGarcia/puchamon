@@ -136,6 +136,7 @@ class BattleCoordinatorService:
                     ai_level=player.ai_level or 1,
                     movements=data["movements"],
                     type_chart=data["types"],
+                    move_effects=data["move_effects"],
                 )
                 if ai_switch:
                     ai_replacements.append(ai_switch)
@@ -165,6 +166,7 @@ class BattleCoordinatorService:
                     ai_level=player.ai_level or 1,
                     movements=data["movements"],
                     type_chart=data["types"],
+                    move_effects=data["move_effects"],
                 )
             return None
 
@@ -175,6 +177,7 @@ class BattleCoordinatorService:
             ai_level=player.ai_level or 1,
             movements=data["movements"],
             type_chart=data["types"],
+            move_effects=data["move_effects"],
         )
 
     async def run_ai_vs_ai_loop(self, battle_id: str) -> list[dict[str, Any]]:
