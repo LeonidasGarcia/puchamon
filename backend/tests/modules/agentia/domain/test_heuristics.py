@@ -1,12 +1,10 @@
 """Tests for AI heuristic functions."""
 
-import pytest
 from puchamon.modules.agentia.domain.heuristics import (
     evaluate_level_2,
     evaluate_level_3_ga,
     evaluate_level_3_manual,
     get_hp_percent,
-    get_opponent_hp_values,
 )
 from puchamon.modules.battle.domain.entities import Battle, BattleInstance, SideState, StatStages, BattleStats
 
@@ -61,100 +59,6 @@ class TestGetHpPercent:
     def test_negative_hp_returns_zero(self):
         instance = make_instance("p1", "t1", -10, 100)
         assert get_hp_percent(instance) == 0.0
-
-
-class TestGetOpponentHpValues:
-    """Tests for get_opponent_hp_values function."""
-
-    def test_returns_opponent_hp(self):
-        p1 = make_instance("p1", "trainer", 80, 100)
-        p2 = make_instance("p2", "opponent", 60, 100)
-
-        battle = Battle.model_construct(
-            id="b1",
-            battle_type="1v1",
-            turn=1,
-            status="active",
-            phase="awaiting_actions",
-            sides={
-                "trainer": SideState(active_pokemon_instance_ids=["p1"]),
-                "opponent": SideState(active_pokemon_instance_ids=["p2"]),
-            },
-            players=[],
-            current_turn_actions=[],
-        )
-        instances = {"p1": p1, "p2": p2}
-
-        result = get_opponent_hp_values(battle, instances, exclude_trainer_id="trainer")
-
-        assert result == (60, 100)
-
-    def test_excludes_specified_trainer(self):
-        p1 = make_instance("p1", "trainer", 80, 100)
-        p2 = make_instance("p2", "opponent", 60, 100)
-
-        battle = Battle.model_construct(
-            id="b1",
-            battle_type="1v1",
-            turn=1,
-            status="active",
-            phase="awaiting_actions",
-            sides={
-                "trainer": SideState(active_pokemon_instance_ids=["p1"]),
-                "opponent": SideState(active_pokemon_instance_ids=["p2"]),
-            },
-            players=[],
-            current_turn_actions=[],
-        )
-        instances = {"p1": p1, "p2": p2}
-
-        result = get_opponent_hp_values(battle, instances, exclude_trainer_id="opponent")
-
-        assert result == (80, 100)
-
-    def test_returns_none_when_no_opponent(self):
-        p1 = make_instance("p1", "trainer", 80, 100)
-
-        battle = Battle.model_construct(
-            id="b1",
-            battle_type="1v1",
-            turn=1,
-            status="active",
-            phase="awaiting_actions",
-            sides={
-                "trainer": SideState(active_pokemon_instance_ids=["p1"]),
-            },
-            players=[],
-            current_turn_actions=[],
-        )
-        instances = {"p1": p1}
-
-        result = get_opponent_hp_values(battle, instances, exclude_trainer_id="trainer")
-
-        assert result is None
-
-    def test_returns_none_when_opponent_fainted(self):
-        p1 = make_instance("p1", "trainer", 80, 100)
-        p2 = make_instance("p2", "opponent", 0, 100, fainted=True)
-
-        battle = Battle.model_construct(
-            id="b1",
-            battle_type="1v1",
-            turn=1,
-            status="active",
-            phase="awaiting_actions",
-            sides={
-                "trainer": SideState(active_pokemon_instance_ids=["p1"]),
-                "opponent": SideState(active_pokemon_instance_ids=["p2"]),
-            },
-            players=[],
-            current_turn_actions=[],
-        )
-        instances = {"p1": p1, "p2": p2}
-
-        result = get_opponent_hp_values(battle, instances, exclude_trainer_id="trainer")
-
-        assert result is None
 
 
 class TestEvaluateLevel2:
@@ -277,7 +181,7 @@ class TestEvaluateLevel2:
 
 
 class TestEvaluateLevel3:
-    """Tests for evaluate_level_3 heuristic function."""
+    """Tests for level 3 heuristic functions."""
 
     def test_equal_state_returns_near_zero(self):
         p1 = make_instance("p1", "player", 50, 100)

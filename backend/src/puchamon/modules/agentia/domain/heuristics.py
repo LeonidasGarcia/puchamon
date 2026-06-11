@@ -13,10 +13,6 @@ from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_MANUAL_WEIGHT
 if TYPE_CHECKING:
     from ...pokedex.domain.entities import Type
 
-WEIGHT_VIVOS = 150.0
-WEIGHT_HP = 100.0
-WEIGHT_MOMENTUM = 80.0
-WEIGHT_STAGES = 5.0
 PENALTY_INCAPACITATED = -40.0
 PENALTY_MAJOR_STATUS = -20.0
 PENALTY_VOLATILE = -10.0
@@ -27,58 +23,6 @@ _PARALYSIS_STATUSES = {"paralysis", "paralyzed", "par"}
 _PENALIZED_VOLATILE_STATUSES = {"confusion", "confused", "leech_seed", "leechseed"}
 
 GENETIC_WEIGHT_KEYS = ("hp", "alive", "damage", "type", "speed", "status", "effects")
-
-
-def get_opponent_hp_values(
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    exclude_trainer_id: str | None = None,
-) -> tuple[int, int] | None:
-    """Get the opponent's current and max HP.
-
-    Args:
-        battle: The current battle state.
-        instances: Dict of battle instances keyed by ID.
-        exclude_trainer_id: Optional trainer ID to exclude (usually the current player).
-
-    Returns:
-        Tuple of (current_hp, max_hp) or None if no opponent found.
-    """
-    for trainer_id, side in battle.sides.items():
-        if exclude_trainer_id and trainer_id == exclude_trainer_id:
-            continue
-        active_id = None
-        for instance_id in side.active_pokemon_instance_ids:
-            if instance_id is not None:
-                active_id = instance_id
-                break
-        if active_id:
-            opponent = instances.get(active_id)
-            if opponent and not opponent.fainted:
-                return (opponent.current_hp, opponent.max_hp)
-    return None
-
-
-def calculate_hp_score(
-    move_power: int,
-    opponent_current_hp: int,
-    opponent_max_hp: int,
-) -> float:
-    """Calculate heuristic score for a move based on opponent HP.
-
-    h(move) = 1 - HP_percent_post
-
-    Args:
-        move_power: Power of the move being evaluated.
-        opponent_current_hp: Current HP of the opponent.
-        opponent_max_hp: Max HP of the opponent.
-
-    Returns:
-        Heuristic score (higher = better move).
-    """
-    hp_post = opponent_current_hp - move_power
-    hp_percent_post = max(0, hp_post) / opponent_max_hp
-    return 1.0 - hp_percent_post
 
 
 def get_hp_percent(instance: BattleInstance) -> float:
@@ -464,17 +408,6 @@ def evaluate_level_3_ga(
         type_chart=type_chart,
         weights=LEVEL_3_GA_OPTIMIZED_WEIGHTS,
     )
-
-
-def evaluate_level_3(
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    player_trainer_id: str,
-    movements: Mapping[str, Movement] | None = None,
-    type_chart: Mapping[str, "Type"] | None = None,
-) -> float:
-    """Evaluate battle state with the GA-optimized advanced heuristic."""
-    return evaluate_level_3_ga(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart)
 
 
 def evaluate_level_3_weighted(  # noqa: PLR0913
