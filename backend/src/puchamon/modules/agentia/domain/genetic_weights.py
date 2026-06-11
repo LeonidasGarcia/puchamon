@@ -13,13 +13,13 @@ LEVEL_3_MANUAL_WEIGHTS: Final[dict[str, float]] = {
 }
 
 LEVEL_3_GA_OPTIMIZED_WEIGHTS: Final[dict[str, float]] = {
-    "hp": 0.1765587813083075,
-    "alive": 0.10915206417431861,
-    "damage": 0.06431245818093839,
-    "type": 0.13295716536225582,
-    "speed": 0.21534318608690411,
-    "status": 0.07519547353909556,
-    "effects": 0.22648087134818007,
+    "hp": 0.3275128446735863,
+    "alive": 0.05326217511460886,
+    "damage": 0.11154927979175683,
+    "type": 0.01583918477846048,
+    "speed": 0.2759869418372587,
+    "status": 0.16541348795480293,
+    "effects": 0.05043608584952595,
 }
 
 LEVEL_3_GA_TRAINING_METADATA: Final[dict[str, object]] = {
