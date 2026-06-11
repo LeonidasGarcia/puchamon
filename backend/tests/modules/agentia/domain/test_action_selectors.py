@@ -12,7 +12,7 @@ from puchamon.modules.agentia.domain.action_selectors import (
 )
 from puchamon.modules.agentia.domain.action_utils import get_available_actions
 from puchamon.modules.agentia.domain.minimax import MinimaxMetrics
-from puchamon.modules.agentia.domain.state_simulator import simulate_action
+from puchamon.modules.agentia.domain.state_simulator import simulate_state_transition
 from puchamon.modules.battle.domain.entities import Battle, BattleInstance, SideState, StatStages, BattleStats, MoveState
 
 
@@ -276,7 +276,7 @@ class TestMinimaxActionSelector:
 
         movements = {"tackle": move}
 
-        new_battle, new_instances = simulate_action(
+        new_battle, new_instances = simulate_state_transition(
             battle, instances, ("MOVE", "tackle"), "player", "opponent", movements
         )
 
@@ -302,7 +302,7 @@ class TestMinimaxActionSelector:
         )
         instances = {"p1": p1, "p2": p2, "p3": p3}
 
-        new_battle, new_instances = simulate_action(
+        new_battle, new_instances = simulate_state_transition(
             battle, instances, ("SWITCH", "p2"), "player", "opponent"
         )
 
