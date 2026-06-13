@@ -497,6 +497,22 @@ export const POKE_DATA = {
       order: 1,
       payload: { changes: [{ stat: "spa", stages: 1 }, { stat: "spd", stages: 1 }, { stat: "spe", stages: 1 }] }
     },
+    {
+      _id: "fx-poison-30",
+      kind: "apply_major_status",
+      target: "target",
+      chance: 30,
+      order: 2,
+      payload: { conditionId: "poison" }
+    },
+    {
+      _id: "fx-para-30",
+      kind: "apply_major_status",
+      target: "target",
+      chance: 30,
+      order: 2,
+      payload: { conditionId: "paralysis" }
+    }
   ],
   moves: [
     {
@@ -1100,6 +1116,118 @@ export const POKE_DATA = {
       protectable: false,
       target: "self",
       effectIds: ["fx-stat-qd-up1-user"],
+    },
+    {
+      _id: "roost",
+      name: "Respiro",
+      type: "Flying",
+      category: "Status",
+      power: null,
+      accuracy: null,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: false,
+      target: "self",
+      effectIds: ["fx-recover-50"]
+    },
+    {
+      _id: "fire-blast",
+      name: "Llamarada",
+      type: "Fire",
+      category: "Special",
+      power: 110,
+      accuracy: 85,
+      pp: 5,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-burn-10"]
+    },
+    {
+      _id: "energy-ball",
+      name: "Energibola",
+      type: "Grass",
+      category: "Special",
+      power: 90,
+      accuracy: 100,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single"]
+    },
+    {
+      _id: "sludge-bomb",
+      name: "Bomba Lodo",
+      type: "Poison",
+      category: "Special",
+      power: 90,
+      accuracy: 100,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-poison-30"]
+    },
+    {
+      _id: "body-slam",
+      name: "Golpe Cuerpo",
+      type: "Normal",
+      category: "Physical",
+      power: 85,
+      accuracy: 100,
+      pp: 15,
+      priority: 0,
+      makesContact: true,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-para-30"]
+    },
+    {
+      _id: "moonlight",
+      name: "Luz Lunar",
+      type: "Fairy",
+      category: "Status",
+      power: null,
+      accuracy: null,
+      pp: 5,
+      priority: 0,
+      makesContact: false,
+      protectable: false,
+      target: "self",
+      effectIds: ["fx-recover-50"]
+    },
+    {
+      _id: "air-slash",
+      name: "Tajo Aéreo",
+      type: "Flying",
+      category: "Special",
+      power: 75,
+      accuracy: 95,
+      pp: 15,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-flinch-30"]
+    },
+    {
+      _id: "rock-slide",
+      name: "Avalancha",
+      type: "Rock",
+      category: "Physical",
+      power: 75,
+      accuracy: 90,
+      pp: 10,
+      priority: 0,
+      makesContact: false,
+      protectable: true,
+      target: "target",
+      effectIds: ["fx-damage-single", "fx-flinch-30"]
     }
   ],
 
@@ -1257,6 +1385,76 @@ export const POKE_DATA = {
       types: ["Steel", "Psychic"],
       baseStats: { hp: 80, atk: 135, def: 130, spa: 95, spd: 90, spe: 70 },
       abilities: ["clear-body", "light-metal"],
+    },
+    {
+      _id: "charizard",
+      name: "Charizard",
+      types: ["Fire", "Flying"],
+      baseStats: { hp: 78, atk: 84, def: 78, spa: 109, spd: 85, spe: 100 },
+      abilities: ["blaze", "solar-power"]
+    },
+    {
+      _id: "venusaur",
+      name: "Venusaur",
+      types: ["Grass", "Poison"],
+      baseStats: { hp: 80, atk: 82, def: 83, spa: 100, spd: 100, spe: 80 },
+      abilities: ["overgrow", "chlorophyll"]
+    },
+    {
+      _id: "blastoise",
+      name: "Blastoise",
+      types: ["Water"],
+      baseStats: { hp: 79, atk: 83, def: 100, spa: 85, spd: 105, spe: 78 },
+      abilities: ["torrent", "rain-dish"]
+    },
+    {
+      _id: "snorlax",
+      name: "Snorlax",
+      types: ["Normal"],
+      baseStats: { hp: 160, atk: 110, def: 65, spa: 65, spd: 110, spe: 30 },
+      abilities: ["immunity", "thick-fat"]
+    },
+    {
+      _id: "jolteon",
+      name: "Jolteon",
+      types: ["Electric"],
+      baseStats: { hp: 65, atk: 65, def: 60, spa: 110, spd: 95, spe: 130 },
+      abilities: ["volt-absorb", "quick-feet"]
+    },
+    {
+      _id: "vaporeon",
+      name: "Vaporeon",
+      types: ["Water"],
+      baseStats: { hp: 130, atk: 65, def: 60, spa: 110, spd: 95, spe: 65 },
+      abilities: ["water-absorb", "hydration"]
+    },
+    {
+      _id: "umbreon",
+      name: "Umbreon",
+      types: ["Dark"],
+      baseStats: { hp: 95, atk: 65, def: 110, spa: 60, spd: 130, spe: 65 },
+      abilities: ["synchronize", "inner-focus"]
+    },
+    {
+      _id: "magnezone",
+      name: "Magnezone",
+      types: ["Electric", "Steel"],
+      baseStats: { hp: 70, atk: 70, def: 115, spa: 130, spd: 90, spe: 60 },
+      abilities: ["magnet-pull", "sturdy"]
+    },
+    {
+      _id: "togekiss",
+      name: "Togekiss",
+      types: ["Normal", "Flying"],
+      baseStats: { hp: 85, atk: 50, def: 95, spa: 120, spd: 115, spe: 80 },
+      abilities: ["hustle", "serene-grace"]
+    },
+    {
+      _id: "excadrill",
+      name: "Excadrill",
+      types: ["Ground", "Steel"],
+      baseStats: { hp: 110, atk: 135, def: 60, spa: 50, spd: 65, spe: 88 },
+      abilities: ["sand-rush", "sand-force", "mold-breaker"]
     }
   ],
 
@@ -1580,6 +1778,106 @@ export const POKE_DATA = {
       item: "leftovers",
       evs: { hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0 },
       moves: ["iron-head", "earthquake", "stone-edge", "ice-punch"]
+    },
+    {
+      _id: "charizard-special",
+      pokemonId: "charizard",
+      movesetName: "Special Sweeper",
+      nature: "Timid",
+      ability: "blaze",
+      item: "life-orb",
+      evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
+      moves: ["fire-blast", "focus-blast", "hidden-power-ice", "roost"]
+    },
+    {
+      _id: "venusaur-offensive",
+      pokemonId: "venusaur",
+      movesetName: "Offensive",
+      nature: "Modest",
+      ability: "overgrow",
+      item: "life-orb",
+      evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
+      moves: ["energy-ball", "sludge-bomb", "earthquake", "swords-dance"]
+    },
+    {
+      _id: "blastoise-utility",
+      pokemonId: "blastoise",
+      movesetName: "Utility Spinner",
+      nature: "Bold",
+      ability: "torrent",
+      item: "leftovers",
+      evs: { hp: 252, atk: 0, def: 252, spa: 0, spd: 4, spe: 0 },
+      moves: ["scald", "rapid-spin", "toxic", "protect"]
+    },
+    {
+      _id: "snorlax-curse",
+      pokemonId: "snorlax",
+      movesetName: "Curse",
+      nature: "Careful",
+      ability: "thick-fat",
+      item: "leftovers",
+      evs: { hp: 188, atk: 104, def: 0, spa: 0, spd: 216, spe: 0 },
+      moves: ["curse", "body-slam", "earthquake", "crunch"]
+    },
+    {
+      _id: "jolteon-special",
+      pokemonId: "jolteon",
+      movesetName: "Special Attacker",
+      nature: "Timid",
+      ability: "volt-absorb",
+      item: "life-orb",
+      evs: { hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252 },
+      moves: ["thunderbolt", "hidden-power-ice", "shadow-ball", "thunder-wave"]
+    },
+    {
+      _id: "vaporeon-cleric",
+      pokemonId: "vaporeon",
+      movesetName: "Cleric",
+      nature: "Bold",
+      ability: "water-absorb",
+      item: "leftovers",
+      evs: { hp: 252, atk: 0, def: 252, spa: 0, spd: 4, spe: 0 },
+      moves: ["scald", "ice-beam", "protect", "toxic"]
+    },
+    {
+      _id: "umbreon-cleric",
+      pokemonId: "umbreon",
+      movesetName: "Cleric",
+      nature: "Calm",
+      ability: "synchronize",
+      item: "leftovers",
+      evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 252, spe: 0 },
+      moves: ["crunch", "toxic", "protect", "moonlight"]
+    },
+    {
+      _id: "magnezone-special",
+      pokemonId: "magnezone",
+      movesetName: "Special Sweeper",
+      nature: "Modest",
+      ability: "magnet-pull",
+      item: "choice-specs",
+      evs: { hp: 172, atk: 0, def: 0, spa: 252, spd: 0, spe: 84 },
+      moves: ["thunderbolt", "flash-cannon", "hidden-power-ice", "thunder-wave"]
+    },
+    {
+      _id: "togekiss-nasty-plot",
+      pokemonId: "togekiss",
+      movesetName: "Flinch Attacker",
+      nature: "Timid",
+      ability: "serene-grace",
+      item: "leftovers",
+      evs: { hp: 252, atk: 0, def: 0, spa: 4, spd: 0, spe: 252 },
+      moves: ["air-slash", "thunder-wave", "roost", "fire-blast"]
+    },
+    {
+      _id: "excadrill-swords-dance",
+      pokemonId: "excadrill",
+      movesetName: "Swords Dance",
+      nature: "Adamant",
+      ability: "sand-rush",
+      item: "life-orb",
+      evs: { hp: 4, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 },
+      moves: ["earthquake", "iron-head", "rock-slide", "swords-dance"]
     }
   ]
 };
