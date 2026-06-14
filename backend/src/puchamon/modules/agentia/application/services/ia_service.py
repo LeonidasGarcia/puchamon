@@ -9,7 +9,7 @@ from ....battle.domain.entities import (
     TargetScope,
     TurnAction,
 )
-from ....pokedex.domain.entities import Type
+from ....pokedex.domain.entities import MoveEffect, Movement, Type
 from ...domain.action_selectors import (
     AI_LEVEL_EASY,
     DEFAULT_MINIMAX_DEPTH,
@@ -65,11 +65,12 @@ class IAService:
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
         level_3_weights: Mapping[str, float] | None = None,
         minimax_depth: int = DEFAULT_MINIMAX_DEPTH,
         minimax_metrics: MinimaxMetrics | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
     ) -> TurnAction | None:
         """Generate a TurnAction for an AI player.
 
@@ -79,6 +80,7 @@ class IAService:
             instances: Dict of battle instances keyed by ID.
             ai_level: AI difficulty level (1=easy, 2=medium, 3=hard manual, 4=hard GA).
             movements: Dict of Movement entities keyed by ID.
+            move_effects: Dict of MoveEffect entities keyed by ID.
             type_chart: Dict of Type entities keyed by ID.
             level_3_weights: Optional chromosome weights used by GA training or benchmark evaluation.
             minimax_depth: Search depth used by Minimax levels.
@@ -93,7 +95,15 @@ class IAService:
         else:
             selector = MinimaxActionSelector(ai_level, depth=minimax_depth, level_3_weights=level_3_weights)
 
-        action = selector.select(battle, instances, player.trainer_id, movements, type_chart, minimax_metrics)
+        action = selector.select(
+            battle,
+            instances,
+            player.trainer_id,
+            movements,
+            type_chart,
+            minimax_metrics,
+            move_effects=move_effects,
+        )
 
         if action is None:
             return None

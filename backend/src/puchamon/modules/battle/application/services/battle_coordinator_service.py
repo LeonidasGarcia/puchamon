@@ -169,6 +169,7 @@ class BattleCoordinatorService:
             instances=instances,
             ai_level=player.ai_level or 1,
             movements=data["movements"],
+            move_effects=data["move_effects"],
             type_chart=data["types"],
         )
 

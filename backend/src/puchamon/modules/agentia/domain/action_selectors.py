@@ -6,7 +6,7 @@ from secrets import choice
 from typing import Literal
 
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import Movement, Type
+from ...pokedex.domain.entities import MoveEffect, Movement, Type
 from .action_utils import get_available_actions, get_opponent_trainer_id
 from .heuristics import evaluate_level_2, evaluate_level_3_ga, evaluate_level_3_manual, evaluate_level_3_weighted
 from .minimax import MinimaxMetrics, minimax
@@ -35,6 +35,7 @@ class ActionSelector(ABC):
         movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
         metrics: MinimaxMetrics | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
     ) -> Action | None:
         """Select an action (move or switch) from available options.
 
@@ -63,6 +64,7 @@ class RandomActionSelector(ActionSelector):
         movements: Mapping[str, Movement] | None = None,  # noqa: ARG002
         type_chart: Mapping[str, Type] | None = None,  # noqa: ARG002
         metrics: MinimaxMetrics | None = None,  # noqa: ARG002
+        move_effects: Mapping[str, MoveEffect] | None = None,  # noqa: ARG002
     ) -> Action | None:
         """Select an unpredictable action from available moves and switches."""
         actions = get_available_actions(battle, instances, trainer_id)
@@ -101,12 +103,13 @@ class MinimaxActionSelector(ActionSelector):
             self.heuristic_func = evaluate_level_3_ga
         elif ai_level == AI_LEVEL_HARD_GA:
 
-            def weighted_level_3(battle_state, battle_instances, player_trainer_id, movements=None, type_chart=None):
+            def weighted_level_3(battle_state, battle_instances, player_trainer_id, movements=None, move_effects=None, type_chart=None):  # noqa: PLR0913
                 return evaluate_level_3_weighted(
                     battle_state,
                     battle_instances,
                     player_trainer_id,
                     movements=movements,
+                    move_effects=move_effects,
                     type_chart=type_chart,
                     weights=level_3_weights,
                 )
@@ -123,6 +126,7 @@ class MinimaxActionSelector(ActionSelector):
         movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
         metrics: MinimaxMetrics | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
     ) -> Action | None:
         """Select the best action using Minimax with Alpha-Beta pruning."""
         opponent_trainer_id = get_opponent_trainer_id(battle, trainer_id)
@@ -150,6 +154,7 @@ class MinimaxActionSelector(ActionSelector):
                 opponent_trainer_id,
                 movements,
                 type_chart,
+                move_effects,
             )
             score = minimax(
                 next_battle,
@@ -163,6 +168,7 @@ class MinimaxActionSelector(ActionSelector):
                 movements,
                 type_chart,
                 search_metrics,
+                move_effects,
             )
             if score > best_score:
                 best_score = score
