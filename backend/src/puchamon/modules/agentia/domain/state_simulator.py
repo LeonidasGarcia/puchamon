@@ -5,12 +5,15 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from ...battle.domain.entities import Battle, BattleInstance
+from ...battle.domain.rules import MAX_STAT_STAGE, MIN_STAT_STAGE
 from ...pokedex.domain.entities import MoveEffect, Movement
 from .action_utils import Action
 from .damage_calculator import calculate_simulated_damage
 
 if TYPE_CHECKING:
     from ...pokedex.domain.entities import Type
+
+GUARANTEED_EFFECT_CHANCE = 100
 
 
 def simulate_state_transition(  # noqa: PLR0913
@@ -115,13 +118,52 @@ def _simulate_move(  # noqa: PLR0913
 
     damage = calculate_simulated_damage(move, actor_instance, target_instance, type_chart=type_chart)
     target_instance.current_hp = max(0, target_instance.current_hp - damage)
-    del move_effects
+    _simulate_move_stat_effects(move, actor_instance, target_instance, move_effects)
 
     if target_instance.current_hp <= 0:
         target_instance.fainted = True
         _remove_active_instance(opposing_side.active_pokemon_instance_ids, str(target_instance.id))
 
     return battle, instances
+
+
+def _simulate_move_stat_effects(
+    move: Movement,
+    actor_instance: BattleInstance,
+    target_instance: BattleInstance,
+    move_effects: Mapping[str, MoveEffect] | None,
+) -> None:
+    if not move_effects:
+        return
+
+    for effect_id in move.effect_ids:
+        effect = move_effects.get(effect_id)
+        if effect is None or effect.kind != "modify_stat" or effect.chance < GUARANTEED_EFFECT_CHANCE:
+            continue
+        for affected_instance in _resolve_effect_targets(effect, actor_instance, target_instance):
+            _apply_modify_stat_effect(affected_instance, effect)
+
+
+def _resolve_effect_targets(effect: MoveEffect, actor_instance: BattleInstance, target_instance: BattleInstance) -> list[BattleInstance]:
+    if effect.target == "self":
+        return [actor_instance]
+    if effect.target == "target" and not target_instance.fainted and target_instance.current_hp > 0:
+        return [target_instance]
+    return []
+
+
+def _apply_modify_stat_effect(instance: BattleInstance, effect: MoveEffect) -> None:
+    changes = getattr(effect.payload, "changes", None)
+    if not changes or instance.fainted or instance.current_hp <= 0:
+        return
+
+    for change in changes:
+        stat_key = "def_" if change.stat == "def" else change.stat
+        if not hasattr(instance.stages, stat_key):
+            continue
+        current_stage = getattr(instance.stages, stat_key)
+        new_stage = max(MIN_STAT_STAGE, min(MAX_STAT_STAGE, current_stage + change.stages))
+        setattr(instance.stages, stat_key, new_stage)
 
 
 def _simulate_switch(
