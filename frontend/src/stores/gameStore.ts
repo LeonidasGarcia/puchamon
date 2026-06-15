@@ -209,7 +209,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   applyEventKind: (event: BattleTurnEvent) => {
-    const { turnHistory, setAnimationState } = get();
+    const { turnHistory, setAnimationState, trainerId } = get();
     const currentTurn = turnHistory[turnHistory.length - 1];
     if (!currentTurn) return;
 
@@ -353,6 +353,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           playerPhase: 'finished',
           turnQueue: [],
           animationStates: {},
+          myPokemon: snapshot.pokemon_instances.filter(
+            (p) => p.trainer_id === trainerId,
+          ),
+          opponentPokemon: snapshot.pokemon_instances.filter(
+            (p) => p.trainer_id !== trainerId,
+          ),
         });
         break;
       }
@@ -361,32 +367,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
         break;
     }
 
-    set((state) => ({
-      myPokemon: state.myPokemon.map((p) => {
-        const snapPokemon = snapshot.pokemon_instances.find(
-          (s) => s.instance_id === p.instance_id,
-        );
-        return snapPokemon
-          ? {
-              ...p,
-              move_state: snapPokemon.move_state,
-              revealed_moves: snapPokemon.revealed_moves,
-            }
-          : p;
-      }),
-      opponentPokemon: state.opponentPokemon.map((p) => {
-        const snapPokemon = snapshot.pokemon_instances.find(
-          (s) => s.instance_id === p.instance_id,
-        );
-        return snapPokemon
-          ? {
-              ...p,
-              move_state: snapPokemon.move_state,
-              revealed_moves: snapPokemon.revealed_moves,
-            }
-          : p;
-      }),
-    }));
+      set((state) => ({
+        myPokemon: state.myPokemon.map((p) => {
+          const snapPokemon = snapshot.pokemon_instances.find(
+            (s) => s.instance_id === p.instance_id,
+          );
+          return snapPokemon
+            ? {
+                ...p,
+                move_state: snapPokemon.move_state,
+                revealed_moves: snapPokemon.revealed_moves,
+                is_revealed: snapPokemon.is_revealed,
+              }
+            : p;
+        }),
+        opponentPokemon: state.opponentPokemon.map((p) => {
+          const snapPokemon = snapshot.pokemon_instances.find(
+            (s) => s.instance_id === p.instance_id,
+          );
+          return snapPokemon
+            ? {
+                ...p,
+                move_state: snapPokemon.move_state,
+                revealed_moves: snapPokemon.revealed_moves,
+                is_revealed: snapPokemon.is_revealed,
+              }
+            : p;
+        }),
+      }));
   },
 
   finalizeTurnAnimation: () => {

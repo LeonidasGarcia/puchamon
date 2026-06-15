@@ -11,7 +11,7 @@ import PokemonSwitch from '../components/cards/PokemonSwitch';
 import Section from '../components/ui/Section';
 import Modal from '../components/ui/Modal';
 import PokemonState from '../components/cards/PokemonState';
-import OpponentReservePreview from '../components/cards/OpponentReservePreview';
+import OpponentTeamPreview from '../components/cards/OpponentTeamPreview';
 import PokemonMovement from '../components/cards/PokemonMovement';
 import { POKE_DATA } from '../types/Pokemon';
 import type { WeatherColorsKeys } from '../types/colors/WeatherColors';
@@ -48,11 +48,9 @@ export default function App() {
   );
 
   const opponentTrainerId = Object.keys(sides).find((key) => key !== trainerId);
-  const opponentActiveInstanceIds =
-    sides[opponentTrainerId ?? '']?.active_pokemon_instance_ids?.filter(Boolean) ?? [];
-  const opponentReservePokemon = [...opponentPokemon]
-    .sort((a, b) => a.team_slot - b.team_slot)
-    .filter((pokemon) => !opponentActiveInstanceIds.includes(pokemon.instance_id));
+  const opponentActiveInstanceIds: string[] =
+    sides[opponentTrainerId ?? '']?.active_pokemon_instance_ids?.filter((id): id is string => id !== null) ?? [];
+  const opponentTeamPokemon = [...opponentPokemon].sort((a, b) => a.team_slot - b.team_slot);
 
   const isOpponentFainted =
     activeOpponentPokemon?.fainted &&
@@ -274,8 +272,9 @@ export default function App() {
                 status={activeOpponentPokemon.status}
               />
             )}
-            <OpponentReservePreview
-              pokemon={opponentReservePokemon}
+            <OpponentTeamPreview
+              pokemon={opponentTeamPokemon}
+              activeInstanceIds={opponentActiveInstanceIds}
               spritesMap={allSprites}
             />
           </Section>
