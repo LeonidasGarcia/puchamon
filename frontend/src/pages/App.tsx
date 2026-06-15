@@ -14,6 +14,7 @@ import PokemonState from '../components/cards/PokemonState';
 import OpponentTeamPreview from '../components/cards/OpponentTeamPreview';
 import PokemonMovement from '../components/cards/PokemonMovement';
 import { POKE_DATA } from '../types/Pokemon';
+import { AI_DIFFICULTY_LABELS } from '../types/difficulty';
 import type { WeatherColorsKeys } from '../types/colors/WeatherColors';
 import type { HazardColorsKeys } from '../types/colors/HazardColors';
 import type { TypeColorsKeys } from '../types/colors/TypeColors';
@@ -21,6 +22,23 @@ import type { TypeColorsKeys } from '../types/colors/TypeColors';
 export default function App() {
   const { isConnected, lastError, connect, disconnect, sendAction } =
     useBattleNetworkStore();
+
+  const {
+    name,
+    controllerType,
+    difficulty: ai1_difficulty,
+    ai2_difficulty,
+  } = useConnectionStore();
+
+  const myName =
+    controllerType === 'ai'
+      ? `${name ?? 'IA 1'} (${AI_DIFFICULTY_LABELS[ai1_difficulty ?? 1]})`
+      : (name ?? 'Mi equipo');
+
+  const opponentName =
+    AI_DIFFICULTY_LABELS[
+      (controllerType === 'ai' ? ai2_difficulty : ai1_difficulty) ?? 1
+    ];
 
   const {
     weather,
@@ -32,9 +50,6 @@ export default function App() {
     winnerTrainerId,
     playerPhase,
   } = useGameStore();
-
-  const myName = 'Mi equipo';
-  const opponentName = 'Equipo rival';
 
   const myActiveInstanceId =
     sides[trainerId ?? '']?.active_pokemon_instance_ids?.[0];
@@ -49,8 +64,12 @@ export default function App() {
 
   const opponentTrainerId = Object.keys(sides).find((key) => key !== trainerId);
   const opponentActiveInstanceIds: string[] =
-    sides[opponentTrainerId ?? '']?.active_pokemon_instance_ids?.filter((id): id is string => id !== null) ?? [];
-  const opponentTeamPokemon = [...opponentPokemon].sort((a, b) => a.team_slot - b.team_slot);
+    sides[opponentTrainerId ?? '']?.active_pokemon_instance_ids?.filter(
+      (id): id is string => id !== null,
+    ) ?? [];
+  const opponentTeamPokemon = [...opponentPokemon].sort(
+    (a, b) => a.team_slot - b.team_slot,
+  );
 
   const isOpponentFainted =
     activeOpponentPokemon?.fainted &&
@@ -251,7 +270,7 @@ export default function App() {
       <div className="flex flex-col gap-8 flex-1 py-6 h-full">
         <div className="flex flex-col gap-6">
           <Section
-            label={`Equipo de ${opponentName}`}
+            label={`Equipo de IA (${opponentName})`}
             className="flex-col items-center"
           >
             {activeOpponentPokemon && (

@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useBattleNetworkStore } from '../stores/battleNetworkStore';
+import {
+  AI_DIFFICULTY_LABELS,
+  AI_DIFFICULTY_VALUES,
+} from '../types/difficulty';
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -99,7 +103,7 @@ export default function Lobby() {
                 Dificultad
               </label>
               <div className="flex gap-4">
-                {([1, 2, 3, 4] as const).map((d) => (
+                {AI_DIFFICULTY_VALUES.map((d) => (
                   <button
                     key={d}
                     onClick={() => setDifficulty(d)}
@@ -109,7 +113,8 @@ export default function Lobby() {
                         : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                     }`}
                   >
-                    {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : d === 3 ? 'Difícil' : 'GA'}
+                    I_DIFFICULTY_LABELS[
+                    {AI_DIFFICULTY_LABELS[d]}
                   </button>
                 ))}
               </div>
@@ -123,7 +128,7 @@ export default function Lobby() {
                   Dificultad IA 1
                 </label>
                 <div className="flex gap-4">
-                  {([1, 2, 3, 4] as const).map((d) => (
+                  {AI_DIFFICULTY_VALUES.map((d) => (
                     <button
                       key={d}
                       onClick={() => setDifficulty(d)}
@@ -133,7 +138,7 @@ export default function Lobby() {
                           : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                       }`}
                     >
-                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : d === 3 ? 'Difícil' : 'GA'}
+                      {AI_DIFFICULTY_LABELS[d]}
                     </button>
                   ))}
                 </div>
@@ -143,7 +148,7 @@ export default function Lobby() {
                   Dificultad IA 2
                 </label>
                 <div className="flex gap-4">
-                  {([1, 2, 3, 4] as const).map((d) => (
+                  {AI_DIFFICULTY_VALUES.map((d) => (
                     <button
                       key={d}
                       onClick={() => setAi2Difficulty(d)}
@@ -153,7 +158,7 @@ export default function Lobby() {
                           : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                       }`}
                     >
-                      {d === 1 ? 'Fácil' : d === 2 ? 'Medio' : d === 3 ? 'Difícil' : 'GA'}
+                      {AI_DIFFICULTY_LABELS[d]}
                     </button>
                   ))}
                 </div>
