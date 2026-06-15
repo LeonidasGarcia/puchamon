@@ -11,6 +11,7 @@ import PokemonSwitch from '../components/cards/PokemonSwitch';
 import Section from '../components/ui/Section';
 import Modal from '../components/ui/Modal';
 import PokemonState from '../components/cards/PokemonState';
+import OpponentReservePreview from '../components/cards/OpponentReservePreview';
 import PokemonMovement from '../components/cards/PokemonMovement';
 import { POKE_DATA } from '../types/Pokemon';
 import type { WeatherColorsKeys } from '../types/colors/WeatherColors';
@@ -45,6 +46,13 @@ export default function App() {
   const activeOpponentPokemon = opponentPokemon.find(
     (p) => p.instance_id === activeOpponentInstanceId,
   );
+
+  const opponentTrainerId = Object.keys(sides).find((key) => key !== trainerId);
+  const opponentActiveInstanceIds =
+    sides[opponentTrainerId ?? '']?.active_pokemon_instance_ids?.filter(Boolean) ?? [];
+  const opponentReservePokemon = [...opponentPokemon]
+    .sort((a, b) => a.team_slot - b.team_slot)
+    .filter((pokemon) => !opponentActiveInstanceIds.includes(pokemon.instance_id));
 
   const isOpponentFainted =
     activeOpponentPokemon?.fainted &&
@@ -243,7 +251,10 @@ export default function App() {
       </div>
       <div className="flex flex-col gap-8 flex-1 py-6 h-full">
         <div className="flex flex-col gap-6">
-          <Section label={`Equipo de ${opponentName}`}>
+          <Section
+            label={`Equipo de ${opponentName}`}
+            className="flex-col items-center"
+          >
             {activeOpponentPokemon && (
               <PokemonState
                 key={activeOpponentPokemon.instance_id}
@@ -261,6 +272,10 @@ export default function App() {
                 )}
               />
             )}
+            <OpponentReservePreview
+              pokemon={opponentReservePokemon}
+              spritesMap={allSprites}
+            />
           </Section>
         </div>
         <Section
