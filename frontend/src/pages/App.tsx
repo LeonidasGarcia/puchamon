@@ -196,6 +196,7 @@ export default function App() {
                 hpPercentage={Math.round(
                   (activePokemon.current_hp / activePokemon.max_hp) * 100,
                 )}
+                status={activePokemon.status}
               />
             )}
           </Section>
@@ -270,6 +271,7 @@ export default function App() {
                     activeOpponentPokemon.max_hp) *
                     100,
                 )}
+                status={activeOpponentPokemon.status}
               />
             )}
             <OpponentReservePreview
