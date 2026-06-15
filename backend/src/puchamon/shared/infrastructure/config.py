@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     DATABASE_URI: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "puchamon"
 
+    MINIMAX_DEPTH: int = 3
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
 
