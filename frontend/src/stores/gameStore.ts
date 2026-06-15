@@ -422,7 +422,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else {
       set({
         turnQueue: newQueue,
-        playerPhase: 'can_act',
+        playerPhase: get().controllerType === 'ai' ? 'spectating' : 'can_act',
         availableSwitches: [],
         turnHistory: nextTurn ? [...turnHistory, nextTurn] : turnHistory,
       });
