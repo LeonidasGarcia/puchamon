@@ -160,10 +160,10 @@ def minimax(  # noqa: PLR0913
             heuristic_func,
             movements,
             type_chart,
-                move_effects,
-                metrics,
+            move_effects,
+            metrics,
             )
-            min_eval = min(min_eval, eval_score)
+        min_eval = min(min_eval, eval_score)
         beta = min(beta, eval_score)
         if beta <= alpha:
             if metrics is not None:

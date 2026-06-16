@@ -178,7 +178,6 @@ class BattleCoordinatorService:
             movements=data["movements"],
             move_effects=data["move_effects"],
             type_chart=data["types"],
-            move_effects=data["move_effects"],
         )
 
     async def run_ai_vs_ai_loop(self, battle_id: str) -> list[dict[str, Any]]:
