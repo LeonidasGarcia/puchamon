@@ -24,15 +24,15 @@ from ...domain.minimax import MinimaxMetrics
 class IAService:
     """Service class for generating AI actions in battles."""
 
-    async def generate_switch_action(
+    async def generate_switch_action(  # noqa: PLR0913
         self,
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        movements: dict | None = None,  # noqa: ARG002
-        type_chart: dict | None = None,  # noqa: ARG002
-        move_effects: dict | None = None,  # noqa: ARG002
+        movements: dict | None = None,
+        type_chart: dict | None = None,
+        move_effects: dict | None = None,
     ) -> TurnAction | None:
         """Generate a forced switch action for an AI player that needs a replacement."""
         del ai_level, movements, type_chart, move_effects

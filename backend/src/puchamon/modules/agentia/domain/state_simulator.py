@@ -36,7 +36,7 @@ def simulate_state_transition(  # noqa: PLR0913
     return _apply_action_to_state(battle_copy, instances_copy, action, acting_trainer_id, opposing_trainer_id, movements, type_chart, move_effects)
 
 
-def simulate_action(
+def simulate_action(  # noqa: PLR0913
     battle: Battle,
     instances: dict[str, BattleInstance],
     action: Action,
