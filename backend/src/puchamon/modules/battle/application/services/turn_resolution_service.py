@@ -247,24 +247,11 @@ class TurnResolutionService:
                 )
 
     def _resolve_faints_and_cleanup(self, context: BattleStrategyContext) -> None:
-        """Increment the turn counter, update durations, and check for victory."""
-        # 2. Cleanup volatile statuses that expire at end of turn
+        """Update residual effects, victory state, and the next battle phase."""
         self._cleanup_volatile_statuses(context)
 
-        # 3. Only increment turn if no replacements are pending
-        # Note: Turn increment moved to after move execution to keep turn number consistent in logs
-
-        # 4. Check for Win Conditions
-        # A trainer loses if all their pokemon are fainted (not just active ones).
-        # However, for the scope of this resolution step, we check if anyone has NO pokemon left.
-        # The logic for "replacements" will be handled by the phase transition.
-
         active_trainers = []
-        for trainer_id, _side in context.battle.sides.items():
-            # Check if this trainer has any pokemon that can still fight
-            # This requires checking the party, but for now we look at the active instances
-            # and assume if they all fainted and no replacements, they lose.
-            # TODO: Integrate with a PartyService to check total fainted count.
+        for trainer_id in context.battle.sides:
             has_alive_pokemon = any(not inst.fainted for inst in context.battle_instances.values() if inst.trainer_id == trainer_id)
             if has_alive_pokemon:
                 active_trainers.append(trainer_id)
@@ -286,8 +273,6 @@ class TurnResolutionService:
             context.battle.status = "finished"
             context.add_event(kind="battle_finished", message="¡La batalla ha terminado en empate!")
 
-        # 4. Phase Transition
-        # If the battle isn't finished but someone needs to replace a pokemon
         if context.battle.status == "active":
             needs_replacement = next(
                 (True for side in context.battle.sides.values() if any(slot is None for slot in side.active_pokemon_instance_ids)),

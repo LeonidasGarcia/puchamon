@@ -13,9 +13,10 @@ class LoguruMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
-        call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         """Middleware para logging de solicitudes usando Loguru."""
-        request_id: str=request.headers.get("X-Request-ID") or str(object=f'desc-{uuid.uuid4()}')
+        request_id = request.headers.get("X-Request-ID") or f"desc-{uuid.uuid4()}"
         request.state.request_id: str = request_id
 
         with logger.contextualize(
@@ -41,10 +42,10 @@ class LoguruMiddleware(BaseHTTPMiddleware):
                 response.headers["X-Request-ID"] = request_id
                 return response
 
-            except Exception as e:
+            except Exception:
                 process_time: int | float = time.perf_counter() - start_time
                 logger.exception(
                     f"Unhandled error | {request.method} {request.url.path} | "
                     f"Duration: {process_time*1000:.2f}ms"
                 )
-                raise e
+                raise

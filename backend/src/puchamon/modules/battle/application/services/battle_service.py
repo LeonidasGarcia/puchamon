@@ -145,12 +145,10 @@ class BattleService:
         if battle.status == "finished":
             return await self.get_battle_snapshot(battle_id)
 
-        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
-        instances = {str(inst.id): inst for inst in instances_list}
+        instances = await self._load_instances(battle_id)
 
         processed_turn = battle.turn
 
-        # Ensure pokedex data is cached
         await self.get_pokedex_data()
 
         context = self._resolve_turn(battle, instances, actions)
@@ -168,9 +166,7 @@ class BattleService:
             battle.turn += 1
             logger.info(f"[EXECUTE_TURN] Normal turn, advancing to turn={battle.turn}")
 
-        await battle.save()
-        for instance in instances.values():
-            await instance.save()
+        await self._save_battle_state(battle, instances)
 
         return self._build_turn_result(battle_id, processed_turn, actions, context)
 
@@ -195,8 +191,7 @@ class BattleService:
         if battle.status == "finished":
             return await self.get_battle_snapshot(battle_id)
 
-        instances_list = await BattleInstance.find_many({"battleId": battle_id}).to_list()
-        instances = {str(inst.id): inst for inst in instances_list}
+        instances = await self._load_instances(battle_id)
 
         processed_turn = battle.turn
 
@@ -211,15 +206,13 @@ class BattleService:
             execution = ActionExecutionInput(action=action, replacement_instance_id=action.replacement_instance_id)
             switch_strategy.execute(context, execution)
 
-        needs_replacement = any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
+        needs_replacement = self._has_pending_replacements(battle)
         if not needs_replacement:
             battle.turn += 1
             battle.phase = "awaiting_actions"
             logger.info(f"[EXECUTE_REPLACEMENTS] All replacements done, advancing to phase={battle.phase}, turn={battle.turn}")
 
-        await battle.save()
-        for instance in instances.values():
-            await instance.save()
+        await self._save_battle_state(battle, instances)
 
         return self._build_turn_result(battle_id, processed_turn, actions, context)
 
@@ -245,6 +238,18 @@ class BattleService:
     def _clear_turn_actions(self, battle: Battle) -> None:
         """Clear the current turn actions buffer."""
         battle.current_turn_actions = []
+
+    async def _load_instances(self, battle_id: str) -> dict[str, BattleInstance]:
+        instances = await BattleInstance.find_many({"battleId": battle_id}).to_list()
+        return {str(instance.id): instance for instance in instances}
+
+    async def _save_battle_state(self, battle: Battle, instances: dict[str, BattleInstance]) -> None:
+        await battle.save()
+        for instance in instances.values():
+            await instance.save()
+
+    def _has_pending_replacements(self, battle: Battle) -> bool:
+        return any(slot is None for side in battle.sides.values() for slot in side.active_pokemon_instance_ids)
 
     def _build_turn_result(
         self,
