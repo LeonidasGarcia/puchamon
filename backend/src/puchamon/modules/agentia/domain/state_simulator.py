@@ -96,11 +96,7 @@ def _simulate_move(  # noqa: PLR0913
     if actor_instance is None or target_instance is None:
         return battle, instances
 
-    move_state = None
-    for candidate in actor_instance.move_state:
-        if candidate.move_id == move_id:
-            move_state = candidate
-            break
+    move_state = next((candidate for candidate in actor_instance.move_state if candidate.move_id == move_id), None)
     if move_state is not None:
         move_state.current_pp = max(0, move_state.current_pp - 1)
 

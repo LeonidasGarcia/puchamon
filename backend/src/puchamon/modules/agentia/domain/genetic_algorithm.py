@@ -133,11 +133,6 @@ class GeneticAlgorithmResult:
         }
 
 
-def _evaluated_individual_fitness(individual: EvaluatedIndividual) -> float:
-    """Return the scalar fitness value used to rank individuals."""
-    return individual.fitness
-
-
 def normalize_chromosome(values: Sequence[float]) -> Chromosome:
     """Clamp a real-coded chromosome to non-negative values and normalize it to sum 1."""
     if len(values) != len(GENETIC_WEIGHT_NAMES):
@@ -237,8 +232,7 @@ class RealCodedGeneticAlgorithm:
             )
             for chromosome in population
         ]
-        evaluated.sort(key=_evaluated_individual_fitness, reverse=True)
-        return evaluated
+        return sorted(evaluated, key=lambda individual: individual.fitness, reverse=True)
 
     async def _evaluate_population_async(self, population: list[Chromosome]) -> list[EvaluatedIndividual]:
         evaluated: list[EvaluatedIndividual] = []
@@ -247,8 +241,7 @@ class RealCodedGeneticAlgorithm:
             if inspect.isawaitable(evaluation):
                 evaluation = await evaluation
             evaluated.append(EvaluatedIndividual(chromosome=chromosome, evaluation=self._coerce_evaluation(evaluation)))
-        evaluated.sort(key=_evaluated_individual_fitness, reverse=True)
-        return evaluated
+        return sorted(evaluated, key=lambda individual: individual.fitness, reverse=True)
 
     def _coerce_evaluation(self, value: FitnessEvaluation | float) -> FitnessEvaluation:
         if isinstance(value, FitnessEvaluation):
@@ -269,11 +262,7 @@ class RealCodedGeneticAlgorithm:
 
     def _select_parent(self, evaluated_population: list[EvaluatedIndividual]) -> EvaluatedIndividual:
         contestants = self._rng.sample(evaluated_population, self._config.tournament_size)
-        selected = contestants[0]
-        for contestant in contestants[1:]:
-            if contestant.fitness > selected.fitness:
-                selected = contestant
-        return selected
+        return max(contestants, key=lambda individual: individual.fitness)
 
     def _crossover(self, parent_a: Chromosome, parent_b: Chromosome) -> Chromosome:
         if self._rng.random() > self._config.crossover_rate:
