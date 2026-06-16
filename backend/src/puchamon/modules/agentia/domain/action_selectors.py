@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from secrets import choice
 from typing import Literal
 
+from ....shared.infrastructure.config import settings
 from ...battle.domain.entities import Battle, BattleInstance
 from ...pokedex.domain.entities import Movement, Type
 from .action_utils import get_available_actions, get_opponent_trainer_id
@@ -20,7 +21,7 @@ AI_LEVEL_MEDIUM = 2
 AI_LEVEL_HARD_MANUAL = 3
 AI_LEVEL_HARD_GA = 4
 
-DEFAULT_MINIMAX_DEPTH = 3
+DEFAULT_MINIMAX_DEPTH = settings.MINIMAX_DEPTH
 
 
 class ActionSelector(ABC):
@@ -103,13 +104,14 @@ class MinimaxActionSelector(ActionSelector):
             self.heuristic_func = evaluate_level_3_ga
         elif ai_level == AI_LEVEL_HARD_GA:
 
-            def weighted_level_3(battle_state, battle_instances, player_trainer_id, movements=None, type_chart=None):
+            def weighted_level_3(battle_state, battle_instances, player_trainer_id, movements=None, type_chart=None, move_effects=None):  # noqa: PLR0913
                 return evaluate_level_3_weighted(
                     battle_state,
                     battle_instances,
                     player_trainer_id,
                     movements=movements,
                     type_chart=type_chart,
+                    move_effects=move_effects,
                     weights=level_3_weights,
                 )
 
@@ -164,7 +166,7 @@ class MinimaxActionSelector(ActionSelector):
                 self.heuristic_func,
                 movements,
                 type_chart,
-                search_metrics,
+                metrics=search_metrics,
             )
             if score > best_score:
                 best_score = score

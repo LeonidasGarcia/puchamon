@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     DATABASE_POOL_TIMEOUT: int = Field(default=15)
     DATABASE_POOL_RECYCLE: int = Field(default=1800)
 
+    MINIMAX_DEPTH: int = Field(default=3)
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
 
