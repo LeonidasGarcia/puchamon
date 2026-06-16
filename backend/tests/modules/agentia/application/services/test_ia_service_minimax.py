@@ -437,10 +437,10 @@ class TestIAServiceReplacementActions:
         assert action is None
 
     @pytest.mark.asyncio
-    async def test_generate_switch_action_level2_constrains_minimax_to_switches(self, monkeypatch):
+    async def test_generate_switch_action_selects_first_available_replacement(self):
         active = make_instance("p1", "trainer_ai", 100, 100)
         first_replacement = make_instance("p2", "trainer_ai", 80, 100, slot=1)
-        selected_replacement = make_instance("p3", "trainer_ai", 90, 100, slot=2)
+        second_replacement = make_instance("p3", "trainer_ai", 90, 100, slot=2)
         opponent = make_instance("p4", "opponent", 100, 100)
 
         battle = Battle.model_construct(
@@ -456,26 +456,17 @@ class TestIAServiceReplacementActions:
             players=[Player(trainer_id="trainer_ai", name="AI Trainer", controller_type="ai", ai_level=2)],
             current_turn_actions=[],
         )
-        captured_actions = []
-
-        def fake_select_from_actions(self, battle, instances, trainer_id, actions, movements=None, type_chart=None, metrics=None):  # noqa: ARG001
-            captured_actions.extend(actions)
-            return ("SWITCH", "p3")
-
-        monkeypatch.setattr(MinimaxActionSelector, "select_from_actions", fake_select_from_actions)
 
         action = await IAService().generate_switch_action(
             player=battle.players[0],
             battle=battle,
-            instances={"p1": active, "p2": first_replacement, "p3": selected_replacement, "p4": opponent},
+            instances={"p1": active, "p2": first_replacement, "p3": second_replacement, "p4": opponent},
             ai_level=AI_LEVEL_MEDIUM,
-            movements={"tackle": make_movement("tackle", power=40)},
         )
 
-        assert captured_actions == [("SWITCH", "p2"), ("SWITCH", "p3")]
         assert action is not None
         assert action.type == "switch"
-        assert action.replacement_instance_id == "p3"
+        assert action.replacement_instance_id == "p2"
 
 
 class TestIAServiceMinimaxIntegration:

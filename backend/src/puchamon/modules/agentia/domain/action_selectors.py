@@ -7,7 +7,7 @@ from typing import Literal
 
 from ....shared.infrastructure.config import settings
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import Movement, Type
+from ...pokedex.domain.entities import MoveEffect, Movement, Type
 from .action_utils import get_available_actions, get_opponent_trainer_id
 from .heuristics import evaluate_level_2, evaluate_level_3_ga, evaluate_level_3_manual, evaluate_level_3_weighted
 from .minimax import MinimaxMetrics, minimax
@@ -35,21 +35,10 @@ class ActionSelector(ABC):
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
-        """Select an action (move or switch) from available options.
-
-        Args:
-            battle: The current battle state.
-            instances: Dict of battle instances keyed by ID.
-            trainer_id: The trainer ID of the AI player.
-            movements: Dict of Movement entities keyed by ID.
-
-        Returns:
-            Action tuple (action_type, action_id) or None if no action available.
-            action_type is "MOVE" or "SWITCH".
-            action_id is move_id or instance_id respectively.
-        """
+        """Select an action (move or switch) from available options."""
         pass
 
 
@@ -63,10 +52,11 @@ class RandomActionSelector(ActionSelector):
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
         """Select an unpredictable action from available moves and switches."""
-        del movements, type_chart, metrics
+        del movements, type_chart, move_effects, metrics
 
         actions = get_available_actions(battle, instances, trainer_id)
         if not actions:
@@ -126,6 +116,7 @@ class MinimaxActionSelector(ActionSelector):
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
         """Select the best action using Minimax with Alpha-Beta pruning."""
@@ -134,6 +125,24 @@ class MinimaxActionSelector(ActionSelector):
             return None
 
         actions = get_available_actions(battle, instances, trainer_id)
+        return self.select_from_actions(battle, instances, trainer_id, actions, movements, type_chart, move_effects, metrics)
+
+    def select_from_actions(  # noqa: PLR0913
+        self,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+        trainer_id: str,
+        actions: list[Action],
+        movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, Type] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
+        metrics: MinimaxMetrics | None = None,
+    ) -> Action | None:
+        """Select the best action from a constrained root action list."""
+        opponent_trainer_id = get_opponent_trainer_id(battle, trainer_id)
+        if opponent_trainer_id is None:
+            return None
+
         if not actions:
             return None
 
@@ -154,6 +163,7 @@ class MinimaxActionSelector(ActionSelector):
                 opponent_trainer_id,
                 movements,
                 type_chart,
+                move_effects,
             )
             score = minimax(
                 next_battle,
@@ -166,6 +176,7 @@ class MinimaxActionSelector(ActionSelector):
                 self.heuristic_func,
                 movements,
                 type_chart,
+                move_effects,
                 metrics=search_metrics,
             )
             if score > best_score:

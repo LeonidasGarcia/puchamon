@@ -5,7 +5,7 @@ from math import floor
 from typing import TYPE_CHECKING
 
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import Movement
+from ...pokedex.domain.entities import MoveEffect, Movement
 from .action_utils import get_opponent_trainer_id
 from .damage_calculator import calculate_simulated_damage
 from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_MANUAL_WEIGHTS
@@ -25,6 +25,7 @@ _INCAPACITATED_STATUSES = {"sleep", "asleep", "slp", "freeze", "frozen", "frz"}
 _MAJOR_STATUSES = {"burn", "burned", "brn", "poison", "poisoned", "bad_poison", "badly_poisoned", "tox", "paralysis", "paralyzed", "par"}
 _PARALYSIS_STATUSES = {"paralysis", "paralyzed", "par"}
 _PENALIZED_VOLATILE_STATUSES = {"confusion", "confused", "leech_seed", "leechseed"}
+_STAGE_UTILITY_BY_STAT = {"atk": 1.0, "spa": 1.1, "spe": 0.9, "def": 0.8, "def_": 0.8, "spd": 0.8, "acc": 0.5, "eva": 0.5}
 
 GENETIC_WEIGHT_KEYS = ("hp", "alive", "damage", "type", "speed", "status", "effects")
 
@@ -328,11 +329,58 @@ def _team_speed_score(battle: Battle, instances: dict[str, BattleInstance], trai
     return sum(_effective_speed(instance) for instance in active_instances) / len(active_instances)
 
 
+def _effect_scope_multiplier(effect: MoveEffect) -> float:
+    target = getattr(effect, "target", "target")
+    if target == "self":
+        return 1.0
+    if target == "target":
+        return -1.0
+    if target in {"ally_side", "ally_field"}:
+        return 1.0
+    if target in {"foe_side", "foe_field"}:
+        return -1.0
+    return -1.0
+
+
+def _modify_stat_effect_utility(effect: MoveEffect) -> float:
+    payload = effect.payload
+    changes = getattr(payload, "changes", None)
+    if not changes:
+        return 0.0
+
+    scope_multiplier = _effect_scope_multiplier(effect)
+    if scope_multiplier == 0.0:
+        return 0.0
+
+    utility = 0.0
+    for change in changes:
+        stat = "def_" if change.stat == "def" else change.stat
+        stat_weight = _STAGE_UTILITY_BY_STAT.get(stat, 0.5)
+        utility += change.stages * stat_weight * 0.06 * scope_multiplier
+    return utility
+
+
+def _move_effect_utility(effect: MoveEffect) -> float:
+    chance_multiplier = max(0.0, min(1.0, effect.chance / 100))
+    if effect.kind == "damage":
+        return 0.0
+    if effect.kind == "modify_stat":
+        return _modify_stat_effect_utility(effect) * chance_multiplier
+    if effect.kind in {"apply_major_status", "apply_volatile_status"}:
+        return -0.12 * _effect_scope_multiplier(effect) * chance_multiplier
+    if effect.kind == "heal_hp":
+        return 0.15 * _effect_scope_multiplier(effect) * chance_multiplier
+    if effect.kind == "protect":
+        return 0.10 * _effect_scope_multiplier(effect) * chance_multiplier
+    return 0.0
+
+
 def _team_move_effect_utility(
     battle: Battle,
     instances: dict[str, BattleInstance],
     trainer_id: str,
     movements: Mapping[str, Movement] | None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
     if movements is None:
         return 0.0
@@ -343,17 +391,22 @@ def _team_move_effect_utility(
 
     total_utility = 0.0
     for instance in active_instances:
-        instance_utility = 0.0
+        instance_utility: float | None = None
         for move_state in instance.move_state:
             if move_state.current_pp <= 0:
                 continue
             move = movements.get(move_state.move_id)
             if move is None:
                 continue
-            effect_utility = min(0.30, len(move.effect_ids) * 0.05)
+            if move_effects:
+                effect_utility = sum(_move_effect_utility(move_effects[effect_id]) for effect_id in move.effect_ids if effect_id in move_effects)
+                effect_utility = max(-0.30, min(0.30, effect_utility))
+            else:
+                effect_utility = min(0.30, len(move.effect_ids) * 0.05)
             status_move_bonus = 0.20 if move.power is None or move.power <= 0 else 0.0
-            instance_utility = max(instance_utility, effect_utility + status_move_bonus)
-        total_utility += min(1.0, instance_utility)
+            move_utility = effect_utility + status_move_bonus
+            instance_utility = move_utility if instance_utility is None else max(instance_utility, move_utility)
+        total_utility += max(-1.0, min(1.0, instance_utility or 0.0))
     return total_utility / len(active_instances)
 
 
@@ -395,8 +448,8 @@ def _weighted_level_3_factors(  # noqa: PLR0913
             (player_status_penalty - opponent_status_penalty) / abs(PENALTY_INCAPACITATED + PENALTY_MAJOR_STATUS + PENALTY_VOLATILE)
         ),
         "effects": _clamp_unit(
-            _team_move_effect_utility(battle, instances, player_trainer_id, movements)
-            - _team_move_effect_utility(battle, instances, opponent_trainer_id, movements)
+            _team_move_effect_utility(battle, instances, player_trainer_id, movements, move_effects)
+            - _team_move_effect_utility(battle, instances, opponent_trainer_id, movements, move_effects)
         ),
     }
 
