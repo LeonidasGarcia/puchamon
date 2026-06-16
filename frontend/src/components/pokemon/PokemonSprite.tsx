@@ -67,6 +67,9 @@ export default function PokemonSprite(props: PokemonSpriteProps) {
 
   useEffect(() => {
     (async () => {
+      if (props.name && animationState) {
+        console.log(`[Sprite] ${props.name} → ${animationState}`);
+      }
       await playAnimation(animationState);
       if (
         animationState !== PokemonAnimationState.Fainted &&

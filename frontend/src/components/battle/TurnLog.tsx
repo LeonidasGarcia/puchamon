@@ -23,7 +23,7 @@ export default function TurnLog() {
   return (
     <div
       ref={containerRef}
-      className="flex flex-col gap-2 overflow-y-auto w-full max-h-170 pr-2"
+      className="flex flex-col gap-2 overflow-y-auto w-full max-h-150 pr-2"
     >
       {turnHistory.map((turn, index) => {
         const showHeader =
