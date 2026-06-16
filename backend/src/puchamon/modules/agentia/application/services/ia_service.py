@@ -133,6 +133,7 @@ class IAService:
             instances: Dict of battle instances keyed by ID.
             ai_level: AI difficulty level (1=easy, 2=medium, 3=hard manual, 4=hard GA).
             movements: Dict of Movement entities keyed by ID.
+            move_effects: Dict of MoveEffect entities keyed by ID.
             type_chart: Dict of Type entities keyed by ID.
             level_3_weights: Optional chromosome weights used by GA training or benchmark evaluation.
             minimax_depth: Search depth used by Minimax levels.

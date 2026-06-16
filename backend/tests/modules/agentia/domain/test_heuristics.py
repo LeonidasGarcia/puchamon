@@ -4,9 +4,12 @@ from puchamon.modules.agentia.domain.heuristics import (
     evaluate_level_2,
     evaluate_level_3_ga,
     evaluate_level_3_manual,
+    evaluate_level_3_weighted,
     get_hp_percent,
 )
-from puchamon.modules.battle.domain.entities import Battle, BattleInstance, SideState, StatStages, BattleStats
+from puchamon.modules.battle.domain.entities import Battle, BattleInstance, SideState, StatStages, BattleStats, MoveState
+from puchamon.modules.pokedex.domain.entities import MoveEffect, Movement
+from puchamon.modules.pokedex.domain.entities.effects import ModifyStatPayload, StatChange
 
 
 def make_instance(instance_id, trainer_id, current_hp, max_hp, fainted=False, status=None):
@@ -30,6 +33,50 @@ def make_instance(instance_id, trainer_id, current_hp, max_hp, fainted=False, st
         fainted=fainted,
         is_revealed=True,
         revealed_moves=[],
+    )
+
+
+def make_battle():
+    return Battle.model_construct(
+        id="b1",
+        battle_type="1v1",
+        turn=1,
+        status="active",
+        phase="awaiting_actions",
+        sides={
+            "player": SideState(active_pokemon_instance_ids=["p1"]),
+            "opponent": SideState(active_pokemon_instance_ids=["p2"]),
+        },
+        players=[],
+        current_turn_actions=[],
+    )
+
+
+def make_status_move(move_id, effect_id):
+    return Movement.model_construct(
+        id=move_id,
+        name=move_id,
+        type="Normal",
+        category="Status",
+        power=None,
+        accuracy=100,
+        pp=10,
+        priority=0,
+        target="self",
+        makes_contact=False,
+        protectable=True,
+        effect_ids=[effect_id],
+    )
+
+
+def make_stat_effect(effect_id, target, stat, stages):
+    return MoveEffect.model_construct(
+        id=effect_id,
+        kind="modify_stat",
+        target=target,
+        chance=100,
+        order=1,
+        payload=ModifyStatPayload(changes=[StatChange(stat=stat, stages=stages)]),
     )
 
 
@@ -323,3 +370,41 @@ class TestEvaluateLevel3:
         ga_score = evaluate_level_3_ga(battle, instances, "player")
 
         assert manual_score != ga_score
+
+    def test_self_negative_stat_effect_decreases_effect_score(self):
+        p1 = make_instance("p1", "player", 50, 100)
+        p2 = make_instance("p2", "opponent", 50, 100)
+        p1.move_state = [MoveState(move_id="self-drop", current_pp=10)]
+        move = make_status_move("self-drop", "self-drop-effect")
+        move.power = 1
+        battle = make_battle()
+
+        score = evaluate_level_3_weighted(
+            battle,
+            {"p1": p1, "p2": p2},
+            "player",
+            movements={"self-drop": move},
+            move_effects={"self-drop-effect": make_stat_effect("self-drop-effect", "self", "spa", -2)},
+            weights={"effects": 1.0},
+        )
+
+        assert score < 0.0
+
+    def test_target_negative_stat_effect_increases_effect_score(self):
+        p1 = make_instance("p1", "player", 50, 100)
+        p2 = make_instance("p2", "opponent", 50, 100)
+        p1.move_state = [MoveState(move_id="target-drop", current_pp=10)]
+        move = make_status_move("target-drop", "target-drop-effect")
+        move.power = 1
+        battle = make_battle()
+
+        score = evaluate_level_3_weighted(
+            battle,
+            {"p1": p1, "p2": p2},
+            "player",
+            movements={"target-drop": move},
+            move_effects={"target-drop-effect": make_stat_effect("target-drop-effect", "target", "def", -1)},
+            weights={"effects": 1.0},
+        )
+
+        assert score > 0.0

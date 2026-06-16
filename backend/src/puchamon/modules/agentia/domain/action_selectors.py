@@ -38,19 +38,7 @@ class ActionSelector(ABC):
         move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
-        """Select an action (move or switch) from available options.
-
-        Args:
-            battle: The current battle state.
-            instances: Dict of battle instances keyed by ID.
-            trainer_id: The trainer ID of the AI player.
-            movements: Dict of Movement entities keyed by ID.
-
-        Returns:
-            Action tuple (action_type, action_id) or None if no action available.
-            action_type is "MOVE" or "SWITCH".
-            action_id is move_id or instance_id respectively.
-        """
+        """Select an action (move or switch) from available options."""
         pass
 
 
@@ -104,7 +92,7 @@ class MinimaxActionSelector(ActionSelector):
             self.heuristic_func = evaluate_level_3_ga
         elif ai_level == AI_LEVEL_HARD_GA:
 
-            def weighted_level_3(  # noqa: PLR0913
+            def weighted_level_3(
                 battle_state,
                 battle_instances,
                 player_trainer_id,
@@ -117,8 +105,8 @@ class MinimaxActionSelector(ActionSelector):
                     battle_instances,
                     player_trainer_id,
                     movements=movements,
-                    type_chart=type_chart,
                     move_effects=move_effects,
+                    type_chart=type_chart,
                     weights=level_3_weights,
                 )
 
