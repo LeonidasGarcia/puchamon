@@ -36,20 +36,6 @@ def simulate_state_transition(  # noqa: PLR0913
     return _apply_action_to_state(battle_copy, instances_copy, action, acting_trainer_id, opposing_trainer_id, movements, type_chart, move_effects)
 
 
-def simulate_action(  # noqa: PLR0913
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    action: Action,
-    player_trainer_id: str,
-    opponent_trainer_id: str,
-    movements: Mapping[str, Movement] | None = None,
-    type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: Mapping[str, MoveEffect] | None = None,
-) -> tuple[Battle, dict[str, BattleInstance]]:
-    """Simulate an action and return the resulting cloned state."""
-    return simulate_state_transition(battle, instances, action, player_trainer_id, opponent_trainer_id, movements, type_chart, move_effects)
-
-
 def _apply_action_to_state(  # noqa: PLR0913
     battle: Battle,
     instances: dict[str, BattleInstance],

@@ -83,7 +83,6 @@ class MinimaxActionSelector(ActionSelector):
         self.ai_level = ai_level
         self.depth = depth
         self.level_3_weights = level_3_weights
-        self.last_metrics = MinimaxMetrics()
         if ai_level == AI_LEVEL_MEDIUM:
             self.heuristic_func = evaluate_level_2
         elif ai_level == AI_LEVEL_HARD_MANUAL:
@@ -149,7 +148,6 @@ class MinimaxActionSelector(ActionSelector):
         alpha = float("-inf")
         beta = float("inf")
         search_metrics = metrics if metrics is not None else MinimaxMetrics()
-        self.last_metrics = search_metrics
 
         search_depth = max(0, self.depth - 1)
         for action in actions:
