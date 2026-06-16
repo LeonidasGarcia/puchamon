@@ -458,9 +458,9 @@ def evaluate_level_2(  # noqa: PLR0913
     battle: Battle,
     instances: dict[str, BattleInstance],
     player_trainer_id: str,
-    movements: Mapping[str, Movement] | None = None,
-    type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: object | None = None,
+    movements: Mapping[str, Movement] | None = None,  # noqa: ARG001
+    type_chart: Mapping[str, "Type"] | None = None,  # noqa: ARG001
+    move_effects: object | None = None,  # noqa: ARG001
 ) -> float:
     """Evaluate battle state using only HP percentage (Level 2 heuristic).
 
@@ -477,8 +477,6 @@ def evaluate_level_2(  # noqa: PLR0913
     Returns:
         Heuristic score where positive values favor the player.
     """
-    del movements, type_chart, move_effects
-
     opponent_trainer_id = get_opponent_trainer_id(battle, player_trainer_id)
     opponent_active = _first_active_instance(battle, instances, opponent_trainer_id) if opponent_trainer_id else None
     opponent_active_hp = get_hp_percent(opponent_active) if opponent_active is not None else 0.0
