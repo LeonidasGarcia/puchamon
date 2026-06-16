@@ -7,7 +7,6 @@ from typing import Literal
 
 from ...battle.domain.entities import Battle, BattleInstance
 from ...pokedex.domain.entities import Movement, Type
-from ....shared.infrastructure.config import settings
 from .action_utils import get_available_actions, get_opponent_trainer_id
 from .heuristics import evaluate_level_2, evaluate_level_3_ga, evaluate_level_3_manual, evaluate_level_3_weighted
 from .minimax import MinimaxMetrics, minimax
@@ -21,7 +20,7 @@ AI_LEVEL_MEDIUM = 2
 AI_LEVEL_HARD_MANUAL = 3
 AI_LEVEL_HARD_GA = 4
 
-DEFAULT_MINIMAX_DEPTH = settings.MINIMAX_DEPTH
+DEFAULT_MINIMAX_DEPTH = 3
 
 
 class ActionSelector(ABC):
@@ -61,11 +60,13 @@ class RandomActionSelector(ActionSelector):
         battle: Battle,
         instances: dict[str, BattleInstance],
         trainer_id: str,
-        movements: Mapping[str, Movement] | None = None,  # noqa: ARG002
-        type_chart: Mapping[str, Type] | None = None,  # noqa: ARG002
-        metrics: MinimaxMetrics | None = None,  # noqa: ARG002
+        movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, Type] | None = None,
+        metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
         """Select an unpredictable action from available moves and switches."""
+        del movements, type_chart, metrics
+
         actions = get_available_actions(battle, instances, trainer_id)
         if not actions:
             return None

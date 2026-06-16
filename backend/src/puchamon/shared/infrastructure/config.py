@@ -1,6 +1,6 @@
 """Configuration settings for the application."""
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,12 +9,20 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "PUCHAMON"
     LOG_LEVEL: str = "DEBUG"
-    DEBUG: bool = False
+    GLOBAL_PREFIX: str = "/api/v1"
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    DEBUG: bool = Field(default=False)
 
-    DATABASE_URI: str = "mongodb://localhost:27017"
-    DATABASE_NAME: str = "puchamon"
+    DATABASE_URI: str = Field(default="mongodb://localhost:27017", env="DATABASE_URI")
+    DATABASE_NAME: str = Field(default="puchamon", env="DATABASE_NAME")
 
-    MINIMAX_DEPTH: int = 3
+    DATABASE_POOL_SIZE: int = Field(default=5)
+    DATABASE_MAX_OVERFLOW: int = Field(default=5)
+    DATABASE_POOL_TIMEOUT: int = Field(default=15)
+    DATABASE_POOL_RECYCLE: int = Field(default=1800)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 

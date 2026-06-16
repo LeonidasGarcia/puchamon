@@ -612,10 +612,8 @@ async def _assert_seeded_data_available(battle_service: BattleService) -> None:
 
 
 def _resolve_winner_level(battle: Battle, winner_trainer_id: str) -> AILevel | None:
-    for player in battle.players:
-        if player.trainer_id == winner_trainer_id:
-            return player.ai_level
-    return None
+    player = next((candidate for candidate in battle.players if candidate.trainer_id == winner_trainer_id), None)
+    return player.ai_level if player else None
 
 
 def _team_remaining_hp(instances: dict[str, BattleInstance], trainer_id: str | None) -> float:
