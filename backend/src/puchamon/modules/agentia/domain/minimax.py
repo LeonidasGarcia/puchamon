@@ -41,16 +41,16 @@ def is_terminal_state(battle: Battle, instances: dict[str, BattleInstance]) -> b
     return False
 
 
-def _evaluate_leaf(  # noqa: PLR0913
-    heuristic_func: HeuristicFunction,
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    player_trainer_id: str,
-    movements: Mapping[str, Movement] | None,
-    type_chart: Mapping[str, "Type"] | None,
-    move_effects: Mapping[str, MoveEffect] | None,
-) -> float:
-    return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
+def _action_sort_key(
+    action: tuple[str, str],
+    movements: Mapping[str, Movement],
+) -> int:
+    """Return a sort key so that damaging moves come first (best for alpha-beta)."""
+    if action[0] == "MOVE":
+        move = movements.get(action[1])
+        if move and move.power:
+            return -move.power
+    return 0
 
 
 def minimax(  # noqa: PLR0913
@@ -89,55 +89,24 @@ def minimax(  # noqa: PLR0913
         metrics.nodes_visited += 1
 
     if depth <= 0 or is_terminal_state(battle, instances):
-        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart, move_effects)
+        return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
 
     opponent_trainer_id = get_opponent_trainer_id(battle, player_trainer_id)
     if opponent_trainer_id is None:
-        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart, move_effects)
+        return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
 
     acting_trainer_id = player_trainer_id if is_maximizing_player else opponent_trainer_id
     opposing_trainer_id = opponent_trainer_id if is_maximizing_player else player_trainer_id
     actions = get_available_actions(battle, instances, acting_trainer_id)
+    if movements is not None:
+        actions.sort(key=lambda a: _action_sort_key(a, movements))
 
     if not actions:
-        return _evaluate_leaf(heuristic_func, battle, instances, player_trainer_id, movements, type_chart, move_effects)
+        return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
 
-    if is_maximizing_player:
-        max_eval = float("-inf")
-        for action in actions:
-            next_battle, next_instances = simulate_state_transition(
-                battle,
-                instances,
-                action,
-                acting_trainer_id,
-                opposing_trainer_id,
-                movements,
-                type_chart,
-                move_effects,
-            )
-            eval_score = minimax(
-                next_battle,
-                next_instances,
-                player_trainer_id,
-                depth - 1,
-                alpha,
-                beta,
-                False,
-                heuristic_func,
-                movements,
-                type_chart,
-                move_effects,
-                metrics,
-            )
-            max_eval = max(max_eval, eval_score)
-            alpha = max(alpha, eval_score)
-            if beta <= alpha:
-                if metrics is not None:
-                    metrics.pruned_branches += 1
-                break
-        return max_eval
+    is_max = is_maximizing_player
+    best_score = float("-inf") if is_max else float("inf")
 
-    min_eval = float("inf")
     for action in actions:
         next_battle, next_instances = simulate_state_transition(
             battle,
@@ -156,17 +125,24 @@ def minimax(  # noqa: PLR0913
             depth - 1,
             alpha,
             beta,
-            True,
+            not is_max,
             heuristic_func,
             movements,
             type_chart,
             move_effects,
             metrics,
-            )
-        min_eval = min(min_eval, eval_score)
-        beta = min(beta, eval_score)
+        )
+
+        if is_max:
+            best_score = max(best_score, eval_score)
+            alpha = max(alpha, eval_score)
+        else:
+            best_score = min(best_score, eval_score)
+            beta = min(beta, eval_score)
+
         if beta <= alpha:
             if metrics is not None:
                 metrics.pruned_branches += 1
             break
-    return min_eval
+
+    return best_score

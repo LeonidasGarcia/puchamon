@@ -20,7 +20,14 @@ from ...battle.application.services.battle_service import BattleService
 from ...battle.application.services.battle_setup_service import BattleSetupService
 from ...battle.domain.entities import Battle, BattleInstance, Player, TurnAction
 from ..application.services.ia_service import IAService
-from .action_selectors import AI_LEVEL_EASY, AI_LEVEL_HARD_GA, AI_LEVEL_HARD_MANUAL, AI_LEVEL_MEDIUM, DEFAULT_MINIMAX_DEPTH
+from .action_selectors import (
+    AI_LEVEL_EASY,
+    AI_LEVEL_HARD_GA,
+    AI_LEVEL_HARD_MANUAL,
+    AI_LEVEL_MEDIUM,
+    DEFAULT_MINIMAX_DEPTH,
+    AIDifficultyLevel,
+)
 from .genetic_algorithm import (
     GENETIC_WEIGHT_NAMES,
     Chromosome,
@@ -35,7 +42,7 @@ from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_GA_TRAINING_M
 from .minimax import MinimaxMetrics
 
 BattleType = Literal["1v1", "2v2", "3v3"]
-AILevel = Literal[1, 2, 3, 4]
+AILevel = AIDifficultyLevel
 
 AI_LEVEL_LABELS: dict[int, str] = {
     AI_LEVEL_EASY: "Facil",
@@ -535,7 +542,6 @@ async def _run_ai_loop_with_turn_limit(  # noqa: PLR0913
             data["movements"],
             data["move_effects"],
             data["types"],
-            data["move_effects"],
             minimax_depth,
             decision_metrics,
             level_3_weights_by_trainer_id,
@@ -572,7 +578,7 @@ async def _generate_ai_actions(  # noqa: PLR0913
             if side and any(slot is None for slot in side.active_pokemon_instance_ids):
                 minimax_metrics = MinimaxMetrics()
                 started_at = perf_counter()
-                action = await ia_service.generate_switch_action(
+                action = ia_service.generate_switch_action(
                     player,
                     battle,
                     instances,
@@ -591,7 +597,7 @@ async def _generate_ai_actions(  # noqa: PLR0913
         else:
             minimax_metrics = MinimaxMetrics()
             started_at = perf_counter()
-            action = await ia_service.generate_action(
+            action = ia_service.generate_action(
                 player=player,
                 battle=battle,
                 instances=instances,

@@ -129,7 +129,7 @@ class BattleCoordinatorService:
             if player.controller_type == "human":
                 human_needs_replacement = True
             else:
-                ai_switch = await self._ia_service.generate_switch_action(
+                ai_switch = self._ia_service.generate_switch_action(
                     player=player,
                     battle=battle,
                     instances=instances,
@@ -159,7 +159,7 @@ class BattleCoordinatorService:
             # Only generate switch if this specific AI needs it
             side = battle.sides.get(player.trainer_id)
             if side and any(slot is None for slot in side.active_pokemon_instance_ids):
-                return await self._ia_service.generate_switch_action(
+                return self._ia_service.generate_switch_action(
                     player=player,
                     battle=battle,
                     instances=instances,
@@ -170,7 +170,7 @@ class BattleCoordinatorService:
                 )
             return None
 
-        return await self._ia_service.generate_action(
+        return self._ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,

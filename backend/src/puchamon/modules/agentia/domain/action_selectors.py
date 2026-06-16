@@ -3,17 +3,18 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from secrets import choice
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from ....shared.infrastructure.config import settings
 from ...battle.domain.entities import Battle, BattleInstance
-from ...pokedex.domain.entities import MoveEffect, Movement, Type
-from .action_utils import get_available_actions, get_opponent_trainer_id
+from ...pokedex.domain.entities import MoveEffect, Movement
+from .action_utils import Action, get_available_actions, get_opponent_trainer_id
 from .heuristics import evaluate_level_2, evaluate_level_3_ga, evaluate_level_3_manual, evaluate_level_3_weighted
 from .minimax import MinimaxMetrics, minimax
 from .state_simulator import simulate_state_transition
 
-Action = tuple[str, str]
+if TYPE_CHECKING:
+    from ...pokedex.domain.entities import Type
 
 AIDifficultyLevel = Literal[1, 2, 3, 4]
 AI_LEVEL_EASY = 1
@@ -34,7 +35,7 @@ class ActionSelector(ABC):
         instances: dict[str, BattleInstance],
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
-        type_chart: Mapping[str, Type] | None = None,
+        type_chart: Mapping[str, "Type"] | None = None,
         move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
@@ -51,7 +52,7 @@ class RandomActionSelector(ActionSelector):
         instances: dict[str, BattleInstance],
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,  # noqa: ARG002
-        type_chart: Mapping[str, Type] | None = None,  # noqa: ARG002
+        type_chart: Mapping[str, "Type"] | None = None,  # noqa: ARG002
         move_effects: Mapping[str, MoveEffect] | None = None,  # noqa: ARG002
         metrics: MinimaxMetrics | None = None,  # noqa: ARG002
     ) -> Action | None:
@@ -79,7 +80,7 @@ class MinimaxActionSelector(ActionSelector):
         ai_level: AIDifficultyLevel,
         depth: int = DEFAULT_MINIMAX_DEPTH,
         level_3_weights: Mapping[str, float] | None = None,
-    ):
+    ) -> None:
         self.ai_level = ai_level
         self.depth = depth
         self.level_3_weights = level_3_weights
@@ -90,21 +91,28 @@ class MinimaxActionSelector(ActionSelector):
         elif ai_level == AI_LEVEL_HARD_GA and level_3_weights is None:
             self.heuristic_func = evaluate_level_3_ga
         elif ai_level == AI_LEVEL_HARD_GA:
-
-            def weighted_level_3(battle_state, battle_instances, player_trainer_id, movements=None, type_chart=None, move_effects=None):  # noqa: PLR0913
-                return evaluate_level_3_weighted(
-                    battle_state,
-                    battle_instances,
-                    player_trainer_id,
-                    movements=movements,
-                    type_chart=type_chart,
-                    move_effects=move_effects,
-                    weights=level_3_weights,
-                )
-
-            self.heuristic_func = weighted_level_3
+            self.heuristic_func = self._weighted_level_3
         else:
             raise ValueError(f"Unsupported Minimax AI level: {ai_level}")
+
+    def _weighted_level_3(  # noqa: PLR0913
+        self,
+        battle: Battle,
+        instances: dict[str, BattleInstance],
+        trainer_id: str,
+        movements: Mapping[str, Movement] | None = None,
+        type_chart: Mapping[str, "Type"] | None = None,
+        move_effects: Mapping[str, MoveEffect] | None = None,
+    ) -> float:
+        return evaluate_level_3_weighted(
+            battle,
+            instances,
+            trainer_id,
+            movements=movements,
+            type_chart=type_chart,
+            move_effects=move_effects,
+            weights=self.level_3_weights,
+        )
 
     def select(  # noqa: PLR0913
         self,
@@ -112,7 +120,7 @@ class MinimaxActionSelector(ActionSelector):
         instances: dict[str, BattleInstance],
         trainer_id: str,
         movements: Mapping[str, Movement] | None = None,
-        type_chart: Mapping[str, Type] | None = None,
+        type_chart: Mapping[str, "Type"] | None = None,
         move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:
@@ -131,7 +139,7 @@ class MinimaxActionSelector(ActionSelector):
         trainer_id: str,
         actions: list[Action],
         movements: Mapping[str, Movement] | None = None,
-        type_chart: Mapping[str, Type] | None = None,
+        type_chart: Mapping[str, "Type"] | None = None,
         move_effects: Mapping[str, MoveEffect] | None = None,
         metrics: MinimaxMetrics | None = None,
     ) -> Action | None:

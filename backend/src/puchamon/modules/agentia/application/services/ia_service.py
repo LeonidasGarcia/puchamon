@@ -54,7 +54,7 @@ def _available_replacement_actions(player: Player, battle: Battle, instances: di
 class IAService:
     """Service class for generating AI actions in battles."""
 
-    async def generate_switch_action(  # noqa: PLR0913
+    def generate_switch_action(  # noqa: PLR0913
         self,
         player: Player,
         battle: Battle,
@@ -79,27 +79,16 @@ class IAService:
         action = replacement_actions[0]
         if ai_level != AI_LEVEL_EASY:
             selector = MinimaxActionSelector(ai_level, depth=minimax_depth, level_3_weights=level_3_weights)
-            if move_effects is None:
-                selected_action = selector.select_from_actions(
-                    battle,
-                    instances,
-                    player.trainer_id,
-                    replacement_actions,
-                    movements,
-                    type_chart,
-                    metrics=minimax_metrics,
-                )
-            else:
-                selected_action = selector.select_from_actions(
-                    battle,
-                    instances,
-                    player.trainer_id,
-                    replacement_actions,
-                    movements,
-                    type_chart,
-                    move_effects=move_effects,
-                    metrics=minimax_metrics,
-                )
+            selected_action = selector.select_from_actions(
+                battle,
+                instances,
+                player.trainer_id,
+                replacement_actions,
+                movements,
+                type_chart,
+                move_effects=move_effects,
+                metrics=minimax_metrics,
+            )
             if selected_action is not None and selected_action[0] == "SWITCH":
                 action = selected_action
 
@@ -110,13 +99,13 @@ class IAService:
             replacement_instance_id=action[1],
         )
 
-    async def generate_action(  # noqa: PLR0913
+    def generate_action(  # noqa: PLR0913
         self,
         player: Player,
         battle: Battle,
         instances: dict[str, BattleInstance],
         ai_level: AIDifficultyLevel = AI_LEVEL_EASY,
-        movements: dict | None = None,
+        movements: Mapping[str, Movement] | None = None,
         type_chart: Mapping[str, Type] | None = None,
         move_effects: Mapping[str, MoveEffect] | None = None,
         level_3_weights: Mapping[str, float] | None = None,

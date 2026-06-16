@@ -86,7 +86,7 @@ class TestIAServiceLevel2Integration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -125,7 +125,7 @@ class TestIAServiceLevel2Integration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -164,7 +164,7 @@ class TestIAServiceLevel2Integration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -200,7 +200,7 @@ class TestIAServiceLevel2Integration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -243,7 +243,7 @@ class TestIAServiceLevel3Integration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -285,7 +285,7 @@ class TestIAServiceLevel3Integration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -320,7 +320,7 @@ class TestIAServiceLevel3Integration:
             "flamethrower": make_movement("flamethrower", power=90, move_type="fire", category="special"),
         }
 
-        action = await IAService().generate_action(
+        action = IAService().generate_action(
             player=battle.players[0],
             battle=battle,
             instances=instances,
@@ -364,7 +364,7 @@ class TestIAServiceLevel1Regression:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -400,7 +400,7 @@ class TestIAServiceReplacementActions:
             current_turn_actions=[],
         )
 
-        action = await IAService().generate_switch_action(
+        action = IAService().generate_switch_action(
             player=battle.players[0],
             battle=battle,
             instances={"p1": active, "p2": replacement, "p3": opponent},
@@ -428,7 +428,7 @@ class TestIAServiceReplacementActions:
             current_turn_actions=[],
         )
 
-        action = await IAService().generate_switch_action(
+        action = IAService().generate_switch_action(
             player=battle.players[0],
             battle=battle,
             instances={"p1": active, "p2": replacement},
@@ -458,13 +458,13 @@ class TestIAServiceReplacementActions:
         )
         captured_actions = []
 
-        def fake_select_from_actions(self, battle, instances, trainer_id, actions, movements=None, type_chart=None, metrics=None):  # noqa: ARG001
+        def fake_select_from_actions(self, battle, instances, trainer_id, actions, movements=None, type_chart=None, move_effects=None, metrics=None):  # noqa: ARG001
             captured_actions.extend(actions)
             return ("SWITCH", "p3")
 
         monkeypatch.setattr(MinimaxActionSelector, "select_from_actions", fake_select_from_actions)
 
-        action = await IAService().generate_switch_action(
+        action = IAService().generate_switch_action(
             player=battle.players[0],
             battle=battle,
             instances={"p1": active, "p2": first_replacement, "p3": selected_replacement, "p4": opponent},
@@ -508,7 +508,7 @@ class TestIAServiceMinimaxIntegration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,
@@ -546,7 +546,7 @@ class TestIAServiceMinimaxIntegration:
         ia_service = IAService()
         player = battle.players[0]
 
-        action = await ia_service.generate_action(
+        action = ia_service.generate_action(
             player=player,
             battle=battle,
             instances=instances,

@@ -7,16 +7,13 @@ from typing import TYPE_CHECKING
 from ...battle.domain.entities import Battle, BattleInstance
 from ...pokedex.domain.entities import MoveEffect, Movement
 from .action_utils import get_opponent_trainer_id
-from .damage_calculator import calculate_simulated_damage
+from .damage_calculator import _apply_stage, _calculate_type_effectiveness, _normalize_token, calculate_simulated_damage
+from .genetic_algorithm import GENETIC_WEIGHT_NAMES
 from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_MANUAL_WEIGHTS
 
 if TYPE_CHECKING:
     from ...pokedex.domain.entities import Type
 
-WEIGHT_VIVOS = 150.0
-WEIGHT_HP = 100.0
-WEIGHT_MOMENTUM = 80.0
-WEIGHT_STAGES = 5.0
 PENALTY_INCAPACITATED = -40.0
 PENALTY_MAJOR_STATUS = -20.0
 PENALTY_VOLATILE = -10.0
@@ -26,56 +23,6 @@ _MAJOR_STATUSES = {"burn", "burned", "brn", "poison", "poisoned", "bad_poison", 
 _PARALYSIS_STATUSES = {"paralysis", "paralyzed", "par"}
 _PENALIZED_VOLATILE_STATUSES = {"confusion", "confused", "leech_seed", "leechseed"}
 _STAGE_UTILITY_BY_STAT = {"atk": 1.0, "spa": 1.1, "spe": 0.9, "def": 0.8, "def_": 0.8, "spd": 0.8, "acc": 0.5, "eva": 0.5}
-
-GENETIC_WEIGHT_KEYS = ("hp", "alive", "damage", "type", "speed", "status", "effects")
-
-
-def get_opponent_hp_values(
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    exclude_trainer_id: str | None = None,
-) -> tuple[int, int] | None:
-    """Get the opponent's current and max HP.
-
-    Args:
-        battle: The current battle state.
-        instances: Dict of battle instances keyed by ID.
-        exclude_trainer_id: Optional trainer ID to exclude (usually the current player).
-
-    Returns:
-        Tuple of (current_hp, max_hp) or None if no opponent found.
-    """
-    for trainer_id, side in battle.sides.items():
-        if exclude_trainer_id and trainer_id == exclude_trainer_id:
-            continue
-        active_id = next((instance_id for instance_id in side.active_pokemon_instance_ids if instance_id is not None), None)
-        if active_id:
-            opponent = instances.get(active_id)
-            if opponent and not opponent.fainted:
-                return (opponent.current_hp, opponent.max_hp)
-    return None
-
-
-def calculate_hp_score(
-    move_power: int,
-    opponent_current_hp: int,
-    opponent_max_hp: int,
-) -> float:
-    """Calculate heuristic score for a move based on opponent HP.
-
-    h(move) = 1 - HP_percent_post
-
-    Args:
-        move_power: Power of the move being evaluated.
-        opponent_current_hp: Current HP of the opponent.
-        opponent_max_hp: Max HP of the opponent.
-
-    Returns:
-        Heuristic score (higher = better move).
-    """
-    hp_post = opponent_current_hp - move_power
-    hp_percent_post = max(0, hp_post) / opponent_max_hp
-    return 1.0 - hp_percent_post
 
 
 def get_hp_percent(instance: BattleInstance) -> float:
@@ -95,7 +42,7 @@ def get_hp_percent(instance: BattleInstance) -> float:
 def _normalize_status(status: str | None) -> str | None:
     if status is None:
         return None
-    return status.strip().lower().replace("-", "_").replace(" ", "_")
+    return _normalize_token(status)
 
 
 def _team_instances(instances: dict[str, BattleInstance], trainer_id: str) -> list[BattleInstance]:
@@ -153,34 +100,11 @@ def _active_status_penalty(battle: Battle, instances: dict[str, BattleInstance],
     return sum(_status_penalty(instance) for instance in _active_instances(battle, instances, trainer_id))
 
 
-def _stage_values(instance: BattleInstance) -> float:
-    if isinstance(instance.stages, Mapping):
-        stage_data = instance.stages
-    elif hasattr(instance.stages, "model_dump"):
-        stage_data = instance.stages.model_dump()
-    else:
-        stage_data = vars(instance.stages)
-    return float(sum(value for value in stage_data.values() if isinstance(value, (int, float))))
-
-
 def _stage_value(instance: BattleInstance, stage_attribute: str) -> int:
     if isinstance(instance.stages, Mapping):
         aliased_attribute = "def" if stage_attribute == "def_" else stage_attribute
         return int(instance.stages.get(stage_attribute, instance.stages.get(aliased_attribute, 0)) or 0)
     return getattr(instance.stages, stage_attribute, 0)
-
-
-def _active_stage_total(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> float:
-    return sum(_stage_values(instance) for instance in _active_instances(battle, instances, trainer_id))
-
-
-def _apply_stage(base_stat: int, stage: int) -> int:
-    bounded_stage = max(-6, min(6, stage))
-    if bounded_stage >= 0:
-        multiplier = (2 + bounded_stage) / 2
-    else:
-        multiplier = 2 / (2 - bounded_stage)
-    return max(1, floor(base_stat * multiplier))
 
 
 def _effective_speed(instance: BattleInstance) -> int:
@@ -204,7 +128,7 @@ def _offensive_pressure_for_pair(
     target: BattleInstance,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
-    move_effects: object | None = None,  # noqa: ARG001
+    move_effects: Mapping[str, MoveEffect] | None = None,  # noqa: ARG001
 ) -> float:
     if movements is None or target.max_hp <= 0:
         return 0.0
@@ -232,7 +156,7 @@ def _team_offensive_pressure(  # noqa: PLR0913
     opponent_trainer_id: str,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
-    move_effects: object | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
     attackers = _active_instances(battle, instances, trainer_id)
     targets = _active_instances(battle, instances, opponent_trainer_id)
@@ -251,36 +175,11 @@ def _clamp_unit(value: float) -> float:
 
 def _normalize_weight_mapping(weights: Mapping[str, float] | None) -> dict[str, float]:
     raw_weights = LEVEL_3_GA_OPTIMIZED_WEIGHTS if weights is None else weights
-    normalized_weights = {key: max(0.0, float(raw_weights.get(key, 0.0))) for key in GENETIC_WEIGHT_KEYS}
+    normalized_weights = {key: max(0.0, float(raw_weights.get(key, 0.0))) for key in GENETIC_WEIGHT_NAMES}
     total = sum(normalized_weights.values())
     if total <= 0:
         return dict(LEVEL_3_GA_OPTIMIZED_WEIGHTS)
     return {key: value / total for key, value in normalized_weights.items()}
-
-
-def _type_effectiveness(movement_type: str, target_types: list[str], type_chart: Mapping[str, "Type"] | None) -> float:
-    if not type_chart:
-        return 1.0
-
-    normalized_movement_type = movement_type.strip().lower().replace("-", "_").replace(" ", "_")
-    type_data = type_chart.get(normalized_movement_type) or type_chart.get(movement_type)
-    if type_data is None:
-        return 1.0
-
-    super_effective = {type_name.strip().lower().replace("-", "_").replace(" ", "_") for type_name in type_data.super_effective}
-    not_very_effective = {type_name.strip().lower().replace("-", "_").replace(" ", "_") for type_name in type_data.not_very_effective}
-    no_effect = {type_name.strip().lower().replace("-", "_").replace(" ", "_") for type_name in type_data.no_effect}
-
-    effectiveness = 1.0
-    for target_type in target_types:
-        normalized_target_type = target_type.strip().lower().replace("-", "_").replace(" ", "_")
-        if normalized_target_type in super_effective:
-            effectiveness *= 2.0
-        elif normalized_target_type in not_very_effective:
-            effectiveness *= 0.5
-        elif normalized_target_type in no_effect:
-            effectiveness *= 0.0
-    return effectiveness
 
 
 def _best_type_matchup_for_pair(
@@ -299,7 +198,7 @@ def _best_type_matchup_for_pair(
         move = movements.get(move_state.move_id)
         if move is None or move.power is None or move.power <= 0:
             continue
-        best_effectiveness = max(best_effectiveness, _type_effectiveness(move.type, target.types, type_chart))
+        best_effectiveness = max(best_effectiveness, _calculate_type_effectiveness(move.type, target.types, type_chart))
     return _clamp_unit((best_effectiveness - 1.0) / 3.0)
 
 
@@ -417,7 +316,7 @@ def _weighted_level_3_factors(  # noqa: PLR0913
     opponent_trainer_id: str,
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
-    move_effects: object | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> dict[str, float]:
     player_team_size = max(1, len(_team_instances(instances, player_trainer_id)))
     opponent_team_size = max(1, len(_team_instances(instances, opponent_trainer_id)))
@@ -460,7 +359,7 @@ def evaluate_level_2(  # noqa: PLR0913
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,  # noqa: ARG001
     type_chart: Mapping[str, "Type"] | None = None,  # noqa: ARG001
-    move_effects: object | None = None,  # noqa: ARG001
+    move_effects: Mapping[str, MoveEffect] | None = None,  # noqa: ARG001
 ) -> float:
     """Evaluate battle state using only HP percentage (Level 2 heuristic).
 
@@ -490,7 +389,7 @@ def evaluate_level_3_manual(  # noqa: PLR0913
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: object | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
     """Evaluate battle state with the manually tuned advanced heuristic."""
     return evaluate_level_3_weighted(
@@ -510,7 +409,7 @@ def evaluate_level_3_ga(  # noqa: PLR0913
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: object | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
     """Evaluate battle state with the GA-optimized advanced heuristic."""
     return evaluate_level_3_weighted(
@@ -524,17 +423,6 @@ def evaluate_level_3_ga(  # noqa: PLR0913
     )
 
 
-def evaluate_level_3(  # noqa: PLR0913
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    player_trainer_id: str,
-    movements: Mapping[str, Movement] | None = None,
-    type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: object | None = None,
-) -> float:
-    """Evaluate battle state with the GA-optimized advanced heuristic."""
-    return evaluate_level_3_ga(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
-
 
 def evaluate_level_3_weighted(  # noqa: PLR0913
     battle: Battle,
@@ -542,7 +430,7 @@ def evaluate_level_3_weighted(  # noqa: PLR0913
     player_trainer_id: str,
     movements: Mapping[str, Movement] | None = None,
     type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: object | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
     weights: Mapping[str, float] | None = None,
 ) -> float:
     """Evaluate a configurable GA-friendly Level 3 heuristic.
@@ -557,4 +445,4 @@ def evaluate_level_3_weighted(  # noqa: PLR0913
 
     normalized_weights = _normalize_weight_mapping(weights)
     factors = _weighted_level_3_factors(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart, move_effects)
-    return sum(normalized_weights[key] * factors[key] for key in GENETIC_WEIGHT_KEYS)
+    return sum(normalized_weights[key] * factors[key] for key in GENETIC_WEIGHT_NAMES)
