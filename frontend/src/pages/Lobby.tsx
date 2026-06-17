@@ -113,7 +113,6 @@ export default function Lobby() {
                         : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                     }`}
                   >
-                    I_DIFFICULTY_LABELS[
                     {AI_DIFFICULTY_LABELS[d]}
                   </button>
                 ))}
