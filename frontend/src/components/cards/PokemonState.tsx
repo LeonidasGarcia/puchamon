@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMotionValue, animate } from 'framer-motion';
 import HpBar from '../battle/HpBar';
+import StatusBadge from '../badges/StatusBadge';
 
 interface PokemonStateProps {
   name: string;
@@ -8,6 +9,7 @@ interface PokemonStateProps {
   hpPercentage: number;
   currentHp: number;
   maxHp: number;
+  status?: string | null;
 }
 
 function AnimatedHpNumber({ value }: { value: number }) {
@@ -36,10 +38,13 @@ export default function PokemonState(props: PokemonStateProps) {
   return (
     <div className="flex bg-card-bg flex-col gap-2 px-2 py-2 rounded-lg border border-card-border min-w-52 shadow-sm">
       <div className="flex flex-row justify-between items-baseline">
-        <span className="text-body font-medium text-[--color-text-primary] tracking-wide leading-none">
-          {props.name}
-        </span>
-        <span className="text-small text-text-secondary font-medium leading-none">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-body font-medium text-[--color-text-primary] tracking-wide leading-none truncate">
+            {props.name}
+          </span>
+          <StatusBadge status={props.status} />
+        </div>
+        <span className="text-small text-text-secondary font-medium leading-none shrink-0">
           Lv. {props.level}
         </span>
       </div>

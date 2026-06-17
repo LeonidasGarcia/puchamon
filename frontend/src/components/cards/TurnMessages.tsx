@@ -15,7 +15,7 @@ const containerVariants: Variants = {
     opacity: 1,
     transition: {
       // Espera 0.5s antes de iniciar la secuencia
-      delayChildren: 0,
+      delayChildren: 2,
       // Cada hijo aparecerá con 0.3s de diferencia respecto al anterior
       staggerChildren: 3,
     },
@@ -50,9 +50,6 @@ export default function TurnMessages({
         <span className="text-white font-bold text-h2">Turno {turnNumber}</span>
       )}
       <motion.div
-        onAnimationComplete={() => {
-          finalizeTurnAnimation();
-        }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -64,6 +61,9 @@ export default function TurnMessages({
             event={event}
             onAnimationComplete={() => {
               applyEventKind(event);
+              if (index === events.length - 1) {
+                finalizeTurnAnimation();
+              }
             }}
             variants={eventVariants}
           />

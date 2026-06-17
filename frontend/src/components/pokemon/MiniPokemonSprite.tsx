@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 interface PokemonProps {
   name: string;
   sprite: string | undefined;
+  rescalingConstant?: number;
 }
 
 // TODO Solucionar el problema del rescalado multiplicativo y el rescalado incorrecto (no necesario)
@@ -12,7 +13,7 @@ export default function MiniPokemonSprite(
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  const RESCALING_CONSTANT = 0.7;
+  const RESCALING_CONSTANT = props.rescalingConstant ?? 0.7;
 
   const onLoad = () => {
     if (imgRef.current) {

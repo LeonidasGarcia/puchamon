@@ -173,22 +173,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
         (playerPhase === 'can_act' || playerPhase === 'awaiting_switch'))
     ) {
       set({ turnHistory: [...turnHistory, turn], playerPhase: 'animating' });
+      console.log(`[Turn] Turn ${turn.turn} → history (direct)`);
     } else {
       set((state) => ({
         turnQueue: [...state.turnQueue, turn],
         playerPhase: 'animating',
       }));
+      console.log(
+        `[Turn] Turn ${turn.turn} → queue (${turn.events.length} events)`,
+      );
     }
   },
 
   getAnimationStateForEvent: (event: BattleTurnEvent) => {
     switch (event.kind) {
       case 'move_used':
+      case 'move_missed':
+      case 'move_failed_no_target':
+      case 'damage_no_target':
         return {
           sourceState: PokemonAnimationState.Attacking,
           targetState: null,
         };
+      case 'action_skipped':
+        return {
+          sourceState: PokemonAnimationState.ParalyzedEffect,
+          targetState: null,
+        };
+      case 'move_blocked':
       case 'damage':
+      case 'condition_damage':
+      case 'heal_hp':
+      case 'status_applied':
+      case 'volatile_status_applied':
+      case 'volatile_status_expired':
+      case 'stat_changed':
+      case 'condition_message':
         return {
           sourceState: null,
           targetState: PokemonAnimationState.TakingDamage,
@@ -201,27 +221,50 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'switch':
         return {
           sourceState: PokemonAnimationState.SwitchingOut,
-          targetState: null,
+          targetState: PokemonAnimationState.SwitchingIn,
         };
-      default:
+      case 'replacement':
+      case 'switch_in':
+        return {
+          sourceState: null,
+          targetState: PokemonAnimationState.SwitchingIn,
+        };
+      case 'status_failed_immune':
+      case 'stat_change_failed':
+      case 'battle_finished':
         return { sourceState: null, targetState: null };
+      default:
+        return { sourceState: null, targetState: PokemonAnimationState.Idle };
     }
   },
 
   applyEventKind: (event: BattleTurnEvent) => {
-    const { turnHistory, setAnimationState } = get();
+    const { turnHistory, setAnimationState, trainerId } = get();
     const currentTurn = turnHistory[turnHistory.length - 1];
     if (!currentTurn) return;
 
     const { sourceState, targetState } = get().getAnimationStateForEvent(event);
+
+    const snapshot = currentTurn.post_turn_snapshot;
     if (sourceState && event.source_instance_id) {
+      const pokemon = snapshot.pokemon_instances.find(
+        (p) => p.instance_id === event.source_instance_id,
+      );
+      console.log(
+        `[Animation] ${pokemon?.pokemon_id ?? '?'} → ${sourceState} (${event.kind})`,
+      );
       setAnimationState(event.source_instance_id, sourceState);
     }
     if (targetState && event.target_instance_id) {
+      const pokemon = snapshot.pokemon_instances.find(
+        (p) => p.instance_id === event.target_instance_id,
+      );
+      console.log(
+        `[Animation] ${pokemon?.pokemon_id ?? '?'} → ${targetState} (${event.kind})`,
+      );
       setAnimationState(event.target_instance_id, targetState);
     }
 
-    const snapshot = currentTurn.post_turn_snapshot;
     const targetId = event.target_instance_id;
 
     switch (event.kind) {
@@ -337,7 +380,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'switch':
       case 'switch_in':
       case 'replacement': {
-        set({ sides: snapshot.sides });
+        const targetId = event.target_instance_id;
+        if (targetId) {
+          const snapPokemon = snapshot.pokemon_instances.find(
+            (p) => p.instance_id === targetId,
+          );
+          if (snapPokemon) {
+            const trainerId = snapPokemon.trainer_id;
+            set((state) => ({
+              sides: {
+                ...state.sides,
+                [trainerId]: snapshot.sides[trainerId],
+              },
+            }));
+          }
+        }
         break;
       }
 
@@ -353,6 +410,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           playerPhase: 'finished',
           turnQueue: [],
           animationStates: {},
+          myPokemon: snapshot.pokemon_instances.filter(
+            (p) => p.trainer_id === trainerId,
+          ),
+          opponentPokemon: snapshot.pokemon_instances.filter(
+            (p) => p.trainer_id !== trainerId,
+          ),
         });
         break;
       }
@@ -371,6 +434,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               ...p,
               move_state: snapPokemon.move_state,
               revealed_moves: snapPokemon.revealed_moves,
+              is_revealed: snapPokemon.is_revealed,
             }
           : p;
       }),
@@ -383,6 +447,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               ...p,
               move_state: snapPokemon.move_state,
               revealed_moves: snapPokemon.revealed_moves,
+              is_revealed: snapPokemon.is_revealed,
             }
           : p;
       }),
@@ -393,6 +458,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (get().status === 'finished') return;
 
     const { turnQueue, turnHistory, trainerId } = get();
+    console.log(
+      `[Turn] finalize (queue: ${turnQueue.length}, history: ${turnHistory.length})`,
+    );
 
     const newQueue = [...turnQueue];
     const nextTurn = newQueue.shift();
@@ -422,7 +490,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else {
       set({
         turnQueue: newQueue,
-        playerPhase: 'can_act',
+        playerPhase: get().controllerType === 'ai' ? 'spectating' : 'can_act',
         availableSwitches: [],
         turnHistory: nextTurn ? [...turnHistory, nextTurn] : turnHistory,
       });
