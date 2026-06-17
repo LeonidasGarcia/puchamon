@@ -143,7 +143,7 @@ export default function App() {
   const activeMoves = activePokemon?.move_state ?? [];
 
   const handleMoveSelect = (moveId: string) => {
-    if (!activePokemon || !canAct) return;
+    if (!activePokemon || !canAct || activePokemon.fainted) return;
 
     sendAction({
       type: 'move',
@@ -229,7 +229,7 @@ export default function App() {
               const moveData = POKE_DATA.moves.find(
                 (m) => m._id === move.move_id,
               );
-              const isDisabled = move.current_pp === 0 || !canAct;
+              const isDisabled = move.current_pp === 0 || !canAct || activePokemon?.fainted;
               return (
                 <PokemonMovement
                   key={move.move_id}
