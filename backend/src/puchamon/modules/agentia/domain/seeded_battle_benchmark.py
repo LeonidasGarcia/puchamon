@@ -9,7 +9,7 @@ import asyncio
 import csv
 import json
 import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -83,6 +83,8 @@ class SeededBenchmarkConfig:
     max_turns: int = 120
     cleanup_created_battles: bool = True
     level_3_weights: Mapping[str, float] | None = None
+    concurrency: int = 1
+    progress_callback: Callable[["SeededBenchmarkSummary"], None] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,6 +226,7 @@ async def run_seeded_ai_benchmark(config: SeededBenchmarkConfig | None = None) -
     resolved_config = config or SeededBenchmarkConfig()
     battle_service = BattleService()
     ia_service = IAService()
+    concurrency = max(1, resolved_config.concurrency)
     summaries: list[SeededBenchmarkSummary] = []
 
     await _assert_seeded_data_available(battle_service)
@@ -231,36 +234,58 @@ async def run_seeded_ai_benchmark(config: SeededBenchmarkConfig | None = None) -
     for minimax_depth in resolved_config.minimax_depths:
         for level_a, level_b in resolved_config.matchups:
             for battle_type in resolved_config.battle_types:
-                results: list[SeededBattleResult] = []
-                for _ in range(resolved_config.repetitions_per_side):
-                    results.append(
-                        await _run_single_seeded_battle(
-                            battle_service=battle_service,
-                            ia_service=ia_service,
-                            level_a=level_a,
-                            level_b=level_b,
-                            battle_type=battle_type,
-                            config=resolved_config,
-                            minimax_depth=minimax_depth,
-                            level_a_weights=resolved_config.level_3_weights if level_a == AI_LEVEL_HARD_GA else None,
-                            level_b_weights=resolved_config.level_3_weights if level_b == AI_LEVEL_HARD_GA else None,
-                        )
-                    )
-                    results.append(
-                        await _run_single_seeded_battle(
-                            battle_service=battle_service,
-                            ia_service=ia_service,
-                            level_a=level_b,
-                            level_b=level_a,
-                            battle_type=battle_type,
-                            config=resolved_config,
-                            minimax_depth=minimax_depth,
-                            level_a_weights=resolved_config.level_3_weights if level_b == AI_LEVEL_HARD_GA else None,
-                            level_b_weights=resolved_config.level_3_weights if level_a == AI_LEVEL_HARD_GA else None,
-                        )
-                    )
-                summaries.append(_summarize_results(level_a, level_b, battle_type, minimax_depth, results))
+                results = await _run_seeded_battle_row(
+                    battle_service=battle_service,
+                    ia_service=ia_service,
+                    level_a=level_a,
+                    level_b=level_b,
+                    battle_type=battle_type,
+                    config=resolved_config,
+                    minimax_depth=minimax_depth,
+                    concurrency=concurrency,
+                )
+                summary = _summarize_results(level_a, level_b, battle_type, minimax_depth, results)
+                summaries.append(summary)
+                if resolved_config.progress_callback:
+                    resolved_config.progress_callback(summary)
     return summaries
+
+
+async def _run_seeded_battle_row(  # noqa: PLR0913
+    *,
+    battle_service: BattleService,
+    ia_service: IAService,
+    level_a: AILevel,
+    level_b: AILevel,
+    battle_type: BattleType,
+    config: SeededBenchmarkConfig,
+    minimax_depth: int,
+    concurrency: int,
+) -> list[SeededBattleResult]:
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def run_battle(
+        first_level: AILevel,
+        second_level: AILevel,
+    ) -> SeededBattleResult:
+        async with semaphore:
+            return await _run_single_seeded_battle(
+                battle_service=battle_service,
+                ia_service=ia_service,
+                level_a=first_level,
+                level_b=second_level,
+                battle_type=battle_type,
+                config=config,
+                minimax_depth=minimax_depth,
+                level_a_weights=config.level_3_weights if first_level == AI_LEVEL_HARD_GA else None,
+                level_b_weights=config.level_3_weights if second_level == AI_LEVEL_HARD_GA else None,
+            )
+
+    tasks: list[asyncio.Task[SeededBattleResult]] = []
+    for _ in range(config.repetitions_per_side):
+        tasks.append(asyncio.create_task(run_battle(level_a, level_b)))
+        tasks.append(asyncio.create_task(run_battle(level_b, level_a)))
+    return list(await asyncio.gather(*tasks))
 
 
 def format_seeded_benchmark_table(summaries: list[SeededBenchmarkSummary]) -> str:
@@ -417,6 +442,7 @@ def _format_report_metadata(metadata: Mapping[str, Any]) -> str:
 async def run_seeded_genetic_weight_optimization(
     ga_config: GeneticAlgorithmConfig | None = None,
     fitness_config: SeededGeneticFitnessConfig | None = None,
+    initial_weights: Mapping[str, float] | None = None,
 ) -> GeneticAlgorithmResult:
     """Train Level 4 GA weights with the real-coded GA using real seeded battles."""
     resolved_ga_config = ga_config or _default_seeded_ga_config()
@@ -429,7 +455,7 @@ async def run_seeded_genetic_weight_optimization(
     async def evaluate(chromosome: Chromosome) -> FitnessEvaluation:
         return await _evaluate_seeded_chromosome(chromosome, battle_service, ia_service, resolved_fitness_config)
 
-    initial_population = [weight_mapping_to_chromosome(LEVEL_3_GA_OPTIMIZED_WEIGHTS)]
+    initial_population = [weight_mapping_to_chromosome(initial_weights or LEVEL_3_GA_OPTIMIZED_WEIGHTS)]
     return await RealCodedGeneticAlgorithm(evaluate, config=resolved_ga_config, initial_population=initial_population).run_async()
 
 
@@ -763,6 +789,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run real MongoDB-backed AI-vs-AI benchmarks.")
     parser.add_argument("--repetitions", type=int, default=int(os.getenv("REAL_AI_BENCHMARK_REPETITIONS", "1")))
     parser.add_argument("--max-turns", type=int, default=int(os.getenv("REAL_AI_BENCHMARK_MAX_TURNS", "80")))
+    parser.add_argument("--concurrency", type=int, default=int(os.getenv("REAL_AI_BENCHMARK_CONCURRENCY", "1")))
     parser.add_argument("--depths", nargs="+", type=int, choices=DEFAULT_MINIMAX_DEPTHS, default=DEFAULT_MINIMAX_DEPTHS)
     parser.add_argument("--output-dir", default=os.getenv("REAL_AI_BENCHMARK_OUTPUT_DIR", "benchmark-results"))
     parser.add_argument("--train-ga", action="store_true", help="Also run a small real-battle GA training pass.")
@@ -821,6 +848,7 @@ async def _run_cli(args: argparse.Namespace) -> None:
             saved_path = save_level_3_weights(trained_weights, ga_result)
             print(f"\nPesos GA persistidos en: {saved_path}")
 
+    started_at = perf_counter()
     summaries = await run_seeded_ai_benchmark(
         SeededBenchmarkConfig(
             repetitions_per_side=args.repetitions,
@@ -828,12 +856,15 @@ async def _run_cli(args: argparse.Namespace) -> None:
             minimax_depths=tuple(args.depths),
             cleanup_created_battles=True,
             level_3_weights=trained_weights,
+            concurrency=args.concurrency,
         )
     )
+    elapsed_seconds = perf_counter() - started_at
     print("\nREAL SEEDED AI BENCHMARK")
     if trained_weights is not None:
         print("Benchmark final usando los pesos GA recien aprendidos.")
     print(format_seeded_benchmark_table(summaries))
+    print(f"\nTiempo total benchmark: {elapsed_seconds:.2f} segundos ({elapsed_seconds / 60:.2f} minutos)")
     written_paths = write_seeded_benchmark_reports(
         summaries,
         args.output_dir,
@@ -842,6 +873,11 @@ async def _run_cli(args: argparse.Namespace) -> None:
             "level_3_weights": trained_weights or LEVEL_3_GA_OPTIMIZED_WEIGHTS,
             "manual_weights": LEVEL_3_MANUAL_WEIGHTS,
             "minimax_depths": tuple(args.depths),
+            "battles_per_row": args.repetitions * 2,
+            "total_battles": sum(summary.battles for summary in summaries),
+            "concurrency": max(1, args.concurrency),
+            "elapsed_seconds": elapsed_seconds,
+            "elapsed_minutes": elapsed_seconds / 60,
         },
     )
     print("\nReportes guardados:")
