@@ -13,13 +13,13 @@ LEVEL_3_MANUAL_WEIGHTS: Final[dict[str, float]] = {
 }
 
 LEVEL_3_GA_OPTIMIZED_WEIGHTS: Final[dict[str, float]] = {
-    "hp": 0.3275128446735863,
-    "alive": 0.05326217511460886,
-    "damage": 0.11154927979175683,
-    "type": 0.01583918477846048,
-    "speed": 0.2759869418372587,
-    "status": 0.16541348795480293,
-    "effects": 0.05043608584952595,
+    "hp": 0.17069593862952015,
+    "alive": 0.11919750829060917,
+    "damage": 0.13812122618470588,
+    "type": 0.12333016456270111,
+    "speed": 0.10660360049220932,
+    "status": 0.1315293788060151,
+    "effects": 0.21052218303423925,
 }
 
 LEVEL_3_GA_TRAINING_METADATA: Final[dict[str, object]] = {
@@ -29,9 +29,9 @@ LEVEL_3_GA_TRAINING_METADATA: Final[dict[str, object]] = {
     "mutation": "gaussian",
     "elitism": True,
     "fitness": "win_rate + 0.1 * hp_remaining_score - 0.05 * normalized_turns",
-    "source": "benchmark-results/level3_ga_training.json",
-    "fitness_value": 0.6731253035593929,
-    "win_rate": 0.6222222222222222,
-    "hp_remaining_score": 0.5484752578161507,
-    "average_turns": 6.311111111111111,
+    "source": "saved_from_ai_real_benchmark",
+    "fitness_value": 0.779189092086313,
+    "win_rate": 0.7222222222222222,
+    "hp_remaining_score": 0.5985575875297974,
+    "average_turns": 5.777777777777778,
 }

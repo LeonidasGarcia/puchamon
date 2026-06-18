@@ -3,7 +3,7 @@
 - level_3_weights_source: code_default
 - level_3_weights: hp=0.1766, alive=0.1092, damage=0.0643, type=0.1330, speed=0.2153, status=0.0752, effects=0.2265
 - manual_weights: hp=0.2500, alive=0.1500, damage=0.2500, type=0.1500, speed=0.0800, status=0.0700, effects=0.0500
-- minimax_depths: (1, 2, 3)
+- minimax_depths: (1, 2, 3, 4)
 
 | Depth | Matchup | Formato | Batallas | Wins A | Wins B | Empates | Winrate A | Winrate B | Turnos Prom. | HP Restante | Decision ms | Nodos Expl. | Nodos Podados | Mejor IA |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -32,11 +32,11 @@
 | 2 | Intermedio vs Dificil Manual | 2v2 | 80 | 34 | 46 | 0 | 42.50% | 57.50% | 6.24 | 49.36% | 3.70 | 18.63 | 3.15 | Dificil Manual |
 | 2 | Intermedio vs Dificil Manual | 3v3 | 80 | 37 | 43 | 0 | 46.25% | 53.75% | 10.65 | 46.74% | 6.09 | 24.25 | 3.90 | Dificil Manual |
 | 2 | Intermedio vs Dificil GA | 1v1 | 80 | 43 | 37 | 0 | 53.75% | 46.25% | 2.15 | 58.71% | 1.73 | 12.31 | 2.16 | Intermedio |
-| 2 | Intermedio vs Dificil GA | 2v2 | 80 | 44 | 35 | 1 | 55.00% | 43.75% | 6.33 | 50.95% | 3.93 | 19.00 | 3.18 | Intermedio |
+| 2 | Intermedio vs Dificil GA | 2v2 | 80 | 34 | 46 | 0 | 42.50% | 57.50% | 6.33 | 50.95% | 3.93 | 19.00 | 3.18 | Dificil GA |
 | 2 | Intermedio vs Dificil GA | 3v3 | 80 | 36 | 44 | 0 | 45.00% | 55.00% | 9.70 | 45.36% | 6.19 | 24.13 | 3.93 | Dificil GA |
 | 2 | Dificil Manual vs Dificil GA | 1v1 | 80 | 39 | 41 | 0 | 48.75% | 51.25% | 1.93 | 53.71% | 2.19 | 12.77 | 1.97 | Dificil GA |
 | 2 | Dificil Manual vs Dificil GA | 2v2 | 80 | 42 | 38 | 0 | 52.50% | 47.50% | 6.15 | 46.50% | 4.12 | 17.82 | 3.04 | Dificil Manual |
-| 2 | Dificil Manual vs Dificil GA | 3v3 | 80 | 43 | 37 | 0 | 53.75% | 46.25% | 10.16 | 46.38% | 6.72 | 22.88 | 3.66 | Dificil Manual |
+| 2 | Dificil Manual vs Dificil GA | 3v3 | 80 | 35 | 45 | 0 | 43.75% | 56.25% | 10.16 | 46.38% | 6.72 | 22.88 | 3.66 | Dificil GA |
 | 2 | Facil vs Dificil GA | 1v1 | 80 | 28 | 52 | 0 | 35.00% | 65.00% | 2.84 | 60.77% | 1.06 | 12.02 | 2.05 | Dificil GA |
 | 2 | Facil vs Dificil GA | 2v2 | 80 | 29 | 51 | 0 | 36.25% | 63.75% | 7.38 | 42.23% | 2.21 | 18.06 | 3.02 | Dificil GA |
 | 2 | Facil vs Dificil GA | 3v3 | 80 | 17 | 62 | 1 | 21.25% | 77.50% | 12.32 | 45.03% | 3.51 | 23.04 | 3.79 | Dificil GA |
@@ -53,7 +53,7 @@
 | 3 | Intermedio vs Dificil GA | 2v2 | 80 | 38 | 42 | 0 | 47.50% | 52.50% | 5.10 | 57.43% | 11.80 | 57.81 | 8.07 | Dificil GA |
 | 3 | Intermedio vs Dificil GA | 3v3 | 80 | 29 | 51 | 0 | 36.25% | 63.75% | 9.65 | 48.26% | 21.46 | 85.49 | 11.21 | Dificil GA |
 | 3 | Dificil Manual vs Dificil GA | 1v1 | 80 | 45 | 35 | 0 | 56.25% | 43.75% | 2.09 | 55.66% | 5.49 | 34.02 | 5.32 | Dificil Manual |
-| 3 | Dificil Manual vs Dificil GA | 2v2 | 80 | 44 | 36 | 0 | 55.00% | 45.00% | 6.92 | 46.66% | 13.05 | 58.21 | 8.14 | Dificil Manual |
+| 3 | Dificil Manual vs Dificil GA | 2v2 | 80 | 36 | 44 | 0 | 45.00% | 55.00% | 6.92 | 46.66% | 13.05 | 58.21 | 8.14 | Dificil GA |
 | 3 | Dificil Manual vs Dificil GA | 3v3 | 80 | 35 | 43 | 2 | 43.75% | 53.75% | 11.26 | 44.95% | 23.94 | 81.64 | 10.21 | Dificil GA |
 | 3 | Facil vs Dificil GA | 1v1 | 80 | 31 | 46 | 3 | 38.75% | 57.50% | 3.15 | 58.20% | 2.55 | 31.10 | 5.14 | Dificil GA |
 | 3 | Facil vs Dificil GA | 2v2 | 80 | 30 | 50 | 0 | 37.50% | 62.50% | 7.29 | 49.43% | 6.77 | 59.57 | 8.21 | Dificil GA |
@@ -61,3 +61,21 @@
 | 3 | Facil vs Dificil Manual | 1v1 | 80 | 30 | 50 | 0 | 37.50% | 62.50% | 2.67 | 62.52% | 2.47 | 29.98 | 5.13 | Dificil Manual |
 | 3 | Facil vs Dificil Manual | 2v2 | 80 | 21 | 58 | 1 | 26.25% | 72.50% | 8.91 | 44.79% | 5.77 | 50.18 | 7.07 | Dificil Manual |
 | 3 | Facil vs Dificil Manual | 3v3 | 80 | 15 | 64 | 1 | 18.75% | 80.00% | 13.09 | 42.04% | 12.84 | 87.82 | 10.88 | Dificil Manual |
+| 4 | Facil vs Intermedio | 1v1 | 80 | 33 | 47 | 0 | 41.25% | 58.75% | 3.06 | 55.73% | 2.97 | 58.62 | 13.95 | Intermedio |
+| 4 | Facil vs Intermedio | 2v2 | 80 | 27 | 51 | 2 | 33.75% | 63.75% | 8.31 | 50.10% | 11.52 | 151.70 | 30.51 | Intermedio |
+| 4 | Facil vs Intermedio | 3v3 | 80 | 10 | 70 | 0 | 12.50% | 87.50% | 13.04 | 46.65% | 22.90 | 218.29 | 43.33 | Intermedio |
+| 4 | Intermedio vs Dificil Manual | 1v1 | 80 | 36 | 44 | 0 | 45.00% | 55.00% | 2.34 | 59.23% | 9.85 | 80.52 | 17.37 | Dificil Manual |
+| 4 | Intermedio vs Dificil Manual | 2v2 | 80 | 39 | 41 | 0 | 48.75% | 51.25% | 7.34 | 55.26% | 30.17 | 167.52 | 33.02 | Dificil Manual |
+| 4 | Intermedio vs Dificil Manual | 3v3 | 80 | 35 | 44 | 1 | 43.75% | 55.00% | 11.53 | 52.40% | 59.56 | 238.87 | 45.04 | Dificil Manual |
+| 4 | Intermedio vs Dificil GA | 1v1 | 80 | 39 | 41 | 0 | 48.75% | 51.25% | 2.30 | 58.27% | 9.48 | 75.29 | 16.06 | Dificil GA |
+| 4 | Intermedio vs Dificil GA | 2v2 | 80 | 36 | 44 | 0 | 45.00% | 55.00% | 5.22 | 50.84% | 28.45 | 154.42 | 32.33 | Dificil GA |
+| 4 | Intermedio vs Dificil GA | 3v3 | 80 | 26 | 54 | 0 | 32.50% | 67.50% | 10.65 | 48.23% | 65.86 | 263.69 | 50.73 | Dificil GA |
+| 4 | Dificil Manual vs Dificil GA | 1v1 | 80 | 38 | 42 | 0 | 47.50% | 52.50% | 2.25 | 59.25% | 13.67 | 89.11 | 17.17 | Dificil GA |
+| 4 | Dificil Manual vs Dificil GA | 2v2 | 80 | 31 | 49 | 0 | 38.75% | 61.25% | 5.92 | 51.70% | 30.55 | 141.96 | 30.68 | Dificil GA |
+| 4 | Dificil Manual vs Dificil GA | 3v3 | 80 | 30 | 50 | 0 | 37.50% | 62.50% | 11.72 | 50.22% | 70.49 | 252.11 | 50.40 | Dificil GA |
+| 4 | Facil vs Dificil GA | 1v1 | 80 | 36 | 44 | 0 | 45.00% | 55.00% | 3.17 | 60.04% | 6.28 | 79.03 | 15.65 | Dificil GA |
+| 4 | Facil vs Dificil GA | 2v2 | 80 | 17 | 62 | 1 | 21.25% | 77.50% | 6.17 | 49.80% | 14.22 | 128.85 | 30.00 | Dificil GA |
+| 4 | Facil vs Dificil GA | 3v3 | 80 | 18 | 61 | 1 | 22.50% | 76.25% | 11.45 | 43.82% | 36.71 | 255.46 | 52.85 | Dificil GA |
+| 4 | Facil vs Dificil Manual | 1v1 | 80 | 34 | 45 | 1 | 42.50% | 56.25% | 3.09 | 61.94% | 5.37 | 69.92 | 15.87 | Dificil Manual |
+| 4 | Facil vs Dificil Manual | 2v2 | 80 | 16 | 62 | 2 | 20.00% | 77.50% | 7.01 | 57.23% | 14.69 | 132.65 | 29.00 | Dificil Manual |
+| 4 | Facil vs Dificil Manual | 3v3 | 80 | 19 | 60 | 1 | 23.75% | 75.00% | 12.62 | 46.56% | 30.18 | 212.69 | 42.90 | Dificil Manual |
