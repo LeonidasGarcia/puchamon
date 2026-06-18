@@ -104,8 +104,7 @@ def minimax(  # noqa: PLR0913
     if not actions:
         return heuristic_func(battle, instances, player_trainer_id, movements=movements, type_chart=type_chart, move_effects=move_effects)
 
-    is_max = is_maximizing_player
-    best_score = float("-inf") if is_max else float("inf")
+    best_score = float("-inf") if is_maximizing_player else float("inf")
 
     for action in actions:
         next_battle, next_instances = simulate_state_transition(
@@ -125,7 +124,7 @@ def minimax(  # noqa: PLR0913
             depth - 1,
             alpha,
             beta,
-            not is_max,
+            not is_maximizing_player,
             heuristic_func,
             movements,
             type_chart,
@@ -133,7 +132,7 @@ def minimax(  # noqa: PLR0913
             metrics,
         )
 
-        if is_max:
+        if is_maximizing_player:
             best_score = max(best_score, eval_score)
             alpha = max(alpha, eval_score)
         else:
