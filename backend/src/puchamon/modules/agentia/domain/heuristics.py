@@ -248,8 +248,6 @@ def _modify_stat_effect_utility(effect: MoveEffect) -> float:
         return 0.0
 
     scope_multiplier = _effect_scope_multiplier(effect)
-    if scope_multiplier == 0.0:
-        return 0.0
 
     utility = 0.0
     for change in changes:

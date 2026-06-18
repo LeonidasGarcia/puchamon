@@ -126,11 +126,11 @@ class IAService:
 
         action_type, action_id = action
 
-        if action_type == "MOVE":
-            side = battle.sides.get(player.trainer_id)
-            active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
-            active_instance_id = active_ids[0] if active_ids else None
+        side = battle.sides.get(player.trainer_id)
+        active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
+        active_instance_id = active_ids[0] if active_ids else None
 
+        if action_type == "MOVE":
             return TurnAction(
                 player=player.trainer_id,
                 type="move",
@@ -142,11 +142,7 @@ class IAService:
                     target_active_slot=0,
                 ),
             )
-        else:
-            side = battle.sides.get(player.trainer_id)
-            active_ids = [uid for uid in side.active_pokemon_instance_ids if uid is not None] if side else []
-            active_instance_id = active_ids[0] if active_ids else None
-
+        if action_type == "SWITCH":
             return TurnAction(
                 player=player.trainer_id,
                 type="switch",
