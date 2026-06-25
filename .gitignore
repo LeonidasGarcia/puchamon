@@ -225,6 +225,8 @@ __marimo__/
 
 package-lock.json/
 
+logs/
+
 # TODO
 TODO_BATTLE.md
 WEBSOCKETS_IMPLEMENTATION_PLAN.md
