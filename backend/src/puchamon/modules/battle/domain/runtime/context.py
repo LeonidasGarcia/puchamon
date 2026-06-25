@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from ....pokedex.domain.entities import Condition, MoveEffect, Movement
 from ....pokedex.domain.entities.conditions import ConditionEffect
+from ....pokedex.domain.entities.effects import DamagePayload
 from ..entities import Battle, BattleInstance, TurnAction
 from ..exceptions import BattleValidationError
 
 if TYPE_CHECKING:
+    from ....pokedex.domain.entities import Type
     from ..registries import MoveEffectStrategyRegistry
 
 
@@ -23,6 +25,44 @@ StrategyHook = Literal[
     "end_turn",
     "on_expire",
 ]
+
+
+@dataclass(slots=True)
+class DamageCalculationInput:
+    """Parameters for calculating move damage."""
+
+    movement: Movement
+    payload: DamagePayload
+    source: BattleInstance
+    target: BattleInstance
+    roll_percent: int
+    type_chart: dict[str, "Type"]
+
+
+@dataclass(slots=True)
+class DamageResolutionInput:
+    """Encapsulates parameters required to resolve total damage for a target."""
+
+    context: "BattleStrategyContext"
+    execution: "MoveEffectExecutionInput"
+    source: BattleInstance
+    target: BattleInstance
+    payload: DamagePayload
+    hit_count: int
+    movement: Movement
+
+
+@dataclass(slots=True)
+class DamageApplicationInput:
+    """Encapsulates parameters required to apply damage to a target."""
+
+    context: "BattleStrategyContext"
+    execution: "MoveEffectExecutionInput"
+    source: BattleInstance
+    target: BattleInstance
+    payload: DamagePayload
+    hit_count: int
+    movement: Movement
 
 
 @dataclass(slots=True)
@@ -124,6 +164,8 @@ class ActionExecutionInput:
             target_instance_ids=target_instance_ids,
             movement=self.movement,
             metadata=metadata if metadata is not None else {},
+            condition_effect_strategy_registry=self.condition_effect_strategy_registry,
+            conditions=self.conditions,
         )
 
 
@@ -136,6 +178,8 @@ class MoveEffectExecutionInput:
     target_instance_ids: list[str]
     movement: Movement | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    condition_effect_strategy_registry: "Any | None" = None
+    conditions: "dict[str, Condition] | None" = None
 
 
 @dataclass(slots=True)

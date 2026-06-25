@@ -20,7 +20,6 @@ class SwitchActionStrategy(ActionStrategy):
         if execution.replacement_instance_id is None:
             raise BattleValidationError("Switch actions require a replacement instance id")
 
-        # Handle empty user_instance_id (replacement action, no source to switch out)
         if execution.action.user_instance_id == "":
             replacement_instance = context.get_instance(execution.replacement_instance_id)
             side = get_side_for_trainer(context.battle, replacement_instance.trainer_id)
@@ -35,7 +34,7 @@ class SwitchActionStrategy(ActionStrategy):
 
             context.add_event(
                 kind="replacement",
-                message=f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield",
+                message=f"¡{format_pokemon_name(replacement_instance.pokemon_id)} entró al campo de batalla!",
                 source_instance_id=None,
                 target_instance_id=execution.replacement_instance_id,
                 active_slot=empty_slot,
@@ -55,6 +54,23 @@ class SwitchActionStrategy(ActionStrategy):
             raise BattleConflictError("A fainted pokemon cannot enter the battlefield as a switch replacement")
 
         side = get_side_for_trainer(context.battle, source_instance.trainer_id)
+
+        if source_instance.fainted or source_instance.current_hp <= 0:
+            try:
+                empty_slot = side.active_pokemon_instance_ids.index(None)
+            except ValueError:
+                empty_slot = 0
+            set_active_instance_for_slot(side, empty_slot, execution.replacement_instance_id)
+            replacement_instance.is_revealed = True
+            context.add_event(
+                kind="switch",
+                message=f"¡{format_pokemon_name(replacement_instance.pokemon_id)} entró al campo de batalla!",
+                source_instance_id=None,
+                target_instance_id=execution.replacement_instance_id,
+                active_slot=empty_slot,
+            )
+            return
+
         source_active_slot = get_active_slot_for_instance(side, execution.action.user_instance_id)
 
         if execution.replacement_instance_id in side.active_pokemon_instance_ids:
@@ -66,8 +82,8 @@ class SwitchActionStrategy(ActionStrategy):
         context.add_event(
             kind="switch",
             message=(
-                f"{format_pokemon_name(source_instance.pokemon_id)} switched out and "
-                f"{format_pokemon_name(replacement_instance.pokemon_id)} entered the battlefield"
+                f"¡{format_pokemon_name(source_instance.pokemon_id)} se retiró y "
+                f"{format_pokemon_name(replacement_instance.pokemon_id)} entró al campo de batalla!"
             ),
             source_instance_id=execution.action.user_instance_id,
             target_instance_id=execution.replacement_instance_id,

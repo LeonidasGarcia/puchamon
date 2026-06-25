@@ -14,12 +14,14 @@ from ..strategies.conditions import (
     FullParalysisChanceConditionEffectStrategy,
     PhysicalAttackModifierConditionEffectStrategy,
     SelfHitChanceConditionEffectStrategy,
+    SkipActionConditionEffectStrategy,
     SpeedModifierConditionEffectStrategy,
 )
 from ..strategies.effects import (
     ApplyMajorStatusEffectStrategy,
     ApplyVolatileStatusEffectStrategy,
     DamageEffectStrategy,
+    HealHpEffectStrategy,
     ModifyStatEffectStrategy,
     MoveEffectStrategy,
     ProtectEffectStrategy,
@@ -84,6 +86,7 @@ def build_default_move_effect_strategy_registry() -> MoveEffectStrategyRegistry:
             DamageEffectStrategy(),
             ApplyMajorStatusEffectStrategy(),
             ApplyVolatileStatusEffectStrategy(),
+            HealHpEffectStrategy(),
             ModifyStatEffectStrategy(),
             ProtectEffectStrategy(),
         ]
@@ -101,6 +104,7 @@ def build_default_condition_effect_strategy_registry() -> ConditionEffectStrateg
             FullParalysisChanceConditionEffectStrategy(),
             SelfHitChanceConditionEffectStrategy(),
             CannotMoveConditionEffectStrategy(),
+            SkipActionConditionEffectStrategy(),
             BlockProtectableMovesConditionEffectStrategy(),
         ]
     )

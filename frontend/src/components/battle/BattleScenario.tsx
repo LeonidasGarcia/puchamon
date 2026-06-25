@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import Ground from './Ground';
 import PokemonSprite from '../pokemon/PokemonSprite';
 import WeatherBadge from '../badges/WeatherBadge';
@@ -10,10 +9,7 @@ import {
 import type PokemonSprites from '../../types/sprites/PokemonSprites';
 import type { WeatherColorsKeys } from '../../types/colors/WeatherColors';
 import type { HazardColorsKeys } from '../../types/colors/HazardColors';
-import type {
-  PokemonInstanceSnapshot,
-  BattleTurnEvent,
-} from '../../types/schemas/Battle';
+import type { PokemonInstanceSnapshot } from '../../types/schemas/Battle';
 
 interface BattleScenarioProps {
   p1Sprites: PokemonSprites[];
@@ -21,9 +17,6 @@ interface BattleScenarioProps {
   weatherId?: WeatherColorsKeys | null;
   weatherRemainingTurns?: number | null;
   hazards?: HazardColorsKeys[];
-  isAnimating?: boolean;
-  currentEventIndex?: number;
-  currentEvents?: BattleTurnEvent[];
   myPokemon?: PokemonInstanceSnapshot[];
   opponentPokemon?: PokemonInstanceSnapshot[];
   isOpponentFainted?: boolean;
@@ -35,16 +28,14 @@ export default function BattleScenario(props: BattleScenarioProps) {
   const shadowColor = getWeatherShadowColor(props.weatherId ?? null);
 
   return (
-    <motion.div
+    <div
       className="w-240 h-135 p-8 m-8 rounded-3xl grid grid-rows-2 grid-cols-2"
       style={{ backgroundColor, boxShadow: shadowColor }}
-      transition={{ duration: 0.5, ease: 'easeInOut' }}
-      animate={{ backgroundColor, boxShadow: shadowColor }}
     >
       <div className="relative flex flex-col gap-1">
-        {props.weatherId && props.weatherRemainingTurns !== null && (
+        {props.weatherRemainingTurns != null && (
           <WeatherBadge
-            weatherId={props.weatherId}
+            weatherId={props.weatherId!}
             remainingTurns={props.weatherRemainingTurns}
           />
         )}
@@ -62,9 +53,6 @@ export default function BattleScenario(props: BattleScenarioProps) {
           <PokemonSprite
             key={props.opponentPokemon?.[idx]?.instance_id ?? idx}
             sprite={sprite?.normal}
-            isAnimating={props.isAnimating}
-            currentEventIndex={props.currentEventIndex}
-            currentEvents={props.currentEvents}
             instanceId={props.opponentPokemon?.[idx]?.instance_id}
             instanceIds={props.opponentPokemon?.map((p) => p.instance_id) ?? []}
             trainerId={props.opponentPokemon?.[idx]?.trainer_id}
@@ -79,9 +67,6 @@ export default function BattleScenario(props: BattleScenarioProps) {
           <PokemonSprite
             key={props.myPokemon?.[idx]?.instance_id ?? idx}
             sprite={sprite?.back_normal}
-            isAnimating={props.isAnimating}
-            currentEventIndex={props.currentEventIndex}
-            currentEvents={props.currentEvents}
             instanceId={props.myPokemon?.[idx]?.instance_id}
             instanceIds={props.myPokemon?.map((p) => p.instance_id) ?? []}
             trainerId={props.myPokemon?.[idx]?.trainer_id}
@@ -91,6 +76,6 @@ export default function BattleScenario(props: BattleScenarioProps) {
         ))}
       </div>
       <div></div>
-    </motion.div>
+    </div>
   );
 }

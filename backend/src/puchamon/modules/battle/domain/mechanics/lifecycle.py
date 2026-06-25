@@ -28,7 +28,7 @@ def faint_instance(context: "BattleStrategyContext", instance: "BattleInstance")
     context.mark_fainted(str(instance.id))
     context.add_event(
         kind="pokemon_fainted",
-        message=f"{format_pokemon_name(instance.pokemon_id)} fainted!",
+        message=f"¡{format_pokemon_name(instance.pokemon_id)} se ha debilitado!",
         target_instance_id=str(instance.id),
         active_slot=slot,
     )
@@ -49,7 +49,7 @@ def switch_in_instance(
 
     context.add_event(
         kind="switch_in",
-        message=f"Go! {format_pokemon_name(instance.pokemon_id)}!",
+        message=f"¡Adelante, {format_pokemon_name(instance.pokemon_id)}!",
         target_instance_id=instance_id,
         active_slot=slot_index,
     )

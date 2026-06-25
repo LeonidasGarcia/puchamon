@@ -32,7 +32,7 @@ class ApplyVolatileStatusEffectStrategy(MoveEffectStrategy):
             if is_immune_to_volatile(target, payload.condition_id):
                 context.add_event(
                     kind="volatile_status_failed_immune",
-                    message=f"It doesn't affect {format_pokemon_name(target.pokemon_id)}...",
+                    message=f"No afecta a {format_pokemon_name(target.pokemon_id)}...",
                     target_instance_id=target_id,
                 )
                 continue
@@ -41,7 +41,7 @@ class ApplyVolatileStatusEffectStrategy(MoveEffectStrategy):
 
             context.add_event(
                 kind="volatile_status_applied",
-                message=f"{format_pokemon_name(target.pokemon_id)} was affected by {payload.condition_id}!",
+                message=f"¡{format_pokemon_name(target.pokemon_id)} fue afectado por {payload.condition_id}!",
                 target_instance_id=target_id,
                 status_id=payload.condition_id,
             )

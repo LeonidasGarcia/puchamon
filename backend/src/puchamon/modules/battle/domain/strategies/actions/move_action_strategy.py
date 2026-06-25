@@ -1,7 +1,6 @@
 """Strategy for executing move actions."""
 
 import random
-from typing import Any
 
 from loguru import logger
 
@@ -21,20 +20,17 @@ def _apply_move_effects(
     source_instance: BattleInstance,
     damage_roll_percent: int | None = None,
 ) -> None:
-    """Apply the resolved move effects in execution order."""
-    blocked_targets = context.transient.get("blocked_targets", set())
-    ordered_effects = sorted(execution.move_effects, key=lambda effect: effect.order)
+    movement = execution.movement
+    if movement is None:
+        raise BattleValidationError("execution.movement cannot be None when applying move effects")
 
     move_effect_strategy_registry = execution.move_effect_strategy_registry
-    movement = execution.movement
-    if move_effect_strategy_registry is None or movement is None:
-        return
+    if not move_effect_strategy_registry:
+        raise BattleValidationError("Cannot apply move effects without a registered strategy dispatcher")
 
-    effect_metadata: dict[str, Any] = {}
-    if damage_roll_percent is not None:
-        effect_metadata["damage_roll_percent"] = damage_roll_percent
+    effect_metadata = {"damage_roll_percent": damage_roll_percent}
 
-    for effect in ordered_effects:
+    for index, effect in enumerate(execution.move_effects):
         target_instance_ids = resolve_effect_target_instance_ids(
             battle=context.battle,
             source_instance=source_instance,
@@ -42,16 +38,14 @@ def _apply_move_effects(
             effect=effect,
         )
 
-        # Exclude targets that blocked the move
+        blocked_targets: set[str] = context.transient.get("blocked_targets", set())
         target_instance_ids = [tid for tid in target_instance_ids if tid not in blocked_targets]
 
-        if effect.target == "target" and not target_instance_ids:
-            # We don't want to emit "no valid target" if it failed specifically because it was blocked
-            # since a "blocked" event was already emitted during validation.
-            if not blocked_targets:
+        if not target_instance_ids:
+            if not blocked_targets and index == 0:
                 context.add_event(
                     kind="move_failed_no_target",
-                    message=f"{movement.name} failed because there was no valid target",
+                    message=f"¡{movement.name} falló porque no había un objetivo válido!",
                     source_instance_id=execution.action.user_instance_id,
                     move_id=execution.action.move_id,
                 )
@@ -59,10 +53,9 @@ def _apply_move_effects(
 
         # Chance Check: Roll for secondary effects (e.g. flinch, burn chance)
         full_chance = 100
-        if effect.chance < full_chance:
-            if random.randint(1, full_chance) > effect.chance:
-                logger.debug(f"[EFFECT] {effect.kind} falló chance ({effect.chance}%)")
-                continue
+        if effect.chance < full_chance and random.randint(1, full_chance) > effect.chance:
+            logger.debug(f"[EFFECT] {effect.kind} falló chance ({effect.chance}%)")
+            continue
 
         effect_strategy = move_effect_strategy_registry.get(effect.kind)
         logger.debug(f"[EFFECT] Aplicando {effect.kind} a {len(target_instance_ids)} targets: {target_instance_ids}")
@@ -93,6 +86,9 @@ class MoveActionStrategy(ActionStrategy):
             raise BattleValidationError("Move actions require a move_id")
 
         source_instance = context.get_instance(execution.action.user_instance_id)
+        if source_instance.fainted or source_instance.current_hp <= 0:
+            return None, None, None
+
         if execution.action.player != source_instance.trainer_id:
             raise BattleValidationError("Move actions must be declared by the trainer that owns the source instance")
 
@@ -100,14 +96,11 @@ class MoveActionStrategy(ActionStrategy):
         if execution.action.user_instance_id not in source_side.active_pokemon_instance_ids:
             raise BattleValidationError("Only active pokemon can execute move actions")
 
-        if source_instance.fainted or source_instance.current_hp <= 0:
-            raise BattleValidationError("A fainted pokemon cannot execute a move action")
-
         skip_reason = context.get_action_block_reason(execution.action.user_instance_id)
         if skip_reason is not None:
             context.add_event(
                 kind="action_skipped",
-                message=f"{format_pokemon_name(source_instance.pokemon_id)} could not act because of {skip_reason}",
+                message=f"¡{format_pokemon_name(source_instance.pokemon_id)} no pudo actuar debido a {skip_reason}!",
                 source_instance_id=execution.action.user_instance_id,
                 move_id=execution.action.move_id,
                 reason=skip_reason,
@@ -125,6 +118,34 @@ class MoveActionStrategy(ActionStrategy):
             raise BattleValidationError(f"Move '{execution.action.move_id}' has no PP remaining")
 
         return source_instance, execution.movement, move_state
+
+    def _evaluate_source_conditions(
+        self,
+        context: BattleStrategyContext,
+        execution: ActionExecutionInput,
+        source_instance: BattleInstance,
+    ) -> None:
+        active_conditions = source_instance.volatile_status + ([source_instance.status] if source_instance.status else [])
+        if not active_conditions:
+            return
+        if not execution.conditions or not execution.condition_effect_strategy_registry:
+            return
+
+        strategies = execution.condition_effect_strategy_registry.for_hook("before_action")
+        for status_id in active_conditions:
+            condition = execution.conditions.get(status_id)
+            if not condition:
+                continue
+
+            for effect in condition.effects:
+                for strategy in strategies:
+                    if effect.kind == strategy.kind:
+                        hook_input = ConditionEffectExecutionInput(
+                            condition=condition,
+                            effect=effect,
+                            holder_instance_id=execution.action.user_instance_id,
+                        )
+                        strategy.apply(context, hook_input)
 
     def _evaluate_target_conditions(
         self,
@@ -164,13 +185,21 @@ class MoveActionStrategy(ActionStrategy):
         if source_instance is None or movement is None or move_state is None:
             return
 
+        self._evaluate_source_conditions(context, execution, source_instance)
+
+        # Re-check for blocks after evaluating source conditions (e.g. Paralysis roll, Flinch)
+        skip_reason = context.get_action_block_reason(execution.action.user_instance_id)
+        if skip_reason is not None:
+            context.clear_action_block(execution.action.user_instance_id)
+            return
+
         move_state.current_pp -= 1
         if move_state.move_id not in source_instance.revealed_moves:
             source_instance.revealed_moves.append(move_state.move_id)
 
         context.add_event(
             kind="move_used",
-            message=f"{format_pokemon_name(source_instance.pokemon_id)} used {movement.name}",
+            message=f"¡{format_pokemon_name(source_instance.pokemon_id)} usó {movement.name}!",
             source_instance_id=execution.action.user_instance_id,
             move_id=move_state.move_id,
         )
@@ -201,12 +230,11 @@ class MoveActionStrategy(ActionStrategy):
                 return
 
             if valid_target_ids:
-                # Accuracy Check (only for moves that target specific pokemons)
                 target = context.get_instance(valid_target_ids[0])
-                if not calculate_accuracy(context, movement, source_instance, target):
+                if not calculate_accuracy(movement, target):
                     context.add_event(
                         kind="move_missed",
-                        message=f"{format_pokemon_name(source_instance.pokemon_id)}'s attack missed!",
+                        message=f"¡El ataque de {format_pokemon_name(source_instance.pokemon_id)} falló!",
                         source_instance_id=execution.action.user_instance_id,
                         move_id=execution.action.move_id,
                     )

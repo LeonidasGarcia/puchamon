@@ -1,12 +1,10 @@
-import { motion } from 'framer-motion';
-import type { BattleTurnEvent } from '../../types/schemas/Battle';
+import { motion, scale, useAnimation, type Variants } from 'motion/react';
+import { PokemonAnimationState, useGameStore } from '../../stores/gameStore';
+import { useEffect } from 'react';
 
 interface PokemonSpriteProps {
   name?: string;
   sprite: string | undefined;
-  isAnimating?: boolean;
-  currentEventIndex?: number;
-  currentEvents?: BattleTurnEvent[];
   instanceId?: string;
   instanceIds?: string[];
   trainerId?: string;
@@ -15,46 +13,88 @@ interface PokemonSpriteProps {
 }
 
 export default function PokemonSprite(props: PokemonSpriteProps) {
-  const shouldAnimate =
-    props.isAnimating &&
-    props.currentEvents &&
-    props.currentEventIndex !== undefined &&
-    props.instanceId &&
-    props.currentEvents[props.currentEventIndex]?.source_instance_id ===
-      props.instanceId;
+  const controls = useAnimation();
 
-  const dx = props.direction === 'left' ? -30 : 30;
-  const dy = props.direction === 'left' ? 15 : -15;
+  // animación a renderizar según el estado
+  const { animationStates, toIdle, playerPhase } = useGameStore();
+
+  const animationState = animationStates[props.instanceId];
+
+  const animationVariants: Record<PokemonAnimationState, Variants[string]> = {
+    attacking: {
+      x: props.direction === 'left' ? [0, -30, 0] : [0, 30, 0],
+      y: props.direction === 'left' ? [0, 20, 0] : [0, -20, 0],
+      transition: {
+        ease: 'easeInOut',
+        duration: 0.6,
+        times: [0, 0.2, 1],
+      },
+    },
+    takingDamage: {
+      opacity: [1, 0, 1, 0, 1],
+      transition: { duration: 1 },
+    },
+    fainted: {
+      opacity: 0,
+      transition: { duration: 1 },
+    },
+    idle: {
+      opacity: 1,
+      x: 0,
+      y: 0,
+    },
+    paralyzedEffect: {
+      rotate: [0, 10, -10, 10, -10, 0],
+      transition: { duration: 1 },
+    },
+    switchingIn: {
+      opacity: [0, 1],
+      transition: { duration: 1 },
+    },
+    switchingOut: {
+      opacity: [1, 0],
+      transition: { duration: 1 },
+    },
+    toxicEffect: {
+      opacity: [1, 0.5, 1, 0.5, 1],
+      transition: { duration: 1 },
+    },
+  };
+
+  const playAnimation = async (state: PokemonAnimationState) => {
+    await controls.start(state);
+  };
+
+  useEffect(() => {
+    (async () => {
+      if (props.name && animationState) {
+        console.log(`[Sprite] ${props.name} → ${animationState}`);
+      }
+      await playAnimation(animationState);
+      if (
+        animationState !== PokemonAnimationState.Fainted &&
+        playerPhase !== 'finished'
+      ) {
+        toIdle(props.instanceId);
+      }
+    })();
+  }, [animationState]);
 
   return (
-    <motion.div
-      className="relative z-50"
-      initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
-      animate={
-        props.isFainted
-          ? { x: 0, y: 20, opacity: 0, rotate: 90 }
-          : shouldAnimate
-            ? { x: [0, dx, 0], y: [0, dy, 0] }
-            : { x: 0, y: 0 }
-      }
-      transition={
-        props.isFainted
-          ? { duration: 0.8, ease: 'easeIn' }
-          : shouldAnimate
-            ? { duration: 0.4, ease: 'easeOut' }
-            : { duration: 0 }
-      }
-    >
-      <img
+    <div className="relative z-50">
+      <motion.img
         className="relative inline-block h-fit"
+        animate={controls}
+        variants={animationVariants}
+        initial={PokemonAnimationState.Idle}
         style={{
-          transform: 'scale(2)',
+          scale: 2,
           transformOrigin: 'center bottom',
           zIndex: 50,
         }}
         src={props.sprite}
         alt={props.name}
       />
-    </motion.div>
+    </div>
   );
 }

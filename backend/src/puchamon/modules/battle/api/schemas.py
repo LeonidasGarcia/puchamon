@@ -9,7 +9,8 @@ class ConnectionRequest(BaseModel):
     name: str
     controller_type: Literal["human", "ai"]
     battle_type: Literal["1v1", "2v2", "3v3"]
-    difficulty: int | None = 1
+    difficulty: Literal[1, 2, 3, 4] | None = 1
+    ai2_difficulty: Literal[1, 2, 3, 4] | None = None
 
 
 class TurnActionTarget(BaseModel):
