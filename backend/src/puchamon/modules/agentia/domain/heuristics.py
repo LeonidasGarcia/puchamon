@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from ...battle.domain.entities import Battle, BattleInstance
 from ...pokedex.domain.entities import MoveEffect, Movement
 from .action_utils import get_opponent_trainer_id
-from .damage_calculator import _apply_stage, _calculate_type_effectiveness, _normalize_token, calculate_simulated_damage
+from .damage_calculator import _apply_stage, _calculate_type_effectiveness, _get_stage, _normalize_token, calculate_simulated_damage
 from .genetic_algorithm import GENETIC_WEIGHT_NAMES
 from .genetic_weights import LEVEL_3_GA_OPTIMIZED_WEIGHTS, LEVEL_3_MANUAL_WEIGHTS
 
@@ -23,6 +23,9 @@ _MAJOR_STATUSES = {"burn", "burned", "brn", "poison", "poisoned", "bad_poison", 
 _PARALYSIS_STATUSES = {"paralysis", "paralyzed", "par"}
 _PENALIZED_VOLATILE_STATUSES = {"confusion", "confused", "leech_seed", "leechseed"}
 _STAGE_UTILITY_BY_STAT = {"atk": 1.0, "spa": 1.1, "spe": 0.9, "def": 0.8, "def_": 0.8, "spd": 0.8, "acc": 0.5, "eva": 0.5}
+
+
+# ── Shared helpers (Level 2 & 3) ──
 
 
 def get_hp_percent(instance: BattleInstance) -> float:
@@ -62,7 +65,8 @@ def _team_hp_percent(instances: dict[str, BattleInstance], trainer_id: str) -> f
     return current_hp / max_hp
 
 
-def _active_instances(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> list[BattleInstance]:
+def _active_field_instances(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> list[BattleInstance]:
+    """Return alive active instances for a trainer (0 or 1 in 1v1)."""
     side = battle.sides.get(trainer_id)
     if side is None:
         return []
@@ -77,9 +81,12 @@ def _active_instances(battle: Battle, instances: dict[str, BattleInstance], trai
     return active_instances
 
 
-def _first_active_instance(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> BattleInstance | None:
-    active_instances = _active_instances(battle, instances, trainer_id)
+def _active_instance(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> BattleInstance | None:
+    active_instances = _active_field_instances(battle, instances, trainer_id)
     return active_instances[0] if active_instances else None
+
+
+# ── Level 3 helpers ──
 
 
 def _status_penalty(instance: BattleInstance) -> float:
@@ -97,21 +104,14 @@ def _status_penalty(instance: BattleInstance) -> float:
 
 
 def _active_status_penalty(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> float:
-    return sum(_status_penalty(instance) for instance in _active_instances(battle, instances, trainer_id))
-
-
-def _stage_value(instance: BattleInstance, stage_attribute: str) -> int:
-    if isinstance(instance.stages, Mapping):
-        aliased_attribute = "def" if stage_attribute == "def_" else stage_attribute
-        return int(instance.stages.get(stage_attribute, instance.stages.get(aliased_attribute, 0)) or 0)
-    return getattr(instance.stages, stage_attribute, 0)
+    return sum(_status_penalty(instance) for instance in _active_field_instances(battle, instances, trainer_id))
 
 
 def _effective_speed(instance: BattleInstance) -> int:
     if instance.stats is None:
         return 0
 
-    speed = _apply_stage(instance.stats.spe, _stage_value(instance, "spe"))
+    speed = _apply_stage(instance.stats.spe, _get_stage(instance, "spe"))
     if _normalize_status(instance.status) in _PARALYSIS_STATUSES:
         return max(1, floor(speed * 0.5))
     return speed
@@ -158,8 +158,8 @@ def _team_offensive_pressure(  # noqa: PLR0913
     type_chart: Mapping[str, "Type"] | None,
     move_effects: Mapping[str, MoveEffect] | None = None,
 ) -> float:
-    attackers = _active_instances(battle, instances, trainer_id)
-    targets = _active_instances(battle, instances, opponent_trainer_id)
+    attackers = _active_field_instances(battle, instances, trainer_id)
+    targets = _active_field_instances(battle, instances, opponent_trainer_id)
     if not attackers or not targets:
         return 0.0
 
@@ -210,8 +210,8 @@ def _team_type_matchup_score(  # noqa: PLR0913
     movements: Mapping[str, Movement] | None,
     type_chart: Mapping[str, "Type"] | None,
 ) -> float:
-    attackers = _active_instances(battle, instances, trainer_id)
-    targets = _active_instances(battle, instances, opponent_trainer_id)
+    attackers = _active_field_instances(battle, instances, trainer_id)
+    targets = _active_field_instances(battle, instances, opponent_trainer_id)
     if not attackers or not targets:
         return 0.0
 
@@ -222,7 +222,7 @@ def _team_type_matchup_score(  # noqa: PLR0913
 
 
 def _team_speed_score(battle: Battle, instances: dict[str, BattleInstance], trainer_id: str) -> float:
-    active_instances = _active_instances(battle, instances, trainer_id)
+    active_instances = _active_field_instances(battle, instances, trainer_id)
     if not active_instances:
         return 0.0
     return sum(_effective_speed(instance) for instance in active_instances) / len(active_instances)
@@ -282,7 +282,7 @@ def _team_move_effect_utility(
     if movements is None:
         return 0.0
 
-    active_instances = _active_instances(battle, instances, trainer_id)
+    active_instances = _active_field_instances(battle, instances, trainer_id)
     if not active_instances:
         return 0.0
 
@@ -326,7 +326,7 @@ def _weighted_level_3_factors(  # noqa: PLR0913
 
     player_status_penalty = _active_status_penalty(battle, instances, player_trainer_id)
     opponent_status_penalty = _active_status_penalty(battle, instances, opponent_trainer_id)
-    opponent_active = _first_active_instance(battle, instances, opponent_trainer_id)
+    opponent_active = _active_instance(battle, instances, opponent_trainer_id)
     opponent_active_hp = get_hp_percent(opponent_active) if opponent_active is not None else 0.0
 
     return {
@@ -349,6 +349,9 @@ def _weighted_level_3_factors(  # noqa: PLR0913
             - _team_move_effect_utility(battle, instances, opponent_trainer_id, movements, move_effects)
         ),
     }
+
+
+# ── Heuristics ──
 
 
 def evaluate_level_2(  # noqa: PLR0913
@@ -375,10 +378,34 @@ def evaluate_level_2(  # noqa: PLR0913
         Heuristic score where positive values favor the player.
     """
     opponent_trainer_id = get_opponent_trainer_id(battle, player_trainer_id)
-    opponent_active = _first_active_instance(battle, instances, opponent_trainer_id) if opponent_trainer_id else None
+    opponent_active = _active_instance(battle, instances, opponent_trainer_id) if opponent_trainer_id else None
     opponent_active_hp = get_hp_percent(opponent_active) if opponent_active is not None else 0.0
 
     return _team_hp_percent(instances, player_trainer_id) - opponent_active_hp
+
+
+def evaluate_level_3_weighted(  # noqa: PLR0913
+    battle: Battle,
+    instances: dict[str, BattleInstance],
+    player_trainer_id: str,
+    movements: Mapping[str, Movement] | None = None,
+    type_chart: Mapping[str, "Type"] | None = None,
+    move_effects: Mapping[str, MoveEffect] | None = None,
+    weights: Mapping[str, float] | None = None,
+) -> float:
+    """Evaluate a configurable GA-friendly Level 3 heuristic.
+
+    The genetic algorithm uses normalized real-coded chromosomes over seven factors: HP, alive count, expected damage,
+    type matchup, speed, status and move-effect utility. This function keeps those factors in a comparable [-1, 1]
+    range before applying the normalized weights.
+    """
+    opponent_trainer_id = get_opponent_trainer_id(battle, player_trainer_id)
+    if opponent_trainer_id is None:
+        return 0.0
+
+    normalized_weights = _normalize_weight_mapping(weights)
+    factors = _weighted_level_3_factors(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart, move_effects)
+    return sum(normalized_weights[key] * factors[key] for key in GENETIC_WEIGHT_NAMES)
 
 
 def evaluate_level_3_manual(  # noqa: PLR0913
@@ -419,28 +446,3 @@ def evaluate_level_3_ga(  # noqa: PLR0913
         move_effects=move_effects,
         weights=LEVEL_3_GA_OPTIMIZED_WEIGHTS,
     )
-
-
-
-def evaluate_level_3_weighted(  # noqa: PLR0913
-    battle: Battle,
-    instances: dict[str, BattleInstance],
-    player_trainer_id: str,
-    movements: Mapping[str, Movement] | None = None,
-    type_chart: Mapping[str, "Type"] | None = None,
-    move_effects: Mapping[str, MoveEffect] | None = None,
-    weights: Mapping[str, float] | None = None,
-) -> float:
-    """Evaluate a configurable GA-friendly Level 3 heuristic.
-
-    The genetic algorithm uses normalized real-coded chromosomes over seven factors: HP, alive count, expected damage,
-    type matchup, speed, status and move-effect utility. This function keeps those factors in a comparable [-1, 1]
-    range before applying the normalized weights.
-    """
-    opponent_trainer_id = get_opponent_trainer_id(battle, player_trainer_id)
-    if opponent_trainer_id is None:
-        return 0.0
-
-    normalized_weights = _normalize_weight_mapping(weights)
-    factors = _weighted_level_3_factors(battle, instances, player_trainer_id, opponent_trainer_id, movements, type_chart, move_effects)
-    return sum(normalized_weights[key] * factors[key] for key in GENETIC_WEIGHT_NAMES)
